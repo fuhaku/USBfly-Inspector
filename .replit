@@ -46,7 +46,12 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd . && RUST_LOG=debug cargo run"
+args = "cd . && RUST_LOG=debug cargo run -- --port 5000"
+waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "cd /home/runner/workspace && RUST_LOG=debug cargo run"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80

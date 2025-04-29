@@ -1,0 +1,39 @@
+INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Searching for compatible USB devices...
+ INFO  usbfly::cynthion::connection    > USB Device 0: Cynthion Project USB Analyzer [291b51df30c460de] (VID:1d50 PID:615b)
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Found compatible device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Connecting to USB Analyzer (VID:1d50, PID:615b)
+ INFO  usbfly::cynthion::connection    > Set auto-detach kernel driver
+ INFO  usbfly::cynthion::connection    > Successfully claimed interface 0
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ ERROR usbfly::cynthion::connection    > Error reading from Cynthion: Operation timed out
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ ERROR usbfly::cynthion::connection    > Error reading from Cynthion: Operation timed out
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported

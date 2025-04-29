@@ -56,8 +56,15 @@ pub struct CynthionConnection {
 impl CynthionConnection {
     // Get a list of all connected USB devices
     pub fn list_devices() -> Result<Vec<USBDeviceInfo>> {
-        // Check if simulation mode is enabled via environment variable
-        if Self::is_simulation_mode() {
+        // Check if a refresh was forced by a button press
+        let force_refresh = std::env::var("USBFLY_FORCE_REFRESH").is_ok();
+        if force_refresh {
+            info!("Force refresh requested - checking for real devices even if in simulation mode");
+            std::env::remove_var("USBFLY_FORCE_REFRESH");
+            // Continue with real device detection regardless of simulation mode setting
+        } 
+        // Normal operation - check simulation mode setting
+        else if Self::is_simulation_mode() {
             info!("Using simulated device list (simulation mode enabled)");
             return Ok(Self::get_simulated_devices());
         }
@@ -81,10 +88,22 @@ impl CynthionConnection {
             }
         };
         
+        // Flag to track if we found any real compatible devices
+        let mut found_real_cynthion = false;
+        
         for device in devices.iter() {
             if let Ok(descriptor) = device.device_descriptor() {
                 let vid = descriptor.vendor_id();
                 let pid = descriptor.product_id();
+                
+                // Check if this is a supported device
+                if Self::is_supported_device(vid, pid) {
+                    found_real_cynthion = true;
+                    info!("Real Cynthion device found: VID:{:04x} PID:{:04x}", vid, pid);
+                    
+                    // If we find a real device, ensure simulation mode is off
+                    Self::force_real_device_mode();
+                }
                 
                 // Create a temporary handle to get string descriptors
                 let device_info = if let Ok(handle) = device.open() {
@@ -136,7 +155,28 @@ impl CynthionConnection {
             }
         }
         
-        // If no devices were found, still return successful result with empty list
+        // If we found real devices but the list is empty, something's wrong
+        if found_real_cynthion && device_list.is_empty() {
+            warn!("Found Cynthion devices but couldn't read their details");
+        }
+        
+        // If we didn't find any devices, check if we're in simulation mode
+        if device_list.is_empty() || (!found_real_cynthion && !force_refresh) {
+            // Only use simulated devices if:
+            // 1. No devices found at all, or
+            // 2. No Cynthion devices found AND we're not doing a forced refresh
+            
+            // Check if simulation mode was already set
+            if !Self::is_simulation_mode() {
+                info!("No compatible USB devices found, using simulation mode");
+                // Activate simulation mode
+                std::env::set_var("USBFLY_SIMULATION_MODE", "1");
+            }
+            
+            return Ok(Self::get_simulated_devices());
+        }
+        
+        // If we get here, we found real devices, so return them
         Ok(device_list)
     }
     
@@ -197,6 +237,11 @@ impl CynthionConnection {
             Ok(val) => val == "1",
             Err(_) => false,
         }
+    }
+    
+    // Force simulation mode off - used when we know a real device is connected
+    pub fn force_real_device_mode() {
+        std::env::set_var("USBFLY_SIMULATION_MODE", "0");
     }
     
     pub async fn connect() -> Result<Self> {

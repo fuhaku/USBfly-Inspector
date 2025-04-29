@@ -9,6 +9,9 @@ use iced::{Application, Settings};
 use log::{info, warn, LevelFilter};
 use rusb::UsbContext; // Import UsbContext trait for devices method
 use std::env;
+use std::io::Write;
+use std::net::TcpListener;
+use std::thread;
 
 fn main() -> iced::Result {
     // Set default logging environment variable if not already set
@@ -25,6 +28,52 @@ fn main() -> iced::Result {
     
     info!("Starting USBfly application v{}", env!("CARGO_PKG_VERSION"));
     info!("Platform: {}", std::env::consts::OS);
+    
+    // Parse command line arguments
+    let args: Vec<String> = env::args().collect();
+    let mut port: Option<u16> = None;
+    
+    // Simple argument parser
+    for i in 1..args.len() {
+        if args[i] == "--port" && i + 1 < args.len() {
+            if let Ok(port_num) = args[i + 1].parse::<u16>() {
+                port = Some(port_num);
+                info!("HTTP server port specified: {}", port_num);
+            }
+        }
+    }
+    
+    // Start HTTP server for Replit if port is specified
+    if let Some(port_num) = port {
+        thread::spawn(move || {
+            match TcpListener::bind(format!("0.0.0.0:{}", port_num)) {
+                Ok(listener) => {
+                    info!("Started HTTP server on port {}", port_num);
+                    for stream in listener.incoming() {
+                        match stream {
+                            Ok(mut _stream) => {
+                                // Send a simple response indicating the app is running
+                                let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n\
+                                    <html><body>\
+                                    <h1>USBfly Application Running</h1>\
+                                    <p>The USBfly application is running in the background.</p>\
+                                    <p>This is a native application with a graphical interface.</p>\
+                                    </body></html>";
+                                
+                                if let Err(e) = _stream.write_all(response.as_bytes()) {
+                                    warn!("Failed to send HTTP response: {}", e);
+                                }
+                            }
+                            Err(e) => warn!("Connection failed: {}", e),
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!("Could not bind to port {}: {}", port_num, e);
+                }
+            }
+        });
+    }
     
     // Try to create a USB context to check for USB access - this will safely fail
     // with a warning if USB is not available (for example, in the Replit environment)

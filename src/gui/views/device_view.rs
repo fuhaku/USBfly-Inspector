@@ -55,6 +55,7 @@ impl iced::widget::container::StyleSheet for RegularDeviceStyle {
 #[derive(Debug, Clone)]
 pub enum Message {
     RefreshDevices,
+    ForceRefreshDevices,
     DeviceSelected(USBDeviceInfo),
     DevicesLoaded(Result<Vec<USBDeviceInfo>, String>),
     CheckAutoRefresh,
@@ -116,6 +117,24 @@ impl DeviceView {
                         match CynthionConnection::list_devices() {
                             Ok(devices) => Ok(devices),
                             Err(e) => Err(format!("Failed to list USB devices: {}", e)),
+                        }
+                    },
+                    Message::DevicesLoaded
+                )
+            },
+            Message::ForceRefreshDevices => {
+                info!("Force refreshing connected USB devices (checking for real hardware)");
+                // Set the force refresh flag
+                std::env::set_var("USBFLY_FORCE_REFRESH", "1");
+                // Update last refresh time
+                self.last_refresh_time = std::time::Instant::now();
+                // Query connected devices asynchronously
+                Command::perform(
+                    async {
+                        // This will run in a separate thread and use the force refresh flag
+                        match CynthionConnection::list_devices() {
+                            Ok(devices) => Ok(devices),
+                            Err(e) => Err(format!("Failed to force refresh USB devices: {}", e)),
                         }
                     },
                     Message::DevicesLoaded
@@ -209,7 +228,11 @@ impl DeviceView {
             .on_press(Message::RefreshDevices)
             .style(iced::theme::Button::Primary);
             
-        let header = row![title, refresh_button]
+        let force_refresh_button = button("Force Scan for Hardware")
+            .on_press(Message::ForceRefreshDevices)
+            .style(iced::theme::Button::Secondary);
+            
+        let header = row![title, refresh_button, force_refresh_button]
             .spacing(20)
             .align_items(iced::Alignment::Center)
             .width(Length::Fill);
@@ -230,10 +253,14 @@ impl DeviceView {
         // Device list display
         let device_list = if self.connected_devices.is_empty() {
             column![
-                text("No USB devices detected. Click 'Refresh Devices' to scan.")
+                text("No USB devices detected.").width(Length::Fill)
+                    .horizontal_alignment(iced::alignment::Horizontal::Center),
+                text("Click 'Refresh Devices' for a standard scan or 'Force Scan for Hardware' to check for newly connected devices.")
                     .width(Length::Fill)
                     .horizontal_alignment(iced::alignment::Horizontal::Center)
+                    .size(14)
             ]
+            .spacing(10)
             .width(Length::Fill)
             .padding(20)
         } else {
