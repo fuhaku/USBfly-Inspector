@@ -14,20 +14,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "USBfly HTTP Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "USBfly App"
-
-[[workflows.workflow]]
-name = "USBfly HTTP Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner/workspace && cargo run --bin http_server"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "USBfly App"
