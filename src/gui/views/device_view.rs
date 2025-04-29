@@ -283,7 +283,7 @@ impl DeviceView {
                 .style(iced::theme::Container::Box)
                 .padding(10)
                 .width(Length::Fill)
-                .height(Length::Units(200)),
+                .height(Length::Fixed(200.0)),
             container(device_details)
                 .style(iced::theme::Container::Box)
                 .padding(10)

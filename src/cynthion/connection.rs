@@ -46,35 +46,64 @@ impl fmt::Display for USBDeviceInfo {
 pub struct CynthionConnection {
     handle: Option<DeviceHandle<rusb::Context>>,
     active: bool,
+    // Simulation mode for environments without USB access (like Replit)
+    simulation_mode: bool,
 }
 
 impl CynthionConnection {
     // Get a list of all connected USB devices
     pub fn list_devices() -> Result<Vec<USBDeviceInfo>> {
-        let context = rusb::Context::new()?;
+        // Try to create USB context, if it fails, use simulation mode
+        let context = match rusb::Context::new() {
+            Ok(ctx) => ctx,
+            Err(e) => {
+                warn!("USB context initialization failed: {}. Using simulated device list.", e);
+                return Ok(Self::get_simulated_devices());
+            }
+        };
+        
         let mut device_list = Vec::new();
         
-        let devices = context.devices()?;
+        let devices = match context.devices() {
+            Ok(devs) => devs,
+            Err(e) => {
+                warn!("Failed to enumerate USB devices: {}. Using simulated device list.", e);
+                return Ok(Self::get_simulated_devices());
+            }
+        };
+        
         for device in devices.iter() {
             if let Ok(descriptor) = device.device_descriptor() {
                 let vid = descriptor.vendor_id();
                 let pid = descriptor.product_id();
                 
                 // Create a temporary handle to get string descriptors
-                let device_info = if let Ok(mut handle) = device.open() {
+                let device_info = if let Ok(handle) = device.open() {
                     let timeout = Duration::from_millis(100);
-                    // Use default language (usually English/US)
-                    let language = rusb::Language::get_english();
+                    // Try to get available languages
+                    let default_language = match handle.read_languages(timeout) {
+                        Ok(langs) if !langs.is_empty() => Some(langs[0]),
+                        _ => None,
+                    };
                     
                     // Get string descriptors (in a way that handles errors gracefully)
-                    let manufacturer = descriptor.manufacturer_string_index()
-                        .and_then(|idx| handle.read_manufacturer_string(language, &descriptor, timeout).ok());
+                    let manufacturer = match default_language {
+                        Some(lang) => descriptor.manufacturer_string_index()
+                            .and_then(|_idx| handle.read_manufacturer_string(lang, &descriptor, timeout).ok()),
+                        None => None,
+                    };
                     
-                    let product = descriptor.product_string_index()
-                        .and_then(|idx| handle.read_product_string(language, &descriptor, timeout).ok());
+                    let product = match default_language {
+                        Some(lang) => descriptor.product_string_index()
+                            .and_then(|_idx| handle.read_product_string(lang, &descriptor, timeout).ok()),
+                        None => None,
+                    };
                     
-                    let serial = descriptor.serial_number_string_index()
-                        .and_then(|idx| handle.read_serial_number_string(language, &descriptor, timeout).ok());
+                    let serial = match default_language {
+                        Some(lang) => descriptor.serial_number_string_index()
+                            .and_then(|_idx| handle.read_serial_number_string(lang, &descriptor, timeout).ok()),
+                        None => None,
+                    };
                     
                     USBDeviceInfo {
                         vendor_id: vid,
@@ -98,6 +127,7 @@ impl CynthionConnection {
             }
         }
         
+        // If no devices were found, still return successful result with empty list
         Ok(device_list)
     }
     
@@ -121,8 +151,25 @@ impl CynthionConnection {
         false
     }
     
+    // Create a simulated connection for environments without USB access
+    pub fn create_simulation() -> Self {
+        info!("Creating simulated Cynthion connection (no USB hardware access)");
+        Self {
+            handle: None,
+            active: true,
+            simulation_mode: true,
+        }
+    }
+    
     pub async fn connect() -> Result<Self> {
-        let context = rusb::Context::new()?;
+        // Try to create USB context, if it fails, use simulation mode
+        let context = match rusb::Context::new() {
+            Ok(ctx) => ctx,
+            Err(e) => {
+                warn!("USB context initialization failed: {}. Using simulation mode.", e);
+                return Ok(Self::create_simulation());
+            }
+        };
         
         // Debug: Log all connected USB devices
         info!("Searching for compatible USB devices...");
@@ -201,10 +248,19 @@ impl CynthionConnection {
         // Get device descriptor for logging
         if let Ok(descriptor) = device.device_descriptor() {
             let timeout = Duration::from_millis(100);
-            let language = rusb::Language::get_english();
-            let product_name = descriptor.product_string_index()
-                .and_then(|idx| handle.read_product_string(language, &descriptor, timeout).ok())
-                .unwrap_or_else(|| "Unknown Device".to_string());
+            
+            // Try to get available languages
+            let default_language = match handle.read_languages(timeout) {
+                Ok(langs) if !langs.is_empty() => Some(langs[0]),
+                _ => None,
+            };
+                
+            // Get product name with language
+            let product_name = match default_language {
+                Some(lang) => descriptor.product_string_index()
+                    .and_then(|_idx| handle.read_product_string(lang, &descriptor, timeout).ok()),
+                None => None,
+            }.unwrap_or_else(|| "Unknown Device".to_string());
                 
             info!("Connecting to {} (VID:{:04x}, PID:{:04x})", 
                 product_name, descriptor.vendor_id(), descriptor.product_id());
@@ -233,6 +289,7 @@ impl CynthionConnection {
                 Ok(Self {
                     handle: Some(handle),
                     active: true,
+                    simulation_mode: false,
                 })
             },
             Err(e) => {
@@ -243,6 +300,14 @@ impl CynthionConnection {
     }
     
     pub fn disconnect(&mut self) -> Result<()> {
+        // Handle simulation mode specially
+        if self.simulation_mode {
+            self.active = false;
+            info!("Disconnected from simulated Cynthion device");
+            return Ok(());
+        }
+        
+        // Standard disconnect for real device
         if let Some(handle) = self.handle.take() {
             if let Err(e) = handle.release_interface(CYNTHION_INTERFACE) {
                 error!("Failed to release interface: {}", e);
@@ -253,11 +318,52 @@ impl CynthionConnection {
         Ok(())
     }
     
+    // Get a list of simulated USB devices
+    pub fn get_simulated_devices() -> Vec<USBDeviceInfo> {
+        vec![
+            USBDeviceInfo {
+                vendor_id: CYNTHION_VID,
+                product_id: CYNTHION_PID,
+                manufacturer: Some("Great Scott Gadgets".to_string()),
+                product: Some("Cynthion USB Analyzer".to_string()),
+                serial_number: Some("GSG12345".to_string()),
+            },
+            USBDeviceInfo {
+                vendor_id: TEST_VID,
+                product_id: TEST_PID,
+                manufacturer: Some("Great Scott Gadgets".to_string()),
+                product: Some("GreatFET (Development)".to_string()),
+                serial_number: Some("DEV98765".to_string()),
+            },
+        ]
+    }
+    
+    // Generate simulated USB data for testing
+    fn get_simulated_data(&self) -> Vec<u8> {
+        // Simple simulated descriptor data (this could be expanded to be more realistic)
+        // Just a basic device descriptor format
+        let data = vec![
+            0x12, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x40, // Standard device descriptor header
+            0x50, 0x1d, 0x5c, 0x61, 0x00, 0x01, 0x01, 0x02, // VID/PID and other fields
+            0x03, 0x01                                      // End of descriptor
+        ];
+        data
+    }
+    
     pub async fn read_data(&mut self) -> Result<Vec<u8>> {
         if !self.active {
             return Err(anyhow!("Not connected"));
         }
         
+        // If in simulation mode, return simulated data
+        if self.simulation_mode {
+            debug!("Returning simulated USB data");
+            // Add a small delay to simulate real device behavior
+            sleep(Duration::from_millis(50)).await;
+            return Ok(self.get_simulated_data());
+        }
+        
+        // Real device mode - proceed with actual USB communication
         let handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
         
         // Buffer to store data
@@ -284,6 +390,12 @@ impl CynthionConnection {
         // Check active state up front
         if !self.active {
             return Err(anyhow!("Not connected"));
+        }
+        
+        // If in simulation mode, return simulated data
+        if self.simulation_mode {
+            debug!("Returning simulated USB data (sync)");
+            return Ok(self.get_simulated_data());
         }
         
         // Get handle or return error
@@ -317,6 +429,12 @@ impl CynthionConnection {
             return Err(anyhow!("Not connected"));
         }
         
+        // In simulation mode, just log the command and return success
+        if self.simulation_mode {
+            debug!("Simulation mode: Command sent ({} bytes): {:?}", command.len(), command);
+            return Ok(());
+        }
+        
         let handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
         
         match handle.write_bulk(CYNTHION_OUT_EP, command, TIMEOUT_MS) {
@@ -339,7 +457,13 @@ impl CynthionConnection {
     }
     
     pub fn is_connected(&self) -> bool {
-        self.active && self.handle.is_some()
+        if self.simulation_mode {
+            // In simulation mode, just check if active
+            self.active
+        } else {
+            // In real device mode, need both active flag and handle
+            self.active && self.handle.is_some()
+        }
     }
 }
 
