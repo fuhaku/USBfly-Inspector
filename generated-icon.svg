@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#242932" />
+
+  <!-- PCB-like background -->
+  <rect x="56" y="56" width="400" height="400" rx="16" fill="#1a3c40" />
+  
+  <!-- USB Symbol -->
+  <g transform="translate(106, 106) scale(3)">
+    <!-- USB Symbol parts -->
+    <circle cx="50" cy="50" r="45" fill="none" stroke="#00c2cb" stroke-width="5" />
+    <rect x="25" y="25" width="50" height="50" rx="5" fill="none" stroke="#00c2cb" stroke-width="5" />
+    <path d="M50,25 L50,75" stroke="#00c2cb" stroke-width="5" stroke-linecap="round" />
+    <path d="M25,50 L75,50" stroke="#00c2cb" stroke-width="5" stroke-linecap="round" />
+    <path d="M35,35 L65,65" stroke="#00c2cb" stroke-width="5" stroke-linecap="round" />
+    <path d="M35,65 L65,35" stroke="#00c2cb" stroke-width="5" stroke-linecap="round" />
+  </g>
+  
+  <!-- USB Fly Text -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#ffffff">USBfly</text>
+  
+  <!-- Circuit traces -->
+  <path d="M56,200 L120,200 L140,220 L160,180 L180,220 L200,180 L220,220 L240,180 L260,220 L280,180 L300,220 L320,180 L340,220 L360,180 L380,220 L400,200 L456,200" 
+        stroke="#78d9ff" stroke-width="3" fill="none" />
+  <path d="M200,56 L200,120 L220,140 L180,160 L220,180 L180,200 L220,220 L180,240 L220,260 L180,280 L220,300 L180,320 L220,340 L180,360 L200,380 L200,456" 
+        stroke="#78d9ff" stroke-width="3" fill="none" />
+  
+  <!-- Connection dots -->
+  <circle cx="200" cy="200" r="6" fill="#ff5722" />
+  <circle cx="300" cy="260" r="6" fill="#ff5722" />
+  <circle cx="350" cy="150" r="6" fill="#ff5722" />
+  <circle cx="150" cy="350" r="6" fill="#ff5722" />
+</svg>

@@ -1,35 +1,28 @@
 #!/bin/bash
-set -e
+# USBfly macOS packaging script
+# This script will build a macOS app bundle for USBfly
+
+set -e  # Exit on any error
 
 # Configuration
 APP_NAME="USBfly"
-APP_IDENTIFIER="com.usbfly.app"
-APP_VERSION="0.1.0"
-ICON_PATH="assets/icon.svg"
-OUTPUT_DIR="target/release"
+APP_VERSION="1.0.0"
+BUNDLE_ID="com.greatscottgadgets.usbfly"
+MACOS_DEPLOYMENT_TARGET="10.15"  # Catalina or later
+ICON_PATH="./generated-icon.png"
+COPYRIGHT="© $(date +%Y) Great Scott Gadgets"
 
-# Check if the binary exists
-if [ ! -f "$OUTPUT_DIR/usbfly" ]; then
-    echo "Error: Release binary not found at $OUTPUT_DIR/usbfly"
-    echo "Please build the project with 'cargo build --release' first."
-    exit 1
-fi
+# Create output directories
+echo "Creating output directories..."
+mkdir -p "./target/release/bundle/macos/$APP_NAME.app/Contents/"{MacOS,Resources,Frameworks}
 
-# Create the app bundle structure
-BUNDLE_DIR="$OUTPUT_DIR/$APP_NAME.app"
-CONTENTS_DIR="$BUNDLE_DIR/Contents"
-MACOS_DIR="$CONTENTS_DIR/MacOS"
-RESOURCES_DIR="$CONTENTS_DIR/Resources"
-
-mkdir -p "$MACOS_DIR"
-mkdir -p "$RESOURCES_DIR"
-
-# Copy the binary
-cp "$OUTPUT_DIR/usbfly" "$MACOS_DIR/$APP_NAME"
-chmod +x "$MACOS_DIR/$APP_NAME"
+# Build release binary
+echo "Building release binary..."
+cargo build --release
 
 # Create Info.plist
-cat > "$CONTENTS_DIR/Info.plist" << EOF
+echo "Creating Info.plist..."
+cat > "./target/release/bundle/macos/$APP_NAME.app/Contents/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -37,60 +30,92 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>$APP_NAME</string>
+    <string>${APP_NAME}</string>
     <key>CFBundleExecutable</key>
-    <string>$APP_NAME</string>
+    <string>${APP_NAME}</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>$APP_IDENTIFIER</string>
+    <string>${BUNDLE_ID}</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>$APP_NAME</string>
+    <string>${APP_NAME}</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>$APP_VERSION</string>
+    <string>${APP_VERSION}</string>
     <key>CFBundleVersion</key>
-    <string>$APP_VERSION</string>
+    <string>${APP_VERSION}</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.developer-tools</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>${MACOS_DEPLOYMENT_TARGET}</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2023. All rights reserved.</string>
+    <string>${COPYRIGHT}</string>
 </dict>
 </plist>
 EOF
 
-# Check if the icon file exists and convert it to .icns
+# Copy the binary
+echo "Copying binary..."
+cp "./target/release/usbfly" "./target/release/bundle/macos/$APP_NAME.app/Contents/MacOS/$APP_NAME"
+
+# Generate and convert icon if needed 
 if [ -f "$ICON_PATH" ]; then
-    echo "Converting SVG icon to icns..."
-    # For this step, you'd typically need to use ImageMagick or a similar tool
-    # to convert the SVG to PNG files at various sizes, then use iconutil to create an .icns
-    # For simplicity, we'll just mention that this step would be done here
-    echo "Note: In a real implementation, the SVG would be converted to an .icns file here."
-    echo "For now, we'll create an empty icon file as a placeholder."
-    touch "$RESOURCES_DIR/AppIcon.icns"
+    echo "Converting icon..."
+    mkdir -p "./target/release/bundle/macos/$APP_NAME.app/Contents/Resources/AppIcon.iconset"
+    
+    # Check if we have sips/iconutil (macOS tools) or use alternative conversion
+    if command -v sips >/dev/null && command -v iconutil >/dev/null; then
+        # macOS icon generation
+        for size in 16 32 64 128 256 512; do
+            sips -z $size $size "$ICON_PATH" --out "./target/release/bundle/macos/$APP_NAME.app/Contents/Resources/AppIcon.iconset/icon_${size}x${size}.png"
+            sips -z $((size*2)) $((size*2)) "$ICON_PATH" --out "./target/release/bundle/macos/$APP_NAME.app/Contents/Resources/AppIcon.iconset/icon_${size}x${size}@2x.png"
+        done
+        iconutil -c icns "./target/release/bundle/macos/$APP_NAME.app/Contents/Resources/AppIcon.iconset" -o "./target/release/bundle/macos/$APP_NAME.app/Contents/Resources/AppIcon.icns"
+        rm -rf "./target/release/bundle/macos/$APP_NAME.app/Contents/Resources/AppIcon.iconset"
+    else
+        # Fallback if not on macOS
+        echo "Warning: sips/iconutil not available. Using icon file directly."
+        cp "$ICON_PATH" "./target/release/bundle/macos/$APP_NAME.app/Contents/Resources/AppIcon.icns"
+    fi
 else
-    echo "Warning: Icon file not found at $ICON_PATH"
-    echo "Creating a placeholder icon file."
-    touch "$RESOURCES_DIR/AppIcon.icns"
+    echo "Warning: Icon file not found at $ICON_PATH. App will have no custom icon."
 fi
 
-# Create a DMG
-DMG_FILE="$OUTPUT_DIR/$APP_NAME-$APP_VERSION.dmg"
-DMG_TMP_FILE="$OUTPUT_DIR/$APP_NAME-$APP_VERSION-tmp.dmg"
+# Handle dylib dependencies if needed (this could be expanded)
+echo "Checking for dynamic library dependencies..."
+# Use otool on macOS to check dylib dependencies
+if command -v otool >/dev/null; then
+    DEPS=$(otool -L "./target/release/usbfly" | grep -v '/System/\|/usr/lib/\|@executable_path/' | awk '{print $1}')
+    if [ -n "$DEPS" ]; then
+        echo "Found dependencies to bundle:"
+        echo "$DEPS"
+        for lib in $DEPS; do
+            echo "Copying $lib..."
+            cp "$lib" "./target/release/bundle/macos/$APP_NAME.app/Contents/Frameworks/"
+            LIBNAME=$(basename "$lib")
+            install_name_tool -change "$lib" "@executable_path/../Frameworks/$LIBNAME" "./target/release/bundle/macos/$APP_NAME.app/Contents/MacOS/$APP_NAME"
+        done
+    else
+        echo "No external dependencies found."
+    fi
+else
+    echo "otool not available. Skipping dylib dependency check."
+fi
 
-echo "Creating DMG..."
-# For simplicity, we're using a basic approach here.
-# In a real implementation, you might want to use create-dmg or similar tools
-# to create a more polished DMG with custom background, etc.
+# Create a DMG for distribution (if hdiutil is available)
+if command -v hdiutil >/dev/null; then
+    echo "Creating DMG..."
+    DMG_PATH="./target/release/$APP_NAME-$APP_VERSION.dmg"
+    hdiutil create -volname "$APP_NAME" -srcfolder "./target/release/bundle/macos/$APP_NAME.app" -ov -format UDZO "$DMG_PATH"
+    echo "DMG created: $DMG_PATH"
+else
+    echo "hdiutil not found. Skipping DMG creation."
+    echo "App bundle is located at: ./target/release/bundle/macos/$APP_NAME.app"
+fi
 
-# Create a temporary DMG
-hdiutil create -volname "$APP_NAME" -srcfolder "$BUNDLE_DIR" -ov -format UDRW "$DMG_TMP_FILE"
-
-# Convert the temporary DMG to the final compressed DMG
-hdiutil convert "$DMG_TMP_FILE" -format UDZO -o "$DMG_FILE"
-rm -f "$DMG_TMP_FILE"
-
-echo "Done! Created $APP_NAME.app and $APP_NAME-$APP_VERSION.dmg in the $OUTPUT_DIR directory."
+echo "Packaging complete!"

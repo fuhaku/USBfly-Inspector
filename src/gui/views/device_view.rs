@@ -34,11 +34,11 @@ impl iced::widget::container::StyleSheet for CompatibleDeviceStyle {
     
     fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
         iced::widget::container::Appearance {
-            text_color: Some(Color::BLACK),
-            background: Some(Background::Color(Color::from_rgb(0.7, 0.9, 0.7))),
-            border_radius: 4.0.into(),
+            text_color: Some(crate::gui::styles::color::TEXT),
+            background: Some(Background::Color(crate::gui::styles::color::SECONDARY_LIGHT)),
+            border_radius: crate::gui::styles::BORDER_RADIUS.into(),
             border_width: 1.0,
-            border_color: Color::from_rgb(0.0, 0.6, 0.0),
+            border_color: crate::gui::styles::color::SECONDARY,
         }
     }
 }
@@ -50,9 +50,9 @@ impl iced::widget::container::StyleSheet for RegularDeviceStyle {
     
     fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
         iced::widget::container::Appearance {
-            text_color: Some(Color::BLACK),
-            background: Some(Background::Color(Color::from_rgb(0.95, 0.95, 0.95))),
-            border_radius: 4.0.into(),
+            text_color: Some(crate::gui::styles::color::TEXT),
+            background: Some(Background::Color(crate::gui::styles::color::BACKGROUND)),
+            border_radius: crate::gui::styles::BORDER_RADIUS.into(),
             border_width: 1.0,
             border_color: Color::from_rgb(0.8, 0.8, 0.8),
         }
@@ -227,10 +227,15 @@ impl DeviceView {
     }
     
     pub fn view(&self) -> Element<Message> {
-        let title = text("Connected USB Devices")
-            .size(24)
-            .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.8)));
-            
+        // Use our title style with theme-compatible formatting
+        let title = container(
+            text("Connected USB Devices")
+                .size(24)
+                .style(iced::theme::Text::Color(crate::gui::styles::color::PRIMARY_DARK))
+        )
+        .padding([0, 10, 0, 10]);
+        
+        // Use primary and secondary button styles that work with the iced theme system
         let refresh_button = button("Refresh Devices")
             .on_press(Message::RefreshDevices)
             .style(iced::theme::Button::Primary);
@@ -248,7 +253,7 @@ impl DeviceView {
         let error_display = if let Some(error) = &self.last_error {
             container(
                 text(format!("Error: {}", error))
-                    .style(iced::theme::Text::Color(Color::from_rgb(0.8, 0.0, 0.0)))
+                    .style(iced::theme::Text::Color(crate::gui::styles::color::ERROR))
             )
             .padding(10)
             .width(Length::Fill)
@@ -257,19 +262,24 @@ impl DeviceView {
             container(text("")).width(Length::Fill)
         };
         
-        // Device list display
+        // Device list display with card-like appearance
         let device_list = if self.connected_devices.is_empty() {
-            column![
-                text("No USB devices detected.").width(Length::Fill)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center),
-                text("Click 'Refresh Devices' for a standard scan or 'Force Scan for Hardware' to check for newly connected devices.")
-                    .width(Length::Fill)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center)
-                    .size(14)
-            ]
-            .spacing(10)
+            container(
+                column![
+                    text("No USB devices detected.").width(Length::Fill)
+                        .horizontal_alignment(iced::alignment::Horizontal::Center)
+                        .style(iced::theme::Text::Color(crate::gui::styles::color::INFO)),
+                    text("Click 'Refresh Devices' for a standard scan or 'Force Scan for Hardware' to check for newly connected devices.")
+                        .width(Length::Fill)
+                        .horizontal_alignment(iced::alignment::Horizontal::Center)
+                        .size(14)
+                        .style(iced::theme::Text::Color(crate::gui::styles::color::TEXT_SECONDARY))
+                ]
+                .spacing(10)
+            )
+            .padding(15)
             .width(Length::Fill)
-            .padding(20)
+            .style(iced::theme::Container::Box)
         } else {
             let devices: Vec<Element<_>> = self.connected_devices
                 .iter()
@@ -285,10 +295,10 @@ impl DeviceView {
                                 .size(16),
                             if is_compatible {
                                 text("✓ Compatible")
-                                    .style(iced::theme::Text::Color(Color::from_rgb(0.0, 0.6, 0.0)))
+                                    .style(iced::theme::Text::Color(crate::gui::styles::color::SUCCESS))
                             } else {
                                 text("Incompatible")
-                                    .style(iced::theme::Text::Color(Color::from_rgb(0.6, 0.6, 0.6)))
+                                    .style(iced::theme::Text::Color(crate::gui::styles::color::TEXT_SECONDARY))
                             }
                         ].spacing(10),
                         text(format!("VID:{:04x} PID:{:04x} SN:{}", 
@@ -296,7 +306,7 @@ impl DeviceView {
                             device.product_id,
                             device.serial_number.as_deref().unwrap_or("N/A")))
                             .size(14)
-                            .style(iced::theme::Text::Color(Color::from_rgb(0.3, 0.3, 0.3)))
+                            .style(iced::theme::Text::Color(crate::gui::styles::color::TEXT_SECONDARY))
                     ]
                     .padding(10)
                     .spacing(5)
@@ -319,9 +329,14 @@ impl DeviceView {
                 })
                 .collect();
                 
-            column(devices)
-                .spacing(10)
-                .width(Length::Fill)
+            container(
+                column(devices)
+                    .spacing(10)
+                    .width(Length::Fill)
+            )
+            .padding(15)
+            .width(Length::Fill)
+            .style(iced::theme::Container::Box)
         };
         
         // Selected device detail view
@@ -331,7 +346,7 @@ impl DeviceView {
             column![
                 text("Selected Device Details")
                     .size(18)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.4, 0.7))),
+                    .style(iced::theme::Text::Color(crate::gui::styles::color::PRIMARY_DARK)),
                 column![
                     row![
                         text("Vendor ID:").width(Length::FillPortion(1)),
@@ -357,9 +372,9 @@ impl DeviceView {
                         text("Compatibility:").width(Length::FillPortion(1)),
                         text(if is_compatible { "Compatible with USBfly" } else { "Not compatible" })
                             .style(if is_compatible {
-                                iced::theme::Text::Color(Color::from_rgb(0.0, 0.6, 0.0))
+                                iced::theme::Text::Color(crate::gui::styles::color::SUCCESS)
                             } else {
-                                iced::theme::Text::Color(Color::from_rgb(0.7, 0.0, 0.0))
+                                iced::theme::Text::Color(crate::gui::styles::color::ERROR)
                             })
                             .width(Length::FillPortion(2))
                     ].padding(5).spacing(10)

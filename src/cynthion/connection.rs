@@ -499,15 +499,94 @@ impl CynthionConnection {
         ]
     }
     
-    // Generate simulated USB data for testing
+    // Generate simulated USB data for testing 
     fn get_simulated_data(&self) -> Vec<u8> {
-        // Simple simulated descriptor data (this could be expanded to be more realistic)
-        // Just a basic device descriptor format
-        let data = vec![
-            0x12, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x40, // Standard device descriptor header
-            0x50, 0x1d, 0x5c, 0x61, 0x00, 0x01, 0x01, 0x02, // VID/PID and other fields
-            0x03, 0x01                                      // End of descriptor
+        // Generate realistic simulated USB descriptor data for a Cynthion device
+        // This is a complete descriptor set including device, configuration, interface, endpoint descriptors
+        
+        // Device Descriptor (18 bytes)
+        // bLength, bDescriptorType, bcdUSB, bDeviceClass, bDeviceSubClass, bDeviceProtocol, bMaxPacketSize0
+        // idVendor, idProduct, bcdDevice, iManufacturer, iProduct, iSerialNumber, bNumConfigurations
+        let device_descriptor = vec![
+            0x12, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x40, 
+            0x50, 0x1d, 0x5c, 0x61, 0x00, 0x01, 0x01, 0x02, 
+            0x03, 0x01
         ];
+        
+        // Configuration Descriptor (9 bytes)
+        // bLength, bDescriptorType, wTotalLength, bNumInterfaces, bConfigurationValue, iConfiguration, bmAttributes, bMaxPower
+        let config_descriptor = vec![
+            0x09, 0x02, 0x29, 0x00, 0x01, 0x01, 0x00, 0xC0, 0x32
+        ];
+        
+        // Interface Descriptor (9 bytes)
+        // bLength, bDescriptorType, bInterfaceNumber, bAlternateSetting, bNumEndpoints, bInterfaceClass, bInterfaceSubClass, bInterfaceProtocol, iInterface
+        let interface_descriptor = vec![
+            0x09, 0x04, 0x00, 0x00, 0x02, 0xFF, 0x42, 0x01, 0x04
+        ];
+        
+        // Endpoint Descriptor 1 - OUT (7 bytes)
+        // bLength, bDescriptorType, bEndpointAddress, bmAttributes, wMaxPacketSize, bInterval
+        let endpoint1_descriptor = vec![
+            0x07, 0x05, 0x01, 0x02, 0x00, 0x02, 0x00
+        ];
+        
+        // Endpoint Descriptor 2 - IN (7 bytes)
+        // bLength, bDescriptorType, bEndpointAddress, bmAttributes, wMaxPacketSize, bInterval
+        let endpoint2_descriptor = vec![
+            0x07, 0x05, 0x81, 0x02, 0x00, 0x02, 0x00
+        ];
+        
+        // String Descriptor 0 - Language IDs (4 bytes)
+        // bLength, bDescriptorType, wLANGID[0]
+        let string0_descriptor = vec![
+            0x04, 0x03, 0x09, 0x04
+        ];
+        
+        // String Descriptor 1 - Manufacturer: "Great Scott Gadgets" (42 bytes)
+        // bLength, bDescriptorType, bString (UTF-16LE)
+        let string1_descriptor = vec![
+            0x2A, 0x03, 0x47, 0x00, 0x72, 0x00, 0x65, 0x00, 0x61, 0x00, 0x74, 0x00, 0x20, 0x00, 
+            0x53, 0x00, 0x63, 0x00, 0x6F, 0x00, 0x74, 0x00, 0x74, 0x00, 0x20, 0x00, 0x47, 0x00, 
+            0x61, 0x00, 0x64, 0x00, 0x67, 0x00, 0x65, 0x00, 0x74, 0x00, 0x73, 0x00
+        ];
+        
+        // String Descriptor 2 - Product: "Cynthion USB Analyzer" (40 bytes)
+        // bLength, bDescriptorType, bString (UTF-16LE)
+        let string2_descriptor = vec![
+            0x28, 0x03, 0x43, 0x00, 0x79, 0x00, 0x6E, 0x00, 0x74, 0x00, 0x68, 0x00, 0x69, 0x00, 
+            0x6F, 0x00, 0x6E, 0x00, 0x20, 0x00, 0x55, 0x00, 0x53, 0x00, 0x42, 0x00, 0x20, 0x00, 
+            0x41, 0x00, 0x6E, 0x00, 0x61, 0x00, 0x6C, 0x00, 0x79, 0x00, 0x7A, 0x00, 0x65, 0x00, 0x72, 0x00
+        ];
+        
+        // String Descriptor 3 - Serial Number: "SIM123456789" (26 bytes)
+        // bLength, bDescriptorType, bString (UTF-16LE)
+        let string3_descriptor = vec![
+            0x1A, 0x03, 0x53, 0x00, 0x49, 0x00, 0x4D, 0x00, 0x31, 0x00, 0x32, 0x00, 0x33, 0x00, 
+            0x34, 0x00, 0x35, 0x00, 0x36, 0x00, 0x37, 0x00, 0x38, 0x00, 0x39, 0x00
+        ];
+        
+        // String Descriptor 4 - Interface: "USB Data Interface" (36 bytes)
+        // bLength, bDescriptorType, bString (UTF-16LE)
+        let string4_descriptor = vec![
+            0x24, 0x03, 0x55, 0x00, 0x53, 0x00, 0x42, 0x00, 0x20, 0x00, 0x44, 0x00, 0x61, 0x00, 
+            0x74, 0x00, 0x61, 0x00, 0x20, 0x00, 0x49, 0x00, 0x6E, 0x00, 0x74, 0x00, 0x65, 0x00, 
+            0x72, 0x00, 0x66, 0x00, 0x61, 0x00, 0x63, 0x00, 0x65, 0x00
+        ];
+        
+        // Combine all descriptors
+        let mut data = Vec::new();
+        data.extend_from_slice(&device_descriptor);
+        data.extend_from_slice(&config_descriptor);
+        data.extend_from_slice(&interface_descriptor);
+        data.extend_from_slice(&endpoint1_descriptor);
+        data.extend_from_slice(&endpoint2_descriptor);
+        data.extend_from_slice(&string0_descriptor);
+        data.extend_from_slice(&string1_descriptor);
+        data.extend_from_slice(&string2_descriptor);
+        data.extend_from_slice(&string3_descriptor);
+        data.extend_from_slice(&string4_descriptor);
+        
         data
     }
     
