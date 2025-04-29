@@ -80,26 +80,24 @@ impl Application for USBflyApp {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+        // Use the DeviceView with auto-refresh feature
+        let (device_view, device_command) = DeviceView::new().with_initial_scan();
+        
         let app = Self {
             connection: None,
             usb_decoder: USBDecoder::new(),
             active_tab: Tab::Devices,
-            device_view: DeviceView::new(),
+            device_view,
             traffic_view: TrafficView::new(),
             descriptor_view: DescriptorView::new(),
             connected: false,
             error_message: None,
         };
         
-        // Automatically scan for USB devices when the app starts
-        let refresh_command = Command::perform(
-            async { 
-                crate::gui::views::device_view::Message::RefreshDevices 
-            },
-            Message::DeviceViewMessage
-        );
+        // Map the device command to our application's message type
+        let init_command = device_command.map(Message::DeviceViewMessage);
 
-        (app, refresh_command)
+        (app, init_command)
     }
 
     fn title(&self) -> String {
@@ -224,32 +222,48 @@ impl Application for USBflyApp {
     }
 
     fn subscription(&self) -> Subscription<Message> {
+        // Create a batch of subscriptions for different features
+        let mut subscriptions = Vec::new();
+        
         // Subscribe to USB data from connection if connected
         if let Some(connection) = &self.connection {
             let conn = Arc::clone(connection);
-            iced::subscription::unfold(
-                "usb-data-subscription",
-                conn,
-                move |conn| async move {
-                    // Use a clone + drop approach to avoid holding MutexGuard across an await point
-                    let result = {
-                        let mut connection = conn.lock().unwrap();
-                        // Clone the required fields or prepare the async call
-                        connection.read_data_clone()
-                    };
-                    
-                    // The read_data_clone method now returns Result directly, 
-                    // so we don't need to use poll or futures machinery
-                    let data = result;
-                    
-                    match data {
-                        Ok(data) => (Message::USBDataReceived(data), conn),
-                        Err(_) => (Message::ConnectionFailed("Connection lost".to_string()), conn),
-                    }
-                },
-            )
-        } else {
+            subscriptions.push(
+                iced::subscription::unfold(
+                    "usb-data-subscription",
+                    conn,
+                    move |conn| async move {
+                        // Use a clone + drop approach to avoid holding MutexGuard across an await point
+                        let result = {
+                            let mut connection = conn.lock().unwrap();
+                            // Clone the required fields or prepare the async call
+                            connection.read_data_clone()
+                        };
+                        
+                        // The read_data_clone method now returns Result directly, 
+                        // so we don't need to use poll or futures machinery
+                        let data = result;
+                        
+                        match data {
+                            Ok(data) => (Message::USBDataReceived(data), conn),
+                            Err(_) => (Message::ConnectionFailed("Connection lost".to_string()), conn),
+                        }
+                    },
+                )
+            );
+        }
+        
+        // Always add the device view subscription for auto-refresh of USB devices
+        subscriptions.push(
+            self.device_view.subscription()
+                .map(Message::DeviceViewMessage)
+        );
+        
+        // Return a batch of all subscriptions
+        if subscriptions.is_empty() {
             Subscription::none()
+        } else {
+            Subscription::batch(subscriptions)
         }
     }
 

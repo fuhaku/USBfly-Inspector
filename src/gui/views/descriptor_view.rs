@@ -1,4 +1,4 @@
-use iced::widget::{button, column, container, row, scrollable, text, Column, Row};
+use iced::widget::{button, column, container, row, scrollable, text, Column};
 use iced::{Command, Element, Length};
 use crate::usb::descriptors::USBDescriptor;
 use crate::usb::hints::get_descriptor_hints;

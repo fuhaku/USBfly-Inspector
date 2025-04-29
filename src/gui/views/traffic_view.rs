@@ -1,4 +1,4 @@
-use iced::widget::{button, column, container, row, scrollable, text, text_input, Column, Row};
+use iced::widget::{button, column, container, row, scrollable, text, text_input, Column};
 use iced::{Command, Element, Length};
 use crate::usb::decoder::DecodedUSBData;
 use crate::gui::styles;
@@ -237,27 +237,74 @@ impl TrafficView {
             if index < self.traffic_data.len() {
                 let item = &self.traffic_data[index];
                 
-                let hex_data = format!("Raw Data: {:02X?}", item.raw_data);
+                // Format raw data with byte offset display
+                let mut hex_data_lines = Vec::new();
+                for chunk in item.raw_data.chunks(16) {
+                    let offset = hex_data_lines.len() * 16;
+                    let hex_values: Vec<String> = chunk.iter().map(|b| format!("{:02X}", b)).collect();
+                    let ascii_values: String = chunk.iter()
+                        .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                        .collect();
+                    
+                    let hex_line = format!("{:04X}: {} | {}", 
+                                          offset, 
+                                          hex_values.join(" "), 
+                                          ascii_values);
+                    hex_data_lines.push(hex_line);
+                }
                 
-                let descriptors = Column::with_children(
-                    item.decoded_data.descriptors
-                        .iter()
-                        .map(|desc| {
-                            text(format!("{}", desc))
-                                .style(iced::theme::Text::Default)
-                                .into()
-                        })
+                let hex_data_view = Column::with_children(
+                    hex_data_lines.into_iter()
+                        .map(|line| text(line).font(iced::Font::MONOSPACE).into())
                         .collect()
                 );
                 
+                // Build a tree-like view of descriptors with indentation
+                let descriptors_tree = Column::with_children(
+                    build_descriptor_tree(&item.decoded_data.descriptors)
+                        .into_iter()
+                        .map(|e| e.into())
+                        .collect()
+                );
+                
+                // Create a timestamp display
+                let timestamp = format_timestamp(item.timestamp);
+                
                 container(
                     column![
-                        text("Selected Item").size(18),
-                        text(hex_data),
-                        container(descriptors)
-                            .style(iced::theme::Container::Box)
-                            .padding(10)
-                            .width(Length::Fill)
+                        // Header with timestamp and packet info
+                        row![
+                            text("Packet Details").size(18).width(Length::Fill),
+                            text(format!("Timestamp: {}", timestamp)).size(14)
+                        ],
+                        
+                        // Tabs for different views (Hex, Descriptors, etc)
+                        container(
+                            column![
+                                text("Raw Hex Data").size(16).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.4, 0.8))),
+                                container(hex_data_view)
+                                    .style(iced::theme::Container::Box)
+                                    .padding(10)
+                                    .width(Length::Fill)
+                            ]
+                        )
+                        .style(iced::theme::Container::Box)
+                        .padding(10)
+                        .width(Length::Fill),
+                        
+                        // Descriptor tree view
+                        container(
+                            column![
+                                text("USB Descriptors").size(16).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.4, 0.8))),
+                                container(descriptors_tree)
+                                    .style(iced::theme::Container::Box)
+                                    .padding(10)
+                                    .width(Length::Fill)
+                            ]
+                        )
+                        .style(iced::theme::Container::Box)
+                        .padding(10)
+                        .width(Length::Fill),
                     ]
                     .spacing(10)
                     .padding(10)
@@ -309,4 +356,215 @@ fn format_timestamp(timestamp: f64) -> String {
     
     time.format(&time::format_description::parse("[hour]:[minute]:[second].[subsecond digits:3]").unwrap())
         .unwrap_or_else(|_| format!("{:.3}", timestamp))
+}
+
+// Creates a hierarchical tree view of USB descriptors
+fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor]) -> Vec<Element<Message>> {
+    let mut elements = Vec::new();
+    
+    for (i, descriptor) in descriptors.iter().enumerate() {
+        match descriptor {
+            crate::usb::descriptors::USBDescriptor::Device(dev) => {
+                // Device descriptor is a top-level item
+                elements.push(
+                    column![
+                        text(format!("Device Descriptor (VID:{:04X} PID:{:04X})", 
+                            dev.idVendor, dev.idProduct))
+                            .size(14)
+                            .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.4, 0.7))),
+                        row![
+                            text("").width(Length::Fixed(20.0)), // Indentation
+                            text(format!("USB Version: {}.{}", 
+                                (dev.bcdUSB >> 8) & 0xFF, 
+                                dev.bcdUSB & 0xFF))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Device Class: 0x{:02X}", dev.bDeviceClass))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Max Packet Size: {}", dev.bMaxPacketSize0))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Manufacturer: Index {}", dev.iManufacturer))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Product: Index {}", dev.iProduct))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Serial Number: Index {}", dev.iSerialNumber))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Configurations: {}", dev.bNumConfigurations))
+                        ]
+                    ].into()
+                );
+            },
+            crate::usb::descriptors::USBDescriptor::Configuration(cfg) => {
+                // Configuration descriptor
+                elements.push(
+                    column![
+                        text(format!("Configuration Descriptor #{}", i+1))
+                            .size(14)
+                            .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.5))),
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Total Length: {} bytes", cfg.wTotalLength))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Interfaces: {}", cfg.bNumInterfaces))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Configuration Value: {}", cfg.bConfigurationValue))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Attributes: 0x{:02X}", cfg.bmAttributes))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Max Power: {} mA", cfg.bMaxPower * 2))
+                        ]
+                    ].into()
+                );
+            },
+            crate::usb::descriptors::USBDescriptor::Interface(iface) => {
+                // Interface descriptor (indented under configuration)
+                elements.push(
+                    column![
+                        row![
+                            text("").width(Length::Fixed(30.0)), // More indentation
+                            text(format!("Interface #{} (Class: 0x{:02X})", 
+                                iface.bInterfaceNumber, iface.bInterfaceClass))
+                                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.3, 0.5, 0.7)))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(40.0)),
+                            text(format!("Alt Setting: {}", iface.bAlternateSetting))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(40.0)),
+                            text(format!("Endpoints: {}", iface.bNumEndpoints))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(40.0)),
+                            text(format!("Subclass: 0x{:02X}", iface.bInterfaceSubClass))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(40.0)),
+                            text(format!("Protocol: 0x{:02X}", iface.bInterfaceProtocol))
+                        ]
+                    ].into()
+                );
+            },
+            crate::usb::descriptors::USBDescriptor::Endpoint(ep) => {
+                // Endpoint descriptor (indented under interface)
+                let direction = if ep.bEndpointAddress & 0x80 == 0x80 {
+                    "IN (Device to Host)"
+                } else {
+                    "OUT (Host to Device)"
+                };
+                
+                let transfer_type = match ep.bmAttributes & 0x03 {
+                    0 => "Control",
+                    1 => "Isochronous",
+                    2 => "Bulk",
+                    3 => "Interrupt",
+                    _ => "Unknown"
+                };
+                
+                elements.push(
+                    column![
+                        row![
+                            text("").width(Length::Fixed(50.0)), // More indentation
+                            text(format!("Endpoint 0x{:02X} - {}", 
+                                ep.bEndpointAddress, direction))
+                                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.5, 0.5, 0.7)))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(60.0)),
+                            text(format!("Type: {}", transfer_type))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(60.0)),
+                            text(format!("Max Packet Size: {} bytes", ep.wMaxPacketSize))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(60.0)),
+                            text(format!("Interval: {}", ep.bInterval))
+                        ]
+                    ].into()
+                );
+            },
+            crate::usb::descriptors::USBDescriptor::String(str_desc) => {
+                // String descriptor
+                let string_content = if let Some(string) = &str_desc.string {
+                    string.clone()
+                } else if let Some(langids) = &str_desc.wLANGID {
+                    format!("Language IDs: {:?}", langids)
+                } else {
+                    "Empty String".to_string()
+                };
+                
+                elements.push(
+                    column![
+                        text(format!("String Descriptor #{}", i+1))
+                            .style(iced::theme::Text::Color(iced::Color::from_rgb(0.5, 0.3, 0.5))),
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Content: \"{}\"", string_content))
+                        ]
+                    ].into()
+                );
+            },
+            crate::usb::descriptors::USBDescriptor::HID(hid) => {
+                // HID descriptor
+                elements.push(
+                    column![
+                        row![
+                            text("").width(Length::Fixed(40.0)), // Indented under interface
+                            text(format!("HID Descriptor v{}.{}", 
+                                (hid.bcdHID >> 8) & 0xFF, 
+                                hid.bcdHID & 0xFF))
+                                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.7, 0.5, 0.0)))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(50.0)),
+                            text(format!("Country Code: {}", hid.bCountryCode))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(50.0)),
+                            text(format!("Descriptors: {}", hid.bNumDescriptors))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(50.0)),
+                            text(format!("Report Descriptor: {} bytes", hid.wDescriptorLength))
+                        ]
+                    ].into()
+                );
+            },
+            crate::usb::descriptors::USBDescriptor::Unknown { descriptor_type, data } => {
+                // Unknown descriptor type
+                elements.push(
+                    column![
+                        text(format!("Unknown Descriptor (Type: 0x{:02X})", descriptor_type))
+                            .style(iced::theme::Text::Color(iced::Color::from_rgb(0.5, 0.5, 0.5))),
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Data: {:02X?}", data))
+                        ]
+                    ].into()
+                );
+            },
+        }
+    }
+    
+    elements
 }

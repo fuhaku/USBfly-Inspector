@@ -1,6 +1,5 @@
-use iced::widget::{button, column, container, row, scrollable, text, text_input, Canvas, Column, Row};
+use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Command, Element, Length, Color, Background};
-use crate::gui::styles;
 use crate::cynthion::connection::{CynthionConnection, USBDeviceInfo};
 use log::{debug, info};
 
@@ -16,6 +15,9 @@ pub struct DeviceView {
     connected_devices: Vec<USBDeviceInfo>,
     selected_device: Option<USBDeviceInfo>,
     last_error: Option<String>,
+    // Auto-refresh timer
+    last_refresh_time: std::time::Instant,
+    auto_refresh_interval: std::time::Duration,
 }
 
 // Custom styles for compatible device rows
@@ -55,42 +57,58 @@ pub enum Message {
     RefreshDevices,
     DeviceSelected(USBDeviceInfo),
     DevicesLoaded(Result<Vec<USBDeviceInfo>, String>),
+    CheckAutoRefresh,
     NoOp,
 }
 
 impl DeviceView {
     pub fn new() -> Self {
+        // Initialize with an empty device list and start the auto-refresh timer
         Self {
             connected_devices: Vec::new(),
             selected_device: None,
             last_error: None,
+            last_refresh_time: std::time::Instant::now(),
+            // Auto-refresh every 2 seconds by default - this can be tuned for better experience
+            auto_refresh_interval: std::time::Duration::from_secs(2),
         }
+    }
+    
+    // Call this method after creating a new instance to start the initial device scan
+    pub fn with_initial_scan(self) -> (Self, Command<Message>) {
+        let command = Command::perform(
+            async {
+                // This will run in a separate thread
+                match CynthionConnection::list_devices() {
+                    Ok(devices) => Ok(devices),
+                    Err(e) => Err(format!("Failed to list USB devices: {}", e)),
+                }
+            },
+            Message::DevicesLoaded
+        );
+        
+        (self, command)
+    }
+    
+    // Return a command that will be executed after a short delay to check for device changes
+    pub fn subscription(&self) -> iced::Subscription<Message> {
+        // Create a periodic timer subscription for device auto-refresh
+        iced::time::every(std::time::Duration::from_millis(500))
+            .map(|_| Message::CheckAutoRefresh)
     }
     
     // Helper function to determine if a device is compatible
     fn is_compatible_device(vid: u16, pid: u16) -> bool {
-        // Check for Cynthion
-        if vid == CYNTHION_VID && pid == CYNTHION_PID {
-            return true;
-        }
-        
-        // Check for test/development devices
-        if vid == TEST_VID && pid == TEST_PID {
-            return true;
-        }
-        
-        // Check for other supported devices
-        if vid == GADGETCAP_VID && pid == GADGETCAP_PID {
-            return true;
-        }
-        
-        false
+        // Use the central compatibility check from CynthionConnection
+        CynthionConnection::is_supported_device(vid, pid)
     }
     
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::RefreshDevices => {
-                info!("Refreshing connected USB devices");
+                info!("Manually refreshing connected USB devices");
+                // Update last refresh time
+                self.last_refresh_time = std::time::Instant::now();
                 // Query connected devices asynchronously
                 Command::perform(
                     async {
@@ -103,6 +121,30 @@ impl DeviceView {
                     Message::DevicesLoaded
                 )
             },
+            Message::CheckAutoRefresh => {
+                // Check if it's time to auto-refresh
+                let now = std::time::Instant::now();
+                let elapsed = now.duration_since(self.last_refresh_time);
+                
+                if elapsed >= self.auto_refresh_interval {
+                    debug!("Auto-refreshing USB device list");
+                    self.last_refresh_time = now;
+                    
+                    // Perform the refresh asynchronously
+                    Command::perform(
+                        async {
+                            match CynthionConnection::list_devices() {
+                                Ok(devices) => Ok(devices),
+                                Err(e) => Err(format!("Failed to list USB devices: {}", e)),
+                            }
+                        },
+                        Message::DevicesLoaded
+                    )
+                } else {
+                    // Not time to refresh yet
+                    Command::none()
+                }
+            },
             Message::DeviceSelected(device) => {
                 info!("Selected device: {:04x}:{:04x}", device.vendor_id, device.product_id);
                 self.selected_device = Some(device);
@@ -111,13 +153,45 @@ impl DeviceView {
             Message::DevicesLoaded(result) => {
                 match result {
                     Ok(devices) => {
-                        info!("Loaded {} USB devices", devices.len());
+                        // Check if the device list has changed
+                        let has_changed = if self.connected_devices.len() != devices.len() {
+                            true
+                        } else {
+                            // Check if any device info has changed
+                            self.connected_devices.iter().zip(devices.iter())
+                                .any(|(old, new)| old.vendor_id != new.vendor_id || old.product_id != new.product_id)
+                        };
+                        
+                        if has_changed {
+                            info!("USB device list updated: {} devices", devices.len());
+                        } else {
+                            debug!("USB device list refreshed (no changes)");
+                        }
+                        
+                        // In case selected device was disconnected, update selection
+                        if let Some(selected) = &self.selected_device {
+                            // If current selected device is not in the new list, clear selection
+                            let still_connected = devices.iter().any(|dev| {
+                                dev.vendor_id == selected.vendor_id && 
+                                dev.product_id == selected.product_id &&
+                                dev.serial_number == selected.serial_number
+                            });
+                            
+                            if !still_connected {
+                                info!("Selected device was disconnected");
+                                self.selected_device = None;
+                            }
+                        }
+                        
                         self.connected_devices = devices;
                         self.last_error = None;
                     },
                     Err(error) => {
-                        info!("Error loading USB devices: {}", error);
-                        self.last_error = Some(error);
+                        debug!("Error loading USB devices: {}", error);
+                        // Only show the error if it's a user-initiated refresh
+                        if error.contains("manually") {
+                            self.last_error = Some(error);
+                        }
                     }
                 }
                 Command::none()

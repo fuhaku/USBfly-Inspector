@@ -20,6 +20,10 @@ args = "USBfly Rust Application"
 task = "workflow.run"
 args = "rust-usbfly"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "USBfly"
+
 [[workflows.workflow]]
 name = "USBfly Rust Application"
 author = "agent"
@@ -35,6 +39,14 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd /home/runner && cargo run"
+
+[[workflows.workflow]]
+name = "USBfly"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd . && RUST_LOG=debug cargo run"
 
 [deployment]
 run = ["sh", "-c", "cd /home/runner/workspace && RUST_LOG=debug cargo run"]
