@@ -53,6 +53,12 @@ pub struct CynthionConnection {
 impl CynthionConnection {
     // Get a list of all connected USB devices
     pub fn list_devices() -> Result<Vec<USBDeviceInfo>> {
+        // Check if simulation mode is enabled via environment variable
+        if Self::is_simulation_mode() {
+            info!("Using simulated device list (simulation mode enabled)");
+            return Ok(Self::get_simulated_devices());
+        }
+        
         // Try to create USB context, if it fails, use simulation mode
         let context = match rusb::Context::new() {
             Ok(ctx) => ctx,
@@ -161,7 +167,21 @@ impl CynthionConnection {
         }
     }
     
+    // Check if we're in simulation mode based on environment variable
+    pub fn is_simulation_mode() -> bool {
+        match std::env::var("USBFLY_SIMULATION_MODE") {
+            Ok(val) => val == "1",
+            Err(_) => false,
+        }
+    }
+    
     pub async fn connect() -> Result<Self> {
+        // Check if simulation mode is enabled via environment variable
+        if Self::is_simulation_mode() {
+            info!("Environment indicates simulation mode. Using simulated device.");
+            return Ok(Self::create_simulation());
+        }
+        
         // Try to create USB context, if it fails, use simulation mode
         let context = match rusb::Context::new() {
             Ok(ctx) => ctx,

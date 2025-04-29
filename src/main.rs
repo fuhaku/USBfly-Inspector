@@ -6,8 +6,9 @@ mod usb;
 
 use app::USBflyApp;
 use iced::{Application, Settings};
-use log::{info, warn, debug, LevelFilter};
-use std::{env, io};
+use log::{info, warn, LevelFilter};
+use rusb::UsbContext; // Import UsbContext trait for devices method
+use std::env;
 
 fn main() -> iced::Result {
     // Set default logging environment variable if not already set
@@ -25,17 +26,32 @@ fn main() -> iced::Result {
     info!("Starting USBfly application v{}", env!("CARGO_PKG_VERSION"));
     info!("Platform: {}", std::env::consts::OS);
     
-    // Check for USB access - this is important especially on Linux
-    match rusb::devices() {
-        Ok(devices) => {
-            let device_count = devices.iter().count();
-            info!("USB subsystem initialized successfully. Found {} devices", device_count);
+    // Try to create a USB context to check for USB access - this will safely fail
+    // with a warning if USB is not available (for example, in the Replit environment)
+    match rusb::Context::new() {
+        Ok(ctx) => {
+            // If we can create a context, try to enumerate devices
+            match ctx.devices() {
+                Ok(devices) => {
+                    let device_count = devices.iter().count();
+                    info!("USB subsystem initialized successfully. Found {} devices", device_count);
+                },
+                Err(e) => {
+                    warn!("USB device enumeration error: {}. USB device detection may not work correctly.", e);
+                    warn!("On Linux, try running with sudo or add udev rules for USB device access");
+                    info!("Application will use simulation mode for USB devices");
+                }
+            }
         },
         Err(e) => {
-            warn!("USB access error: {}. USB device detection may not work correctly.", e);
-            warn!("On Linux, try running with sudo or add udev rules for USB device access");
+            warn!("USB context initialization error: {}. Environment doesn't support USB access.", e);
+            info!("Application will use simulation mode for USB devices");
         }
     }
+    
+    // Set an environment variable to indicate simulation mode
+    // This will be used by the cynthion module to know when to use simulated devices
+    env::set_var("USBFLY_SIMULATION_MODE", "1");
     
     // Log information about renderer
     info!("Using default software renderer for cross-platform compatibility");
