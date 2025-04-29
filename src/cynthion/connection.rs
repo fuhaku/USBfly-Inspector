@@ -9,9 +9,12 @@ use std::fmt;
 // Primary Cynthion/GreatFET IDs
 const CYNTHION_VID: u16 = 0x1d50;
 const CYNTHION_PID: u16 = 0x615c;
+// Alternative Cynthion PIDs (for different firmware versions)
+const ALT_CYNTHION_PID_1: u16 = 0x615b;
+const ALT_CYNTHION_PID_2: u16 = 0x615d;
 // Development/Test device IDs
-const TEST_VID: u16 = 0x1d50; // Default GreatFET VID
-const TEST_PID: u16 = 0x60e6; // GreatFET PID
+const GREATFET_VID: u16 = 0x1d50; // Standard GreatFET VID
+const GREATFET_ONE_PID: u16 = 0x60e6; // GreatFET One PID
 // Fallback to additional test devices
 const GADGETCAP_VID: u16 = 0x1d50;
 const GADGETCAP_PID: u16 = 0x6018;
@@ -139,13 +142,15 @@ impl CynthionConnection {
     
     // Check if a device is a supported analyzer
     fn is_supported_device(vid: u16, pid: u16) -> bool {
-        // Check for Cynthion
-        if vid == CYNTHION_VID && pid == CYNTHION_PID {
-            return true;
+        // Check for Cynthion (primary and alternate PIDs)
+        if vid == CYNTHION_VID {
+            if pid == CYNTHION_PID || pid == ALT_CYNTHION_PID_1 || pid == ALT_CYNTHION_PID_2 {
+                return true;
+            }
         }
         
-        // Check for test/development devices
-        if vid == TEST_VID && pid == TEST_PID {
+        // Check for GreatFET devices
+        if vid == GREATFET_VID && pid == GREATFET_ONE_PID {
             return true;
         }
         
@@ -153,6 +158,9 @@ impl CynthionConnection {
         if vid == GADGETCAP_VID && pid == GADGETCAP_PID {
             return true;
         }
+        
+        // Add more verbose logging to help with debugging
+        debug!("Device VID:{:04x} PID:{:04x} is not in the supported device list", vid, pid);
         
         false
     }
@@ -345,15 +353,15 @@ impl CynthionConnection {
                 vendor_id: CYNTHION_VID,
                 product_id: CYNTHION_PID,
                 manufacturer: Some("Great Scott Gadgets".to_string()),
-                product: Some("Cynthion USB Analyzer".to_string()),
-                serial_number: Some("GSG12345".to_string()),
+                product: Some("Cynthion USB Analyzer [SIMULATED]".to_string()),
+                serial_number: Some("SIM12345".to_string()),
             },
             USBDeviceInfo {
-                vendor_id: TEST_VID,
-                product_id: TEST_PID,
+                vendor_id: GREATFET_VID,
+                product_id: GREATFET_ONE_PID,
                 manufacturer: Some("Great Scott Gadgets".to_string()),
-                product: Some("GreatFET (Development)".to_string()),
-                serial_number: Some("DEV98765".to_string()),
+                product: Some("GreatFET [SIMULATED]".to_string()),
+                serial_number: Some("SIM98765".to_string()),
             },
         ]
     }

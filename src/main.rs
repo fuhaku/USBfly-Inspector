@@ -49,9 +49,37 @@ fn main() -> iced::Result {
         }
     }
     
-    // Set an environment variable to indicate simulation mode
-    // This will be used by the cynthion module to know when to use simulated devices
-    env::set_var("USBFLY_SIMULATION_MODE", "1");
+    // Only set simulation mode if we couldn't access USB at all
+    // This way, if real devices are available, we won't use simulation
+    let simulation_required = match rusb::Context::new() {
+        Err(_) => true, // No USB access at all - use simulation
+        Ok(ctx) => {
+            match ctx.devices() {
+                Err(_) => true, // Couldn't enumerate devices - use simulation
+                Ok(devices) => {
+                    // Check if we have any real devices
+                    let device_count = devices.iter().count();
+                    if device_count == 0 {
+                        info!("No USB devices found. Will provide simulated devices as fallback.");
+                        true // No devices - use simulation
+                    } else {
+                        info!("Found {} physical USB devices. Using real device mode.", device_count);
+                        false // We have real devices - don't use simulation
+                    }
+                }
+            }
+        }
+    };
+    
+    if simulation_required {
+        // Set environment variable to indicate simulation mode is needed
+        env::set_var("USBFLY_SIMULATION_MODE", "1");
+        info!("Simulation mode enabled - will use simulated devices");
+    } else {
+        // Make sure simulation mode is disabled
+        env::remove_var("USBFLY_SIMULATION_MODE");
+        info!("Using real USB devices - simulation mode disabled");
+    }
     
     // Log information about renderer
     info!("Using default software renderer for cross-platform compatibility");
