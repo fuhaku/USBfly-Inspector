@@ -14,40 +14,28 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "USBfly Rust Application"
+args = "USBfly HTTP Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "rust-usbfly"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "USBfly"
+args = "USBfly App"
 
 [[workflows.workflow]]
-name = "USBfly Rust Application"
+name = "USBfly HTTP Server"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd /home/runner/workspace && RUST_LOG=debug cargo run"
-
-[[workflows.workflow]]
-name = "rust-usbfly"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner && cargo run"
-
-[[workflows.workflow]]
-name = "USBfly"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd . && RUST_LOG=debug cargo run -- --port 5000"
+args = "cd /home/runner/workspace && cargo run --bin http_server"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "USBfly App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner/workspace && RUST_LOG=debug cargo run --bin usbfly"
 
 [deployment]
 run = ["sh", "-c", "cd /home/runner/workspace && RUST_LOG=debug cargo run"]

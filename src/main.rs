@@ -45,13 +45,24 @@ fn main() -> iced::Result {
     
     // Start HTTP server for Replit if port is specified
     if let Some(port_num) = port {
-        thread::spawn(move || {
-            match TcpListener::bind(format!("0.0.0.0:{}", port_num)) {
-                Ok(listener) => {
-                    info!("Started HTTP server on port {}", port_num);
+        // Try to bind to the port first to make sure it's available
+        match TcpListener::bind(format!("0.0.0.0:{}", port_num)) {
+            Ok(listener) => {
+                info!("Successfully bound to port {}", port_num);
+                
+                // Make the listener non-blocking
+                listener.set_nonblocking(true).expect("Cannot set non-blocking");
+                
+                // Start server thread
+                thread::spawn(move || {
+                    info!("HTTP server thread started on port {}", port_num);
+                    
+                    // Signal that our server is ready (for Replit workflow detection)
+                    println!("HTTP server ready on port {}", port_num);
+                    
                     for stream in listener.incoming() {
                         match stream {
-                            Ok(mut _stream) => {
+                            Ok(mut stream) => {
                                 // Send a simple response indicating the app is running
                                 let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n\
                                     <html><body>\
@@ -60,19 +71,29 @@ fn main() -> iced::Result {
                                     <p>This is a native application with a graphical interface.</p>\
                                     </body></html>";
                                 
-                                if let Err(e) = _stream.write_all(response.as_bytes()) {
+                                if let Err(e) = stream.write_all(response.as_bytes()) {
                                     warn!("Failed to send HTTP response: {}", e);
                                 }
+                            }
+                            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                                // No connection available yet, just continue
+                                thread::sleep(std::time::Duration::from_millis(50));
+                                continue;
                             }
                             Err(e) => warn!("Connection failed: {}", e),
                         }
                     }
-                }
-                Err(e) => {
-                    warn!("Could not bind to port {}: {}", port_num, e);
-                }
+                });
             }
-        });
+            Err(e) => {
+                warn!("Could not bind to port {}: {}", port_num, e);
+                // Use a Box<dyn Error> as required by iced::Error::WindowCreationFailed
+                let error_message = format!("Could not start HTTP server on port {}: {}", port_num, e);
+                return Err(iced::Error::WindowCreationFailed(Box::new(
+                    std::io::Error::new(std::io::ErrorKind::Other, error_message)
+                )));
+            }
+        }
     }
     
     // Try to create a USB context to check for USB access - this will safely fail
