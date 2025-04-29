@@ -1,0 +1,40 @@
+modules = ["rust"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["glib", "pkg-config"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "USBfly Rust Application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "rust-usbfly"
+
+[[workflows.workflow]]
+name = "USBfly Rust Application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cargo run --release"
+
+[[workflows.workflow]]
+name = "rust-usbfly"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner && cargo run"
+
+[deployment]
+run = ["sh", "-c", "cargo run --release"]

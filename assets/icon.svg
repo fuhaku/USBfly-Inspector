@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- USB Symbol -->
+  <circle cx="256" cy="256" r="240" fill="#0066CC" />
+  <circle cx="256" cy="256" r="200" fill="#FFFFFF" />
+  
+  <!-- Inner USB Symbol -->
+  <path d="M256 70 L256 256" stroke="#0066CC" stroke-width="30" stroke-linecap="round" />
+  <path d="M176 150 L336 150" stroke="#0066CC" stroke-width="30" stroke-linecap="round" />
+  <path d="M176 200 L336 200" stroke="#0066CC" stroke-width="30" stroke-linecap="round" />
+  
+  <!-- Butterfly Wings -->
+  <path d="M256 256 C326 216 386 246 386 316 C386 366 336 386 256 346 C176 386 126 366 126 316 C126 246 186 216 256 256 Z" fill="#0066CC" stroke="#FFFFFF" stroke-width="8" />
+  
+  <!-- Butterfly Body -->
+  <path d="M256 206 L256 346" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" />
+  
+  <!-- Butterfly Antennae -->
+  <path d="M256 206 L236 176" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" />
+  <path d="M256 206 L276 176" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" />
+  
+  <!-- Text -->
+  <path d="M176 420 L226 420 L226 440 L196 440 L196 460 L226 460 L226 480 L176 480 L176 420 Z" fill="#0066CC" />
+  <path d="M236 420 L266 420 C286 420 296 430 296 450 C296 470 286 480 266 480 L236 480 L236 420 Z M256 440 L256 460 L266 460 C276 460 276 440 266 440 L256 440 Z" fill="#0066CC" />
+  <path d="M306 420 L356 420 L356 440 L326 440 L326 440 L326 442 L356 480 L336 480 L306 442 L306 480 L306 420 Z" fill="#0066CC" />
+  <path d="M366 420 L386 420 L386 440 L366 440 L366 420 Z M366 450 L386 450 L386 480 L366 480 L366 450 Z" fill="#0066CC" />
+</svg>

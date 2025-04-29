@@ -1,0 +1,58 @@
+[package]
+name = "usbfly"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A USB analysis application for Cynthion devices with comprehensive descriptor decoding"
+readme = "README.md"
+
+[dependencies]
+# GUI
+iced = { version = "0.10", features = ["canvas", "svg", "tokio"] }
+iced_native = "0.10"
+iced_graphics = "0.9"
+iced_futures = "0.6"
+
+# Async runtime
+tokio = { version = "1.28", features = ["full"] }
+
+# From Packetry
+anyhow = "1.0"
+crossbeam-channel = "0.5.8"
+rusb = "0.9.1"
+thiserror = "1.0.40"
+byteorder = "1.4.3"
+futures = "0.3.28"
+log = "0.4.19"
+pretty_env_logger = "0.5.0"
+humantime = "2.1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+lazy_static = "1.4.0"
+
+# Others
+directories = "5.0"
+strum = { version = "0.25", features = ["derive"] }
+strum_macros = "0.25"
+time = { version = "0.3", features = ["formatting", "local-offset"] }
+rfd = "0.12"
+num-traits = "0.2"
+num-derive = "0.4"
+itertools = "0.11"
+regex = "1.9"
+clap = { version = "4.3", features = ["derive"] }
+hex = "0.4"
+image = { version = "0.24", default-features = false, features = ["png"] }
+
+[build-dependencies]
+embed-resource = "2.3"
+
+[package.metadata.bundle]
+name = "USBfly"
+identifier = "com.usbfly.app"
+icon = ["assets/icon.icns"]
+version = "0.1.0"
+resources = ["assets"]
+category = "Developer Tool"
+short_description = "USB analysis application for Cynthion devices"
+long_description = "A USB analysis application for Cynthion devices with comprehensive descriptor decoding and an intuitive Mac GUI"
