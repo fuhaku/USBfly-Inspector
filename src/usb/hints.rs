@@ -68,10 +68,10 @@ fn configuration_descriptor_hints(desc: &ConfigurationDescriptor) -> Vec<String>
     }
     
     // Interface hint
-    hints.push(format!("Configuration has {} interface(s)", desc.bNumInterfaces));
+    hints.push(format!("Configuration has {} interface(s)", desc.b_num_interfaces));
     
     // Total length hint
-    hints.push(format!("Total descriptor set length: {} bytes", desc.wTotalLength));
+    hints.push(format!("Total descriptor set length: {} bytes", desc.w_total_length));
     
     hints
 }
@@ -83,10 +83,10 @@ fn interface_descriptor_hints(desc: &InterfaceDescriptor) -> Vec<String> {
     hints.push(format!("Interface class: {}", desc.interface_class_description()));
     
     // Specific class hints
-    match desc.bInterfaceClass {
+    match desc.b_interface_class {
         0x01 => { // Audio
             hints.push("Audio interface - sound or voice".to_string());
-            match desc.bInterfaceSubClass {
+            match desc.b_interface_sub_class {
                 0x01 => hints.push("Audio Control interface".to_string()),
                 0x02 => hints.push("Audio Streaming interface".to_string()),
                 0x03 => hints.push("MIDI Streaming interface".to_string()),
@@ -98,7 +98,7 @@ fn interface_descriptor_hints(desc: &InterfaceDescriptor) -> Vec<String> {
         },
         0x03 => { // HID
             hints.push("Human Interface Device (HID) - keyboard, mouse, etc.".to_string());
-            match desc.bInterfaceProtocol {
+            match desc.b_interface_protocol {
                 0x01 => hints.push("Keyboard protocol".to_string()),
                 0x02 => hints.push("Mouse protocol".to_string()),
                 _ => {}
@@ -106,7 +106,7 @@ fn interface_descriptor_hints(desc: &InterfaceDescriptor) -> Vec<String> {
         },
         0x08 => { // Mass Storage
             hints.push("Mass Storage Device - flash drive, external HDD, etc.".to_string());
-            match desc.bInterfaceSubClass {
+            match desc.b_interface_sub_class {
                 0x01 => hints.push("Reduced Block Commands (RBC)".to_string()),
                 0x02 => hints.push("CD/DVD device (MMC-2)".to_string()),
                 0x03 => hints.push("QIC-157 Tape device".to_string()),
@@ -129,7 +129,7 @@ fn interface_descriptor_hints(desc: &InterfaceDescriptor) -> Vec<String> {
     }
     
     // Endpoint hint
-    hints.push(format!("Interface has {} endpoint(s)", desc.bNumEndpoints));
+    hints.push(format!("Interface has {} endpoint(s)", desc.b_num_endpoints));
     
     hints
 }
@@ -148,18 +148,18 @@ fn endpoint_descriptor_hints(desc: &EndpointDescriptor) -> Vec<String> {
     hints.push(format!("Endpoint uses {} transfer type", desc.transfer_type()));
     
     // Max packet size hint
-    hints.push(format!("Maximum packet size: {} bytes", desc.wMaxPacketSize));
+    hints.push(format!("Maximum packet size: {} bytes", desc.w_max_packet_size));
     
     // Interval hint
     match desc.transfer_type() {
         "Interrupt" => {
-            hints.push(format!("Polling interval: {}ms", desc.bInterval));
+            hints.push(format!("Polling interval: {}ms", desc.b_interval));
         },
         "Isochronous" => {
-            hints.push(format!("Polling interval: 2^{}-1 frames", desc.bInterval));
+            hints.push(format!("Polling interval: 2^{}-1 frames", desc.b_interval));
         },
         _ => {
-            hints.push(format!("Interval field: {}", desc.bInterval));
+            hints.push(format!("Interval field: {}", desc.b_interval));
         }
     }
     
@@ -169,7 +169,7 @@ fn endpoint_descriptor_hints(desc: &EndpointDescriptor) -> Vec<String> {
 fn string_descriptor_hints(desc: &StringDescriptor) -> Vec<String> {
     let mut hints = Vec::new();
     
-    if let Some(lang_ids) = &desc.wLANGID {
+    if let Some(lang_ids) = &desc.w_langid {
         hints.push(format!("Device supports {} language(s)", lang_ids.len()));
         
         // Add common language ID hints
@@ -202,18 +202,18 @@ fn hid_descriptor_hints(desc: &HIDDescriptor) -> Vec<String> {
     let mut hints = Vec::new();
     
     // HID version hint
-    hints.push(format!("HID version {}.{}", desc.bcdHID >> 8, desc.bcdHID & 0xFF));
+    hints.push(format!("HID version {}.{}", desc.bcd_hid >> 8, desc.bcd_hid & 0xFF));
     
     // Country code hint
-    if desc.bCountryCode != 0 {
+    if desc.b_country_code != 0 {
         hints.push(format!("Device is localized for: {}", desc.country_code_description()));
     } else {
         hints.push("Device is not localized".to_string());
     }
     
     // Report descriptor hint
-    hints.push(format!("HID has {} subordinate descriptor(s)", desc.bNumDescriptors));
-    hints.push(format!("Report descriptor is {} bytes long", desc.wDescriptorLength));
+    hints.push(format!("HID has {} subordinate descriptor(s)", desc.b_num_descriptors));
+    hints.push(format!("Report descriptor is {} bytes long", desc.w_descriptor_length));
     
     hints
 }

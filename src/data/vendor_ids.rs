@@ -76,6 +76,7 @@ pub fn lookup_vendor(vendor_id: u16) -> Option<String> {
     VENDOR_MAP.get(&vendor_id).map(|s| s.to_string())
 }
 
+#[allow(dead_code)]
 pub fn get_vendor_ids() -> Vec<(u16, String)> {
     VENDOR_MAP
         .iter()

@@ -93,14 +93,17 @@ pub fn get_class_description(class_code: u8) -> Option<String> {
     CLASS_MAP.get(&class_code).map(|s| s.to_string())
 }
 
+#[allow(dead_code)]
 pub fn get_subclass_description(class_code: u8, subclass_code: u8) -> Option<String> {
     SUBCLASS_MAP.get(&(class_code, subclass_code)).map(|s| s.to_string())
 }
 
+#[allow(dead_code)]
 pub fn get_protocol_description(class_code: u8, subclass_code: u8, protocol_code: u8) -> Option<String> {
     PROTOCOL_MAP.get(&(class_code, subclass_code, protocol_code)).map(|s| s.to_string())
 }
 
+#[allow(dead_code)]
 pub fn get_class_codes() -> Vec<(u8, String)> {
     CLASS_MAP
         .iter()

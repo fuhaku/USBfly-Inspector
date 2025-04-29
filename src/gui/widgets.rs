@@ -3,6 +3,7 @@ use iced::widget::{Container, Row, Text};
 use iced::{Element, Length};
 
 // Create a labeled value widget for displaying descriptor fields
+#[allow(dead_code)]
 pub fn labeled_value<'a, Message>(
     label: &'a str,
     value: &'a str,
@@ -26,6 +27,7 @@ where
 }
 
 // Create a hex dump widget for raw data display
+#[allow(dead_code)]
 pub fn hex_dump<'a, Message>(
     data: &[u8],
     bytes_per_row: usize,

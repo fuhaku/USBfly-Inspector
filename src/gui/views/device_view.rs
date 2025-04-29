@@ -4,11 +4,18 @@ use crate::cynthion::connection::{CynthionConnection, USBDeviceInfo};
 use log::{debug, info};
 
 // Constants for compatible USB device VIDs and PIDs
+// These are kept for reference and potential future use
+#[allow(dead_code)]
 const CYNTHION_VID: u16 = 0x1d50;
+#[allow(dead_code)]
 const CYNTHION_PID: u16 = 0x615c;
+#[allow(dead_code)]
 const TEST_VID: u16 = 0x1d50;
+#[allow(dead_code)]
 const TEST_PID: u16 = 0x60e6;
+#[allow(dead_code)]
 const GADGETCAP_VID: u16 = 0x1d50;
+#[allow(dead_code)]
 const GADGETCAP_PID: u16 = 0x6018;
 
 pub struct DeviceView {

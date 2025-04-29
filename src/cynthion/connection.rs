@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use log::{debug, error, info, warn};
-use rusb::{DeviceHandle, UsbContext, Device};
+use rusb::{DeviceHandle, UsbContext};
 use std::time::Duration;
 use tokio::time::sleep;
 use std::fmt;
@@ -20,7 +20,8 @@ const GADGETCAP_VID: u16 = 0x1d50;
 const GADGETCAP_PID: u16 = 0x6018;
 // Standard interface and endpoint settings
 const CYNTHION_INTERFACE: u8 = 0;
-const CYNTHION_OUT_EP: u8 = 0x01;
+#[allow(dead_code)]
+const CYNTHION_OUT_EP: u8 = 0x01; // Used in send_command method
 const CYNTHION_IN_EP: u8 = 0x81;
 const TIMEOUT_MS: Duration = Duration::from_millis(1000);
 
@@ -318,7 +319,7 @@ impl CynthionConnection {
         };
         
         // Get device handle
-        let mut handle = device.open()?;
+        let handle = device.open()?;
         
         // Get device descriptor for logging
         if let Ok(descriptor) = device.device_descriptor() {
@@ -371,20 +372,16 @@ impl CynthionConnection {
             }
         }
         
-        // Check if the interface is available
-        let interface_available = match device.active_config_descriptor() {
-            Ok(config) => {
-                let has_interface = config.interfaces().any(|i| i.number() == CYNTHION_INTERFACE);
-                if !has_interface {
-                    warn!("Device does not appear to have interface {}. Will try anyway.", CYNTHION_INTERFACE);
-                }
-                true // Continue even if interface check fails
-            },
-            Err(_) => {
-                // If we can't get config, assume interface is available
-                true
+        // Check if the interface is available and log any issues
+        if let Ok(config) = device.active_config_descriptor() {
+            let has_interface = config.interfaces().any(|i| i.number() == CYNTHION_INTERFACE);
+            if !has_interface {
+                warn!("Device does not appear to have interface {}. Will try anyway.", CYNTHION_INTERFACE);
             }
-        };
+        } else {
+            // Can't get config descriptor - just log a warning
+            warn!("Could not get device configuration descriptor. Will try interface claim anyway.");
+        }
         
         // Try to claim the interface with better error handling
         let claim_result = handle.claim_interface(CYNTHION_INTERFACE);
@@ -514,6 +511,7 @@ impl CynthionConnection {
         data
     }
     
+    #[allow(dead_code)]
     pub async fn read_data(&mut self) -> Result<Vec<u8>> {
         if !self.active {
             return Err(anyhow!("Not connected"));
@@ -597,7 +595,7 @@ impl CynthionConnection {
                     self.active = false;
                     
                     // This will help prevent hanging on close by cleaning up resources
-                    if let Some(mut handle) = self.handle.take() {
+                    if let Some(handle) = self.handle.take() {
                         #[cfg(not(target_os = "macos"))]
                         let _ = handle.release_interface(CYNTHION_INTERFACE);
                     }
@@ -621,6 +619,7 @@ impl CynthionConnection {
         self.read_data_sync()
     }
     
+    #[allow(dead_code)]
     pub fn send_command(&mut self, command: &[u8]) -> Result<()> {
         if !self.active {
             return Err(anyhow!("Not connected"));
@@ -647,12 +646,14 @@ impl CynthionConnection {
     }
     
     // Additional methods for controlling the Cynthion device
+    #[allow(dead_code)]
     pub fn get_device_info(&mut self) -> Result<String> {
         // This is a placeholder - actual implementation would send a command to get device info
         // and parse the response
         Ok("Cynthion USB Analyzer".to_string())
     }
     
+    #[allow(dead_code)]
     pub fn is_connected(&self) -> bool {
         if self.simulation_mode {
             // In simulation mode, just check if active

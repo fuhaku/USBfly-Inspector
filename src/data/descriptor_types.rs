@@ -38,6 +38,7 @@ pub fn get_descriptor_type_name(descriptor_type: u8) -> Option<&'static str> {
     DESCRIPTOR_TYPE_MAP.get(&descriptor_type).copied()
 }
 
+#[allow(dead_code)]
 pub fn get_descriptor_types() -> Vec<(u8, String)> {
     DESCRIPTOR_TYPE_MAP
         .iter()

@@ -1,6 +1,5 @@
 use crate::usb::descriptors::*;
 use crate::usb::hints::get_descriptor_hints;
-use log::{debug, error, warn};
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
@@ -131,10 +130,12 @@ impl USBDecoder {
         }
     }
     
+    #[allow(dead_code)]
     pub fn get_hints(&self, descriptor: &USBDescriptor) -> Vec<String> {
         get_descriptor_hints(descriptor)
     }
     
+    #[allow(dead_code)]
     pub fn resolve_string_descriptor(&self, index: u8) -> Option<&String> {
         self.string_descriptors.get(&index)
     }
