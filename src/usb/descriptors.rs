@@ -22,20 +22,34 @@ pub enum USBDescriptor {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceDescriptor {
-    pub bLength: u8,
-    pub bDescriptorType: u8,
-    pub bcdUSB: u16,
-    pub bDeviceClass: u8,
-    pub bDeviceSubClass: u8,
-    pub bDeviceProtocol: u8,
-    pub bMaxPacketSize0: u8,
-    pub idVendor: u16,
-    pub idProduct: u16,
-    pub bcdDevice: u16,
-    pub iManufacturer: u8,
-    pub iProduct: u8,
-    pub iSerialNumber: u8,
-    pub bNumConfigurations: u8,
+    #[serde(alias = "bLength")]
+    pub b_length: u8,
+    #[serde(alias = "bDescriptorType")]
+    pub b_descriptor_type: u8,
+    #[serde(alias = "bcdUSB")]
+    pub bcd_usb: u16,
+    #[serde(alias = "bDeviceClass")]
+    pub b_device_class: u8,
+    #[serde(alias = "bDeviceSubClass")]
+    pub b_device_sub_class: u8,
+    #[serde(alias = "bDeviceProtocol")]
+    pub b_device_protocol: u8,
+    #[serde(alias = "bMaxPacketSize0")]
+    pub b_max_packet_size0: u8,
+    #[serde(alias = "idVendor")]
+    pub id_vendor: u16,
+    #[serde(alias = "idProduct")]
+    pub id_product: u16,
+    #[serde(alias = "bcdDevice")]
+    pub bcd_device: u16,
+    #[serde(alias = "iManufacturer")]
+    pub i_manufacturer: u8,
+    #[serde(alias = "iProduct")]
+    pub i_product: u8,
+    #[serde(alias = "iSerialNumber")]
+    pub i_serial_number: u8,
+    #[serde(alias = "bNumConfigurations")]
+    pub b_num_configurations: u8,
 }
 
 impl DeviceDescriptor {
@@ -45,29 +59,29 @@ impl DeviceDescriptor {
         }
         
         Some(DeviceDescriptor {
-            bLength: data[0],
-            bDescriptorType: data[1],
-            bcdUSB: LittleEndian::read_u16(&data[2..4]),
-            bDeviceClass: data[4],
-            bDeviceSubClass: data[5],
-            bDeviceProtocol: data[6],
-            bMaxPacketSize0: data[7],
-            idVendor: LittleEndian::read_u16(&data[8..10]),
-            idProduct: LittleEndian::read_u16(&data[10..12]),
-            bcdDevice: LittleEndian::read_u16(&data[12..14]),
-            iManufacturer: data[14],
-            iProduct: data[15],
-            iSerialNumber: data[16],
-            bNumConfigurations: data[17],
+            b_length: data[0],
+            b_descriptor_type: data[1],
+            bcd_usb: LittleEndian::read_u16(&data[2..4]),
+            b_device_class: data[4],
+            b_device_sub_class: data[5],
+            b_device_protocol: data[6],
+            b_max_packet_size0: data[7],
+            id_vendor: LittleEndian::read_u16(&data[8..10]),
+            id_product: LittleEndian::read_u16(&data[10..12]),
+            bcd_device: LittleEndian::read_u16(&data[12..14]),
+            i_manufacturer: data[14],
+            i_product: data[15],
+            i_serial_number: data[16],
+            b_num_configurations: data[17],
         })
     }
     
     pub fn vendor_name(&self) -> String {
-        lookup_vendor(self.idVendor).unwrap_or_else(|| format!("Unknown (0x{:04X})", self.idVendor))
+        lookup_vendor(self.id_vendor).unwrap_or_else(|| format!("Unknown (0x{:04X})", self.id_vendor))
     }
     
     pub fn device_class_description(&self) -> String {
-        get_class_description(self.bDeviceClass).unwrap_or_else(|| format!("Unknown (0x{:02X})", self.bDeviceClass))
+        get_class_description(self.b_device_class).unwrap_or_else(|| format!("Unknown (0x{:02X})", self.b_device_class))
     }
 }
 
@@ -326,20 +340,20 @@ impl fmt::Display for USBDescriptor {
         match self {
             USBDescriptor::Device(desc) => {
                 write!(f, "Device Descriptor:\n")?;
-                write!(f, "  bLength: {}\n", desc.bLength)?;
-                write!(f, "  bDescriptorType: {} ({})\n", desc.bDescriptorType, get_descriptor_type_name(desc.bDescriptorType).unwrap_or("Unknown"))?;
-                write!(f, "  bcdUSB: {:04X} (USB {})\n", desc.bcdUSB, format!("{}.{}", desc.bcdUSB >> 8, (desc.bcdUSB & 0xFF) / 10))?;
-                write!(f, "  bDeviceClass: 0x{:02X} ({})\n", desc.bDeviceClass, desc.device_class_description())?;
-                write!(f, "  bDeviceSubClass: 0x{:02X}\n", desc.bDeviceSubClass)?;
-                write!(f, "  bDeviceProtocol: 0x{:02X}\n", desc.bDeviceProtocol)?;
-                write!(f, "  bMaxPacketSize0: {}\n", desc.bMaxPacketSize0)?;
-                write!(f, "  idVendor: 0x{:04X} ({})\n", desc.idVendor, desc.vendor_name())?;
-                write!(f, "  idProduct: 0x{:04X}\n", desc.idProduct)?;
-                write!(f, "  bcdDevice: {:04X}\n", desc.bcdDevice)?;
-                write!(f, "  iManufacturer: {}\n", desc.iManufacturer)?;
-                write!(f, "  iProduct: {}\n", desc.iProduct)?;
-                write!(f, "  iSerialNumber: {}\n", desc.iSerialNumber)?;
-                write!(f, "  bNumConfigurations: {}", desc.bNumConfigurations)
+                write!(f, "  bLength: {}\n", desc.b_length)?;
+                write!(f, "  bDescriptorType: {} ({})\n", desc.b_descriptor_type, get_descriptor_type_name(desc.b_descriptor_type).unwrap_or("Unknown"))?;
+                write!(f, "  bcdUSB: {:04X} (USB {})\n", desc.bcd_usb, format!("{}.{}", desc.bcd_usb >> 8, (desc.bcd_usb & 0xFF) / 10))?;
+                write!(f, "  bDeviceClass: 0x{:02X} ({})\n", desc.b_device_class, desc.device_class_description())?;
+                write!(f, "  bDeviceSubClass: 0x{:02X}\n", desc.b_device_sub_class)?;
+                write!(f, "  bDeviceProtocol: 0x{:02X}\n", desc.b_device_protocol)?;
+                write!(f, "  bMaxPacketSize0: {}\n", desc.b_max_packet_size0)?;
+                write!(f, "  idVendor: 0x{:04X} ({})\n", desc.id_vendor, desc.vendor_name())?;
+                write!(f, "  idProduct: 0x{:04X}\n", desc.id_product)?;
+                write!(f, "  bcdDevice: {:04X}\n", desc.bcd_device)?;
+                write!(f, "  iManufacturer: {}\n", desc.i_manufacturer)?;
+                write!(f, "  iProduct: {}\n", desc.i_product)?;
+                write!(f, "  iSerialNumber: {}\n", desc.i_serial_number)?;
+                write!(f, "  bNumConfigurations: {}", desc.b_num_configurations)
             },
             USBDescriptor::Configuration(desc) => {
                 write!(f, "Configuration Descriptor:\n")?;

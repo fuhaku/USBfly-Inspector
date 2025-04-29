@@ -369,38 +369,38 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                 elements.push(
                     column![
                         text(format!("Device Descriptor (VID:{:04X} PID:{:04X})", 
-                            dev.idVendor, dev.idProduct))
+                            dev.id_vendor, dev.id_product))
                             .size(14)
                             .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.4, 0.7))),
                         row![
                             text("").width(Length::Fixed(20.0)), // Indentation
                             text(format!("USB Version: {}.{}", 
-                                (dev.bcdUSB >> 8) & 0xFF, 
-                                dev.bcdUSB & 0xFF))
+                                (dev.bcd_usb >> 8) & 0xFF, 
+                                dev.bcd_usb & 0xFF))
                         ],
                         row![
                             text("").width(Length::Fixed(20.0)),
-                            text(format!("Device Class: 0x{:02X}", dev.bDeviceClass))
+                            text(format!("Device Class: 0x{:02X}", dev.b_device_class))
                         ],
                         row![
                             text("").width(Length::Fixed(20.0)),
-                            text(format!("Max Packet Size: {}", dev.bMaxPacketSize0))
+                            text(format!("Max Packet Size: {}", dev.b_max_packet_size0))
                         ],
                         row![
                             text("").width(Length::Fixed(20.0)),
-                            text(format!("Manufacturer: Index {}", dev.iManufacturer))
+                            text(format!("Manufacturer: Index {}", dev.i_manufacturer))
                         ],
                         row![
                             text("").width(Length::Fixed(20.0)),
-                            text(format!("Product: Index {}", dev.iProduct))
+                            text(format!("Product: Index {}", dev.i_product))
                         ],
                         row![
                             text("").width(Length::Fixed(20.0)),
-                            text(format!("Serial Number: Index {}", dev.iSerialNumber))
+                            text(format!("Serial Number: Index {}", dev.i_serial_number))
                         ],
                         row![
                             text("").width(Length::Fixed(20.0)),
-                            text(format!("Configurations: {}", dev.bNumConfigurations))
+                            text(format!("Configurations: {}", dev.b_num_configurations))
                         ]
                     ].into()
                 );

@@ -1,0 +1,457 @@
+fuhaku@Jasons-MacBook-Pro USBfly-Inspector % cargo build --release
+warning: unused import: `std::process::Command`
+ --> build.rs:1:5
+  |
+1 | use std::process::Command;
+  |     ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `usbfly` (build script) generated 1 warning
+   Compiling usbfly v0.1.0 (/Users/fuhaku/Gits/USBfly-Inspector)
+warning: unused import: `Device`
+ --> src/cynthion/connection.rs:3:38
+  |
+3 | use rusb::{DeviceHandle, UsbContext, Device};
+  |                                      ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::collections::HashMap`
+ --> src/usb/descriptors.rs:6:5
+  |
+6 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `debug`, `error`, and `warn`
+ --> src/usb/decoder.rs:3:11
+  |
+3 | use log::{debug, error, warn};
+  |           ^^^^^  ^^^^^  ^^^^
+
+warning: unused variable: `interface_available`
+   --> src/cynthion/connection.rs:344:13
+    |
+344 |         let interface_available = match device.active_config_descriptor() {
+    |             ^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_interface_available`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/cynthion/connection.rs:290:13
+    |
+290 |         let mut handle = device.open()?;
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `handle`
+   --> src/cynthion/connection.rs:415:21
+    |
+415 |         if let Some(handle) = self.handle.take() {
+    |                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_handle`
+
+warning: constant `CYNTHION_OUT_EP` is never used
+  --> src/cynthion/connection.rs:23:7
+   |
+23 | const CYNTHION_OUT_EP: u8 = 0x01;
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: methods `read_data`, `send_command`, `get_device_info`, and `is_connected` are never used
+   --> src/cynthion/connection.rs:468:18
+    |
+56  | impl CynthionConnection {
+    | ----------------------- methods in this implementation
+...
+468 |     pub async fn read_data(&mut self) -> Result<Vec<u8>> {
+    |                  ^^^^^^^^^
+...
+542 |     pub fn send_command(&mut self, command: &[u8]) -> Result<()> {
+    |            ^^^^^^^^^^^^
+...
+568 |     pub fn get_device_info(&mut self) -> Result<String> {
+    |            ^^^^^^^^^^^^^^^
+...
+574 |     pub fn is_connected(&self) -> bool {
+    |            ^^^^^^^^^^^^
+
+warning: function `get_vendor_ids` is never used
+  --> src/data/vendor_ids.rs:79:8
+   |
+79 | pub fn get_vendor_ids() -> Vec<(u16, String)> {
+   |        ^^^^^^^^^^^^^^
+
+warning: function `get_subclass_description` is never used
+  --> src/data/class_codes.rs:96:8
+   |
+96 | pub fn get_subclass_description(class_code: u8, subclass_code: u8) -> Option<String> {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_protocol_description` is never used
+   --> src/data/class_codes.rs:100:8
+    |
+100 | pub fn get_protocol_description(class_code: u8, subclass_code: u8, protocol_code: u8) -> O...
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_class_codes` is never used
+   --> src/data/class_codes.rs:104:8
+    |
+104 | pub fn get_class_codes() -> Vec<(u8, String)> {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_descriptor_types` is never used
+  --> src/data/descriptor_types.rs:41:8
+   |
+41 | pub fn get_descriptor_types() -> Vec<(u8, String)> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `CYNTHION_VID` is never used
+ --> src/gui/views/device_view.rs:7:7
+  |
+7 | const CYNTHION_VID: u16 = 0x1d50;
+  |       ^^^^^^^^^^^^
+
+warning: constant `CYNTHION_PID` is never used
+ --> src/gui/views/device_view.rs:8:7
+  |
+8 | const CYNTHION_PID: u16 = 0x615c;
+  |       ^^^^^^^^^^^^
+
+warning: constant `TEST_VID` is never used
+ --> src/gui/views/device_view.rs:9:7
+  |
+9 | const TEST_VID: u16 = 0x1d50;
+  |       ^^^^^^^^
+
+warning: constant `TEST_PID` is never used
+  --> src/gui/views/device_view.rs:10:7
+   |
+10 | const TEST_PID: u16 = 0x60e6;
+   |       ^^^^^^^^
+
+warning: constant `GADGETCAP_VID` is never used
+  --> src/gui/views/device_view.rs:11:7
+   |
+11 | const GADGETCAP_VID: u16 = 0x1d50;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `GADGETCAP_PID` is never used
+  --> src/gui/views/device_view.rs:12:7
+   |
+12 | const GADGETCAP_PID: u16 = 0x6018;
+   |       ^^^^^^^^^^^^^
+
+warning: function `labeled_value` is never used
+ --> src/gui/widgets.rs:6:8
+  |
+6 | pub fn labeled_value<'a, Message>(
+  |        ^^^^^^^^^^^^^
+
+warning: function `hex_dump` is never used
+  --> src/gui/widgets.rs:29:8
+   |
+29 | pub fn hex_dump<'a, Message>(
+   |        ^^^^^^^^
+
+warning: methods `get_hints` and `resolve_string_descriptor` are never used
+   --> src/usb/decoder.rs:134:12
+    |
+27  | impl USBDecoder {
+    | --------------- methods in this implementation
+...
+134 |     pub fn get_hints(&self, descriptor: &USBDescriptor) -> Vec<String> {
+    |            ^^^^^^^^^
+...
+138 |     pub fn resolve_string_descriptor(&self, index: u8) -> Option<&String> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: structure field `bLength` should have a snake case name
+  --> src/usb/descriptors.rs:25:9
+   |
+25 |     pub bLength: u8,
+   |         ^^^^^^^ help: convert the identifier to snake case: `b_length`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: structure field `bDescriptorType` should have a snake case name
+  --> src/usb/descriptors.rs:26:9
+   |
+26 |     pub bDescriptorType: u8,
+   |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_descriptor_type`
+
+warning: structure field `bcdUSB` should have a snake case name
+  --> src/usb/descriptors.rs:27:9
+   |
+27 |     pub bcdUSB: u16,
+   |         ^^^^^^ help: convert the identifier to snake case: `bcd_usb`
+
+warning: structure field `bDeviceClass` should have a snake case name
+  --> src/usb/descriptors.rs:28:9
+   |
+28 |     pub bDeviceClass: u8,
+   |         ^^^^^^^^^^^^ help: convert the identifier to snake case: `b_device_class`
+
+warning: structure field `bDeviceSubClass` should have a snake case name
+  --> src/usb/descriptors.rs:29:9
+   |
+29 |     pub bDeviceSubClass: u8,
+   |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_device_sub_class`
+
+warning: structure field `bDeviceProtocol` should have a snake case name
+  --> src/usb/descriptors.rs:30:9
+   |
+30 |     pub bDeviceProtocol: u8,
+   |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_device_protocol`
+
+warning: structure field `bMaxPacketSize0` should have a snake case name
+  --> src/usb/descriptors.rs:31:9
+   |
+31 |     pub bMaxPacketSize0: u8,
+   |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_max_packet_size0`
+
+warning: structure field `idVendor` should have a snake case name
+  --> src/usb/descriptors.rs:32:9
+   |
+32 |     pub idVendor: u16,
+   |         ^^^^^^^^ help: convert the identifier to snake case: `id_vendor`
+
+warning: structure field `idProduct` should have a snake case name
+  --> src/usb/descriptors.rs:33:9
+   |
+33 |     pub idProduct: u16,
+   |         ^^^^^^^^^ help: convert the identifier to snake case: `id_product`
+
+warning: structure field `bcdDevice` should have a snake case name
+  --> src/usb/descriptors.rs:34:9
+   |
+34 |     pub bcdDevice: u16,
+   |         ^^^^^^^^^ help: convert the identifier to snake case: `bcd_device`
+
+warning: structure field `iManufacturer` should have a snake case name
+  --> src/usb/descriptors.rs:35:9
+   |
+35 |     pub iManufacturer: u8,
+   |         ^^^^^^^^^^^^^ help: convert the identifier to snake case: `i_manufacturer`
+
+warning: structure field `iProduct` should have a snake case name
+  --> src/usb/descriptors.rs:36:9
+   |
+36 |     pub iProduct: u8,
+   |         ^^^^^^^^ help: convert the identifier to snake case: `i_product`
+
+warning: structure field `iSerialNumber` should have a snake case name
+  --> src/usb/descriptors.rs:37:9
+   |
+37 |     pub iSerialNumber: u8,
+   |         ^^^^^^^^^^^^^ help: convert the identifier to snake case: `i_serial_number`
+
+warning: structure field `bNumConfigurations` should have a snake case name
+  --> src/usb/descriptors.rs:38:9
+   |
+38 |     pub bNumConfigurations: u8,
+   |         ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_num_configurations`
+
+warning: structure field `bLength` should have a snake case name
+  --> src/usb/descriptors.rs:76:9
+   |
+76 |     pub bLength: u8,
+   |         ^^^^^^^ help: convert the identifier to snake case: `b_length`
+
+warning: structure field `bDescriptorType` should have a snake case name
+  --> src/usb/descriptors.rs:77:9
+   |
+77 |     pub bDescriptorType: u8,
+   |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_descriptor_type`
+
+warning: structure field `wTotalLength` should have a snake case name
+  --> src/usb/descriptors.rs:78:9
+   |
+78 |     pub wTotalLength: u16,
+   |         ^^^^^^^^^^^^ help: convert the identifier to snake case: `w_total_length`
+
+warning: structure field `bNumInterfaces` should have a snake case name
+  --> src/usb/descriptors.rs:79:9
+   |
+79 |     pub bNumInterfaces: u8,
+   |         ^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_num_interfaces`
+
+warning: structure field `bConfigurationValue` should have a snake case name
+  --> src/usb/descriptors.rs:80:9
+   |
+80 |     pub bConfigurationValue: u8,
+   |         ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_configuration_value`
+
+warning: structure field `iConfiguration` should have a snake case name
+  --> src/usb/descriptors.rs:81:9
+   |
+81 |     pub iConfiguration: u8,
+   |         ^^^^^^^^^^^^^^ help: convert the identifier to snake case: `i_configuration`
+
+warning: structure field `bmAttributes` should have a snake case name
+  --> src/usb/descriptors.rs:82:9
+   |
+82 |     pub bmAttributes: u8,
+   |         ^^^^^^^^^^^^ help: convert the identifier to snake case: `bm_attributes`
+
+warning: structure field `bMaxPower` should have a snake case name
+  --> src/usb/descriptors.rs:83:9
+   |
+83 |     pub bMaxPower: u8,
+   |         ^^^^^^^^^ help: convert the identifier to snake case: `b_max_power`
+
+warning: structure field `bLength` should have a snake case name
+   --> src/usb/descriptors.rs:119:9
+    |
+119 |     pub bLength: u8,
+    |         ^^^^^^^ help: convert the identifier to snake case: `b_length`
+
+warning: structure field `bDescriptorType` should have a snake case name
+   --> src/usb/descriptors.rs:120:9
+    |
+120 |     pub bDescriptorType: u8,
+    |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_descriptor_type`
+
+warning: structure field `bInterfaceNumber` should have a snake case name
+   --> src/usb/descriptors.rs:121:9
+    |
+121 |     pub bInterfaceNumber: u8,
+    |         ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_interface_number`
+
+warning: structure field `bAlternateSetting` should have a snake case name
+   --> src/usb/descriptors.rs:122:9
+    |
+122 |     pub bAlternateSetting: u8,
+    |         ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_alternate_setting`
+
+warning: structure field `bNumEndpoints` should have a snake case name
+   --> src/usb/descriptors.rs:123:9
+    |
+123 |     pub bNumEndpoints: u8,
+    |         ^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_num_endpoints`
+
+warning: structure field `bInterfaceClass` should have a snake case name
+   --> src/usb/descriptors.rs:124:9
+    |
+124 |     pub bInterfaceClass: u8,
+    |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_interface_class`
+
+warning: structure field `bInterfaceSubClass` should have a snake case name
+   --> src/usb/descriptors.rs:125:9
+    |
+125 |     pub bInterfaceSubClass: u8,
+    |         ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_interface_sub_class`
+
+warning: structure field `bInterfaceProtocol` should have a snake case name
+   --> src/usb/descriptors.rs:126:9
+    |
+126 |     pub bInterfaceProtocol: u8,
+    |         ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_interface_protocol`
+
+warning: structure field `iInterface` should have a snake case name
+   --> src/usb/descriptors.rs:127:9
+    |
+127 |     pub iInterface: u8,
+    |         ^^^^^^^^^^ help: convert the identifier to snake case: `i_interface`
+
+warning: structure field `bLength` should have a snake case name
+   --> src/usb/descriptors.rs:156:9
+    |
+156 |     pub bLength: u8,
+    |         ^^^^^^^ help: convert the identifier to snake case: `b_length`
+
+warning: structure field `bDescriptorType` should have a snake case name
+   --> src/usb/descriptors.rs:157:9
+    |
+157 |     pub bDescriptorType: u8,
+    |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_descriptor_type`
+
+warning: structure field `bEndpointAddress` should have a snake case name
+   --> src/usb/descriptors.rs:158:9
+    |
+158 |     pub bEndpointAddress: u8,
+    |         ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_endpoint_address`
+
+warning: structure field `bmAttributes` should have a snake case name
+   --> src/usb/descriptors.rs:159:9
+    |
+159 |     pub bmAttributes: u8,
+    |         ^^^^^^^^^^^^ help: convert the identifier to snake case: `bm_attributes`
+
+warning: structure field `wMaxPacketSize` should have a snake case name
+   --> src/usb/descriptors.rs:160:9
+    |
+160 |     pub wMaxPacketSize: u16,
+    |         ^^^^^^^^^^^^^^ help: convert the identifier to snake case: `w_max_packet_size`
+
+warning: structure field `bInterval` should have a snake case name
+   --> src/usb/descriptors.rs:161:9
+    |
+161 |     pub bInterval: u8,
+    |         ^^^^^^^^^ help: convert the identifier to snake case: `b_interval`
+
+warning: structure field `bLength` should have a snake case name
+   --> src/usb/descriptors.rs:201:9
+    |
+201 |     pub bLength: u8,
+    |         ^^^^^^^ help: convert the identifier to snake case: `b_length`
+
+warning: structure field `bDescriptorType` should have a snake case name
+   --> src/usb/descriptors.rs:202:9
+    |
+202 |     pub bDescriptorType: u8,
+    |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_descriptor_type`
+
+warning: structure field `wLANGID` should have a snake case name
+   --> src/usb/descriptors.rs:203:9
+    |
+203 |     pub wLANGID: Option<Vec<u16>>, // Only for string descriptor 0
+    |         ^^^^^^^ help: convert the identifier to snake case: `w_langid`
+
+warning: structure field `bLength` should have a snake case name
+   --> src/usb/descriptors.rs:255:9
+    |
+255 |     pub bLength: u8,
+    |         ^^^^^^^ help: convert the identifier to snake case: `b_length`
+
+warning: structure field `bDescriptorType` should have a snake case name
+   --> src/usb/descriptors.rs:256:9
+    |
+256 |     pub bDescriptorType: u8,
+    |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_descriptor_type`
+
+warning: structure field `bcdHID` should have a snake case name
+   --> src/usb/descriptors.rs:257:9
+    |
+257 |     pub bcdHID: u16,
+    |         ^^^^^^ help: convert the identifier to snake case: `bcd_hid`
+
+warning: structure field `bCountryCode` should have a snake case name
+   --> src/usb/descriptors.rs:258:9
+    |
+258 |     pub bCountryCode: u8,
+    |         ^^^^^^^^^^^^ help: convert the identifier to snake case: `b_country_code`
+
+warning: structure field `bNumDescriptors` should have a snake case name
+   --> src/usb/descriptors.rs:259:9
+    |
+259 |     pub bNumDescriptors: u8,
+    |         ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_num_descriptors`
+
+warning: structure field `bDescriptorType2` should have a snake case name
+   --> src/usb/descriptors.rs:260:9
+    |
+260 |     pub bDescriptorType2: u8,
+    |         ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `b_descriptor_type2`
+
+warning: structure field `wDescriptorLength` should have a snake case name
+   --> src/usb/descriptors.rs:261:9
+    |
+261 |     pub wDescriptorLength: u16,
+    |         ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `w_descriptor_length`
+
+warning: `usbfly` (bin "usbfly") generated 69 warnings (run `cargo fix --bin "usbfly"` to apply 4 suggestions)
+    Finished `release` profile [optimized] target(s) in 6.83s

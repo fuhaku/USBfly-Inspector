@@ -19,33 +19,33 @@ fn device_descriptor_hints(desc: &DeviceDescriptor) -> Vec<String> {
     
     // USB version hint
     hints.push(format!("Device supports USB {} specification", 
-        format!("{}.{}", desc.bcdUSB >> 8, (desc.bcdUSB & 0xFF) / 10)));
+        format!("{}.{}", desc.bcd_usb >> 8, (desc.bcd_usb & 0xFF) / 10)));
     
     // Device class hints
-    if desc.bDeviceClass == 0x00 {
+    if desc.b_device_class == 0x00 {
         hints.push("Device class is defined at the interface level".to_string());
-    } else if desc.bDeviceClass == 0xFF {
+    } else if desc.b_device_class == 0xFF {
         hints.push("Device uses a vendor-specific class".to_string());
     }
     
     // Max packet size hint
-    hints.push(format!("Endpoint 0 supports {} byte packets", desc.bMaxPacketSize0));
+    hints.push(format!("Endpoint 0 supports {} byte packets", desc.b_max_packet_size0));
     
     // Vendor ID hint
     hints.push(format!("Vendor: {}", desc.vendor_name()));
     
     // Configuration hint
-    hints.push(format!("Device has {} configuration(s)", desc.bNumConfigurations));
+    hints.push(format!("Device has {} configuration(s)", desc.b_num_configurations));
     
     // String descriptor hints
-    if desc.iManufacturer > 0 {
-        hints.push(format!("Manufacturer name is in string descriptor {}", desc.iManufacturer));
+    if desc.i_manufacturer > 0 {
+        hints.push(format!("Manufacturer name is in string descriptor {}", desc.i_manufacturer));
     }
-    if desc.iProduct > 0 {
-        hints.push(format!("Product name is in string descriptor {}", desc.iProduct));
+    if desc.i_product > 0 {
+        hints.push(format!("Product name is in string descriptor {}", desc.i_product));
     }
-    if desc.iSerialNumber > 0 {
-        hints.push(format!("Serial number is in string descriptor {}", desc.iSerialNumber));
+    if desc.i_serial_number > 0 {
+        hints.push(format!("Serial number is in string descriptor {}", desc.i_serial_number));
     }
     
     hints

@@ -58,126 +58,112 @@ impl CynthionConnection {
     pub fn list_devices() -> Result<Vec<USBDeviceInfo>> {
         // Check if a refresh was forced by a button press
         let force_refresh = std::env::var("USBFLY_FORCE_REFRESH").is_ok();
-        if force_refresh {
-            info!("Force refresh requested - checking for real devices even if in simulation mode");
-            std::env::remove_var("USBFLY_FORCE_REFRESH");
-            // Continue with real device detection regardless of simulation mode setting
-        } 
-        // Normal operation - check simulation mode setting
-        else if Self::is_simulation_mode() {
-            info!("Using simulated device list (simulation mode enabled)");
-            return Ok(Self::get_simulated_devices());
-        }
-        
-        // Try to create USB context, if it fails, use simulation mode
-        let context = match rusb::Context::new() {
-            Ok(ctx) => ctx,
-            Err(e) => {
-                warn!("USB context initialization failed: {}. Using simulated device list.", e);
-                return Ok(Self::get_simulated_devices());
-            }
-        };
-        
-        let mut device_list = Vec::new();
-        
-        let devices = match context.devices() {
-            Ok(devs) => devs,
-            Err(e) => {
-                warn!("Failed to enumerate USB devices: {}. Using simulated device list.", e);
-                return Ok(Self::get_simulated_devices());
-            }
-        };
-        
-        // Flag to track if we found any real compatible devices
+        let mut real_device_list = Vec::new();
         let mut found_real_cynthion = false;
         
-        for device in devices.iter() {
-            if let Ok(descriptor) = device.device_descriptor() {
-                let vid = descriptor.vendor_id();
-                let pid = descriptor.product_id();
-                
-                // Check if this is a supported device
-                if Self::is_supported_device(vid, pid) {
-                    found_real_cynthion = true;
-                    info!("Real Cynthion device found: VID:{:04x} PID:{:04x}", vid, pid);
-                    
-                    // If we find a real device, ensure simulation mode is off
-                    Self::force_real_device_mode();
+        // Always try to detect real devices when:
+        // 1. Force refresh is requested OR
+        // 2. During regular auto-refresh cycles
+        // This ensures we detect devices plugged in after the app starts
+        if true {
+            if force_refresh {
+                info!("Force refresh requested - checking for real devices");
+                std::env::remove_var("USBFLY_FORCE_REFRESH");
+            }
+            
+            // Try to create USB context
+            if let Ok(context) = rusb::Context::new() {
+                if let Ok(devices) = context.devices() {
+                    // Scan for all devices, including compatible ones
+                    for device in devices.iter() {
+                        if let Ok(descriptor) = device.device_descriptor() {
+                            let vid = descriptor.vendor_id();
+                            let pid = descriptor.product_id();
+                            
+                            // Check if this is a supported device
+                            if Self::is_supported_device(vid, pid) {
+                                found_real_cynthion = true;
+                                info!("Real Cynthion device found: VID:{:04x} PID:{:04x}", vid, pid);
+                                
+                                // If we find a real device, ensure simulation mode is off
+                                Self::force_real_device_mode();
+                            }
+                            
+                            // Create a temporary handle to get string descriptors
+                            let device_info = if let Ok(handle) = device.open() {
+                                let timeout = Duration::from_millis(100);
+                                // Try to get available languages
+                                let default_language = match handle.read_languages(timeout) {
+                                    Ok(langs) if !langs.is_empty() => Some(langs[0]),
+                                    _ => None,
+                                };
+                                
+                                // Get string descriptors (in a way that handles errors gracefully)
+                                let manufacturer = match default_language {
+                                    Some(lang) => descriptor.manufacturer_string_index()
+                                        .and_then(|_idx| handle.read_manufacturer_string(lang, &descriptor, timeout).ok()),
+                                    None => None,
+                                };
+                                
+                                let product = match default_language {
+                                    Some(lang) => descriptor.product_string_index()
+                                        .and_then(|_idx| handle.read_product_string(lang, &descriptor, timeout).ok()),
+                                    None => None,
+                                };
+                                
+                                let serial = match default_language {
+                                    Some(lang) => descriptor.serial_number_string_index()
+                                        .and_then(|_idx| handle.read_serial_number_string(lang, &descriptor, timeout).ok()),
+                                    None => None,
+                                };
+                                
+                                USBDeviceInfo {
+                                    vendor_id: vid,
+                                    product_id: pid,
+                                    manufacturer,
+                                    product,
+                                    serial_number: serial,
+                                }
+                            } else {
+                                // Fallback if we can't open the device
+                                USBDeviceInfo {
+                                    vendor_id: vid,
+                                    product_id: pid,
+                                    manufacturer: None,
+                                    product: None,
+                                    serial_number: None,
+                                }
+                            };
+                            
+                            real_device_list.push(device_info);
+                        }
+                    }
                 }
-                
-                // Create a temporary handle to get string descriptors
-                let device_info = if let Ok(handle) = device.open() {
-                    let timeout = Duration::from_millis(100);
-                    // Try to get available languages
-                    let default_language = match handle.read_languages(timeout) {
-                        Ok(langs) if !langs.is_empty() => Some(langs[0]),
-                        _ => None,
-                    };
-                    
-                    // Get string descriptors (in a way that handles errors gracefully)
-                    let manufacturer = match default_language {
-                        Some(lang) => descriptor.manufacturer_string_index()
-                            .and_then(|_idx| handle.read_manufacturer_string(lang, &descriptor, timeout).ok()),
-                        None => None,
-                    };
-                    
-                    let product = match default_language {
-                        Some(lang) => descriptor.product_string_index()
-                            .and_then(|_idx| handle.read_product_string(lang, &descriptor, timeout).ok()),
-                        None => None,
-                    };
-                    
-                    let serial = match default_language {
-                        Some(lang) => descriptor.serial_number_string_index()
-                            .and_then(|_idx| handle.read_serial_number_string(lang, &descriptor, timeout).ok()),
-                        None => None,
-                    };
-                    
-                    USBDeviceInfo {
-                        vendor_id: vid,
-                        product_id: pid,
-                        manufacturer,
-                        product,
-                        serial_number: serial,
-                    }
-                } else {
-                    // Fallback if we can't open the device
-                    USBDeviceInfo {
-                        vendor_id: vid,
-                        product_id: pid,
-                        manufacturer: None,
-                        product: None,
-                        serial_number: None,
-                    }
-                };
-                
-                device_list.push(device_info);
             }
         }
         
-        // If we found real devices but the list is empty, something's wrong
-        if found_real_cynthion && device_list.is_empty() {
-            warn!("Found Cynthion devices but couldn't read their details");
+        // If we found real compatible devices, use the real device list
+        if found_real_cynthion {
+            info!("Using real device list with {} devices", real_device_list.len());
+            return Ok(real_device_list);
         }
         
-        // If we didn't find any devices, check if we're in simulation mode
-        if device_list.is_empty() || (!found_real_cynthion && !force_refresh) {
-            // Only use simulated devices if:
-            // 1. No devices found at all, or
-            // 2. No Cynthion devices found AND we're not doing a forced refresh
-            
-            // Check if simulation mode was already set
+        // Otherwise, check if we should use simulation mode
+        if Self::is_simulation_mode() && !force_refresh {
+            info!("Using simulated device list (simulation mode enabled)");
+            Ok(Self::get_simulated_devices())
+        } else if !real_device_list.is_empty() {
+            // Return actual devices even if none are compatible
+            info!("No compatible devices found, but returning {} real USB devices", real_device_list.len());
+            Ok(real_device_list)
+        } else {
+            // No devices found at all, use simulation mode
             if !Self::is_simulation_mode() {
-                info!("No compatible USB devices found, using simulation mode");
-                // Activate simulation mode
+                info!("No real USB devices found, enabling simulation mode");
                 std::env::set_var("USBFLY_SIMULATION_MODE", "1");
             }
-            
-            return Ok(Self::get_simulated_devices());
+            Ok(Self::get_simulated_devices())
         }
-        
-        // If we get here, we found real devices, so return them
-        Ok(device_list)
     }
     
     // Check if a device is a supported analyzer
@@ -449,32 +435,50 @@ impl CynthionConnection {
     }
     
     pub fn disconnect(&mut self) -> Result<()> {
+        // Always mark as inactive first to prevent new read operations
+        self.active = false;
+        
         // Handle simulation mode specially
         if self.simulation_mode {
-            self.active = false;
             info!("Disconnected from simulated Cynthion device");
             return Ok(());
         }
         
         // Standard disconnect for real device
         if let Some(handle) = self.handle.take() {
-            // Only try to release interface if not on macOS to avoid potential crashes
-            #[cfg(not(target_os = "macos"))]
+            // Use a separate scope to ensure handle is dropped after use
             {
-                if let Err(e) = handle.release_interface(CYNTHION_INTERFACE) {
-                    error!("Failed to release interface: {}", e);
+                // Only try to release interface if not on macOS to avoid potential crashes
+                #[cfg(not(target_os = "macos"))]
+                {
+                    match handle.release_interface(CYNTHION_INTERFACE) {
+                        Ok(_) => debug!("Successfully released USB interface"),
+                        Err(e) => error!("Failed to release interface: {} (continuing cleanup)", e)
+                    }
+                }
+                
+                // On macOS, skip the release_interface call which could cause crashes
+                #[cfg(target_os = "macos")]
+                {
+                    debug!("On macOS, skipping release_interface to avoid potential crashes");
+                }
+                
+                // For all platforms, try to reset the device before dropping the handle
+                #[cfg(not(target_os = "windows"))]
+                {
+                    // Reset can help clear stalled endpoints, but don't fail if it doesn't work
+                    let _ = handle.reset();
                 }
             }
             
-            // On macOS, skip the release_interface call which could cause similar crashes
-            #[cfg(target_os = "macos")]
-            {
-                debug!("On macOS, skipping release_interface to avoid potential crashes");
-            }
-            
-            self.active = false;
             info!("Disconnected from Cynthion device");
+        } else {
+            debug!("No device handle to disconnect - likely already disconnected");
         }
+        
+        // Ensure handle is cleared
+        self.handle = None;
+        
         Ok(())
     }
     
@@ -555,24 +559,57 @@ impl CynthionConnection {
         // If in simulation mode, return simulated data
         if self.simulation_mode {
             debug!("Returning simulated USB data (sync)");
+            // Add small delay to prevent UI from being overwhelmed with simulated data
+            std::thread::sleep(Duration::from_millis(150));
             return Ok(self.get_simulated_data());
         }
         
-        // Get handle or return error
-        let handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
+        // Get handle or return error with safety check
+        if self.handle.is_none() {
+            self.active = false; // Mark as inactive to prevent further attempts
+            return Err(anyhow!("Device disconnected - handle is missing"));
+        }
         
         // Buffer to store data
         let mut buffer = [0u8; 512];
         
-        // Read data synchronously
-        match handle.read_bulk(CYNTHION_IN_EP, &mut buffer, TIMEOUT_MS) {
+        // Safely access the handle reference
+        let read_result = match &mut self.handle {
+            Some(handle) => handle.read_bulk(CYNTHION_IN_EP, &mut buffer, TIMEOUT_MS),
+            None => return Err(anyhow!("Device handle lost during operation"))
+        };
+        
+        // Handle read result
+        match read_result {
             Ok(len) => {
                 debug!("Read {} bytes from Cynthion", len);
                 Ok(buffer[..len].to_vec())
             }
             Err(e) => {
+                // Check if this is a fatal error that indicates device disconnection
+                if e.to_string().contains("No such device") || 
+                   e.to_string().contains("not found") || 
+                   e.to_string().contains("disconnected") ||
+                   e.to_string().contains("timed out") {
+                    
+                    // Device appears to be disconnected - clean up
+                    info!("Device appears to be disconnected: {}", e);
+                    self.active = false;
+                    
+                    // This will help prevent hanging on close by cleaning up resources
+                    if let Some(mut handle) = self.handle.take() {
+                        #[cfg(not(target_os = "macos"))]
+                        let _ = handle.release_interface(CYNTHION_INTERFACE);
+                    }
+                    
+                    return Err(anyhow!("Device disconnected"));
+                }
+                
+                // For other errors, log and continue
                 error!("Error reading from Cynthion: {}", e);
-                Err(anyhow!("Failed to read from device: {}", e))
+                // Add a delay to avoid error message spam
+                std::thread::sleep(Duration::from_millis(100));
+                Err(anyhow!("USB read error: {}", e))
             }
         }
     }
