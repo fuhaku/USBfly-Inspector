@@ -1,0 +1,9 @@
+/home/runner/workspace/target/release/deps/libab_glyph_rasterizer-02d3d566b3494f1c.rmeta: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/geometry.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/raster.rs
+
+/home/runner/workspace/target/release/deps/libab_glyph_rasterizer-02d3d566b3494f1c.rlib: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/geometry.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/raster.rs
+
+/home/runner/workspace/target/release/deps/ab_glyph_rasterizer-02d3d566b3494f1c.d: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/geometry.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/raster.rs
+
+/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/lib.rs:
+/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/geometry.rs:
+/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ab_glyph_rasterizer-0.1.8/src/raster.rs:

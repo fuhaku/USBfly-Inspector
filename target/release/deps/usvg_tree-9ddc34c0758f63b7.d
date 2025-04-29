@@ -1,0 +1,10 @@
+/home/runner/workspace/target/release/deps/libusvg_tree-9ddc34c0758f63b7.rmeta: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/filter.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/geom.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/text.rs
+
+/home/runner/workspace/target/release/deps/libusvg_tree-9ddc34c0758f63b7.rlib: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/filter.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/geom.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/text.rs
+
+/home/runner/workspace/target/release/deps/usvg_tree-9ddc34c0758f63b7.d: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/filter.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/geom.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/text.rs
+
+/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/lib.rs:
+/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/filter.rs:
+/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/geom.rs:
+/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/usvg-tree-0.35.0/src/text.rs:

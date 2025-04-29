@@ -7,8 +7,8 @@ description = "A USB analysis application for Cynthion devices with comprehensiv
 readme = "README.md"
 
 [dependencies]
-# GUI
-iced = { version = "0.10", features = ["canvas", "svg", "tokio"] }
+# GUI - Using wgpu renderer which works better cross-platform
+iced = { version = "0.10", features = ["canvas", "svg", "tokio", "wgpu"] }
 iced_native = "0.10"
 iced_graphics = "0.9"
 iced_futures = "0.6"
@@ -35,7 +35,7 @@ directories = "5.0"
 strum = { version = "0.25", features = ["derive"] }
 strum_macros = "0.25"
 time = { version = "0.3", features = ["formatting", "local-offset"] }
-rfd = "0.12"
+rfd = { version = "0.12", default-features = false, features = ["xdg-portal"] }
 num-traits = "0.2"
 num-derive = "0.4"
 itertools = "0.11"
