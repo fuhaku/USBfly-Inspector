@@ -7,8 +7,8 @@ description = "A USB analysis application for Cynthion devices with comprehensiv
 readme = "README.md"
 
 [dependencies]
-# GUI - Using wgpu renderer which works better cross-platform
-iced = { version = "0.10", features = ["canvas", "svg", "tokio", "wgpu"] }
+# GUI - Using software rendering which works better in environments like Replit
+iced = { version = "0.10", features = ["canvas", "svg", "tokio", "debug", "advanced", "image_rs"] }
 iced_native = "0.10"
 iced_graphics = "0.9"
 iced_futures = "0.6"

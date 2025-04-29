@@ -4,8 +4,8 @@ use iced::{Element, Length};
 
 // Create a labeled value widget for displaying descriptor fields
 pub fn labeled_value<'a, Message>(
-    label: &str,
-    value: &str,
+    label: &'a str,
+    value: &'a str,
 ) -> Element<'a, Message>
 where
     Message: 'a + Clone,
@@ -66,10 +66,14 @@ where
         rows.push(Text::new(row_text));
     }
     
-    let content = rows.into_iter().fold(
-        Container::new(Text::new("")).width(Length::Fill),
-        |column, row| column.push(row),
+    // Use a Column instead of Container for adding rows
+    use iced::widget::Column;
+    let column = rows.into_iter().fold(
+        Column::new().spacing(2).width(Length::Fill),
+        |col, row| col.push(row),
     );
     
-    content.into()
+    Container::new(column)
+        .width(Length::Fill)
+        .into()
 }

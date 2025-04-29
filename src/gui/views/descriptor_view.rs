@@ -70,7 +70,8 @@ impl DescriptorView {
             .align_items(iced::Alignment::Center)
             .width(Length::Fill);
             
-        let descriptor_list = if self.descriptors.is_empty() {
+        // Define descriptor_list as Element to handle different return types
+        let descriptor_list: Element<Message> = if self.descriptors.is_empty() {
             container(
                 text("No descriptors decoded yet")
                     .width(Length::Fill)
@@ -80,6 +81,7 @@ impl DescriptorView {
             .width(Length::Fill)
             .height(Length::Fill)
             .center_y()
+            .into()
         } else {
             let items = Column::with_children(
                 self.descriptors
@@ -109,12 +111,17 @@ impl DescriptorView {
                                 .padding(10)
                                 .into()
                         } else {
-                            container(row)
-                                .style(iced::theme::Container::Box)
-                                .width(Length::Fill)
-                                .padding(10)
-                                .on_press(Message::DescriptorSelected(index))
-                                .into()
+                            // Use a button instead of container with on_press
+                            button(
+                                container(row)
+                                    .style(iced::theme::Container::Box)
+                                    .width(Length::Fill)
+                                    .padding(5)
+                            )
+                            .width(Length::Fill)
+                            .style(iced::theme::Button::Text)
+                            .on_press(Message::DescriptorSelected(index))
+                            .into()
                         }
                     })
                     .collect()
@@ -126,6 +133,7 @@ impl DescriptorView {
                     .height(Length::Fill)
             )
             .height(Length::Fill)
+            .into()
         };
         
         let selected_descriptor_view = if let Some(index) = self.selected_descriptor {

@@ -24,10 +24,10 @@ fn main() -> iced::Result {
             decorations: true,
             transparent: false,
             position: iced::window::Position::Centered,
-            always_on_top: false,
+            // always_on_top is not available in this version of iced
             ..Default::default()
         },
-        default_font: None,
+        default_font: iced::Font::DEFAULT, // Use the default font instead of None
         default_text_size: 16.0,
         antialiasing: true,
         exit_on_close_request: true,

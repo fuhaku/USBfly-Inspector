@@ -9,7 +9,7 @@ impl iced::widget::container::StyleSheet for SelectedContainer {
         iced::widget::container::Appearance {
             text_color: Some(Color::WHITE),
             background: Some(Background::Color(Color::from_rgb(0.2, 0.4, 0.8))),
-            border_radius: 4.0,
+            border_radius: 4.0.into(),
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
         }
@@ -25,7 +25,7 @@ impl iced::widget::container::StyleSheet for HintContainer {
         iced::widget::container::Appearance {
             text_color: Some(Color::from_rgb(0.0, 0.5, 0.0)),
             background: Some(Background::Color(Color::from_rgb(0.9, 1.0, 0.9))),
-            border_radius: 4.0,
+            border_radius: 4.0.into(),
             border_width: 1.0,
             border_color: Color::from_rgb(0.8, 0.9, 0.8),
         }

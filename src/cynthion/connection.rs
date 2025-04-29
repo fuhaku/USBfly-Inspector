@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use log::{debug, error, info};
-use rusb::{Device, DeviceHandle, UsbContext};
+use rusb::{DeviceHandle, UsbContext};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -45,7 +45,6 @@ impl CynthionConnection {
         
         #[cfg(unix)]
         {
-            use rusb::UsbContext;
             handle.set_auto_detach_kernel_driver(true)?;
         }
         
@@ -93,6 +92,40 @@ impl CynthionConnection {
                 Err(anyhow!("Failed to read from device: {}", e))
             }
         }
+    }
+    
+    // This function performs the actual data reading synchronously 
+    // Returns a byte buffer with the data read from the device
+    fn read_data_sync(&mut self) -> Result<Vec<u8>> {
+        // Check active state up front
+        if !self.active {
+            return Err(anyhow!("Not connected"));
+        }
+        
+        // Get handle or return error
+        let handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
+        
+        // Buffer to store data
+        let mut buffer = [0u8; 512];
+        
+        // Read data synchronously
+        match handle.read_bulk(CYNTHION_IN_EP, &mut buffer, TIMEOUT_MS) {
+            Ok(len) => {
+                debug!("Read {} bytes from Cynthion", len);
+                Ok(buffer[..len].to_vec())
+            }
+            Err(e) => {
+                error!("Error reading from Cynthion: {}", e);
+                Err(anyhow!("Failed to read from device: {}", e))
+            }
+        }
+    }
+    
+    // This version allows avoiding holding a MutexGuard across an await point
+    // It's simpler, returning Result directly rather than a future
+    pub fn read_data_clone(&mut self) -> Result<Vec<u8>> {
+        // Simply call the synchronous function directly
+        self.read_data_sync()
     }
     
     pub fn send_command(&mut self, command: &[u8]) -> Result<()> {

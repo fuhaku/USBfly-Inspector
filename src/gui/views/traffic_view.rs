@@ -141,7 +141,9 @@ impl TrafficView {
         .align_items(iced::Alignment::Center)
         .width(Length::Fill);
         
-        let traffic_list = if self.traffic_data.is_empty() {
+        // Define traffic_list as Element to handle different return types
+        let traffic_list: Element<Message> = if self.traffic_data.is_empty() {
+            // Empty state
             container(
                 text("No traffic captured yet")
                     .width(Length::Fill)
@@ -151,7 +153,9 @@ impl TrafficView {
             .width(Length::Fill)
             .height(Length::Fill)
             .center_y()
+            .into()
         } else {
+            // Filtered list of traffic items
             let filtered_items: Vec<(usize, &TrafficItem)> = self.traffic_data
                 .iter()
                 .enumerate()
@@ -212,17 +216,21 @@ impl TrafficView {
                                 .width(Length::Fill)
                                 .into()
                         } else {
-                            container(row)
-                                .style(iced::theme::Container::Box)
-                                .width(Length::Fill)
-                                .on_press(Message::ItemSelected(*index))
-                                .into()
+                            button(
+                                container(row)
+                                    .style(iced::theme::Container::Box)
+                                    .width(Length::Fill)
+                            )
+                            .width(Length::Fill)
+                            .style(iced::theme::Button::Text)
+                            .on_press(Message::ItemSelected(*index))
+                            .into()
                         }
                     })
                     .collect()
             );
             
-            scrollable(items).height(Length::Fill)
+            scrollable(items).height(Length::Fill).into()
         };
         
         let selected_item_view = if let Some(index) = self.selected_item {

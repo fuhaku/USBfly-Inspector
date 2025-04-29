@@ -43,7 +43,7 @@ impl DeviceView {
                 });
                 Command::none()
             },
-            Message::DeviceSelected(device_id) => {
+            Message::DeviceSelected(_device_id) => {
                 // In a real implementation, this would select the device
                 // and update the device_info accordingly
                 Command::none()
