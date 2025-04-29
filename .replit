@@ -26,7 +26,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cargo run --release"
+args = "cd /home/runner/workspace && RUST_LOG=debug cargo run"
 
 [[workflows.workflow]]
 name = "rust-usbfly"
@@ -37,4 +37,4 @@ task = "shell.exec"
 args = "cd /home/runner && cargo run"
 
 [deployment]
-run = ["sh", "-c", "cargo run --release"]
+run = ["sh", "-c", "cd /home/runner/workspace && RUST_LOG=debug cargo run"]

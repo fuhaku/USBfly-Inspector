@@ -1,16 +1,46 @@
 use anyhow::{anyhow, Result};
-use log::{debug, error, info};
-use rusb::{DeviceHandle, UsbContext};
+use log::{debug, error, info, warn};
+use rusb::{DeviceHandle, UsbContext, Device};
 use std::time::Duration;
 use tokio::time::sleep;
+use std::fmt;
 
-// Constants for Cynthion device
+// Constants for Cynthion device (and compatible devices)
+// Primary Cynthion/GreatFET IDs
 const CYNTHION_VID: u16 = 0x1d50;
 const CYNTHION_PID: u16 = 0x615c;
+// Development/Test device IDs
+const TEST_VID: u16 = 0x1d50; // Default GreatFET VID
+const TEST_PID: u16 = 0x60e6; // GreatFET PID
+// Fallback to additional test devices
+const GADGETCAP_VID: u16 = 0x1d50;
+const GADGETCAP_PID: u16 = 0x6018;
+// Standard interface and endpoint settings
 const CYNTHION_INTERFACE: u8 = 0;
 const CYNTHION_OUT_EP: u8 = 0x01;
 const CYNTHION_IN_EP: u8 = 0x81;
 const TIMEOUT_MS: Duration = Duration::from_millis(1000);
+
+// Device information structure for displaying in UI
+#[derive(Debug, Clone)]
+pub struct USBDeviceInfo {
+    pub vendor_id: u16,
+    pub product_id: u16,
+    pub manufacturer: Option<String>,
+    pub product: Option<String>,
+    pub serial_number: Option<String>,
+}
+
+impl fmt::Display for USBDeviceInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let manufacturer = self.manufacturer.as_deref().unwrap_or("Unknown");
+        let product = self.product.as_deref().unwrap_or("Unknown");
+        let serial = self.serial_number.as_deref().unwrap_or("N/A");
+        
+        write!(f, "{} {} [{}] (VID:{:04x} PID:{:04x})", 
+            manufacturer, product, serial, self.vendor_id, self.product_id)
+    }
+}
 
 #[derive(Debug)]
 pub struct CynthionConnection {
@@ -19,43 +49,197 @@ pub struct CynthionConnection {
 }
 
 impl CynthionConnection {
+    // Get a list of all connected USB devices
+    pub fn list_devices() -> Result<Vec<USBDeviceInfo>> {
+        let context = rusb::Context::new()?;
+        let mut device_list = Vec::new();
+        
+        let devices = context.devices()?;
+        for device in devices.iter() {
+            if let Ok(descriptor) = device.device_descriptor() {
+                let vid = descriptor.vendor_id();
+                let pid = descriptor.product_id();
+                
+                // Create a temporary handle to get string descriptors
+                let device_info = if let Ok(mut handle) = device.open() {
+                    let timeout = Duration::from_millis(100);
+                    // Use default language (usually English/US)
+                    let language = rusb::Language::get_english();
+                    
+                    // Get string descriptors (in a way that handles errors gracefully)
+                    let manufacturer = descriptor.manufacturer_string_index()
+                        .and_then(|idx| handle.read_manufacturer_string(language, &descriptor, timeout).ok());
+                    
+                    let product = descriptor.product_string_index()
+                        .and_then(|idx| handle.read_product_string(language, &descriptor, timeout).ok());
+                    
+                    let serial = descriptor.serial_number_string_index()
+                        .and_then(|idx| handle.read_serial_number_string(language, &descriptor, timeout).ok());
+                    
+                    USBDeviceInfo {
+                        vendor_id: vid,
+                        product_id: pid,
+                        manufacturer,
+                        product,
+                        serial_number: serial,
+                    }
+                } else {
+                    // Fallback if we can't open the device
+                    USBDeviceInfo {
+                        vendor_id: vid,
+                        product_id: pid,
+                        manufacturer: None,
+                        product: None,
+                        serial_number: None,
+                    }
+                };
+                
+                device_list.push(device_info);
+            }
+        }
+        
+        Ok(device_list)
+    }
+    
+    // Check if a device is a supported analyzer
+    fn is_supported_device(vid: u16, pid: u16) -> bool {
+        // Check for Cynthion
+        if vid == CYNTHION_VID && pid == CYNTHION_PID {
+            return true;
+        }
+        
+        // Check for test/development devices
+        if vid == TEST_VID && pid == TEST_PID {
+            return true;
+        }
+        
+        // Check for other supported devices
+        if vid == GADGETCAP_VID && pid == GADGETCAP_PID {
+            return true;
+        }
+        
+        false
+    }
+    
     pub async fn connect() -> Result<Self> {
         let context = rusb::Context::new()?;
         
-        // Find Cynthion device
+        // Debug: Log all connected USB devices
+        info!("Searching for compatible USB devices...");
+        if let Ok(device_list) = Self::list_devices() {
+            for (i, device) in device_list.iter().enumerate() {
+                info!("USB Device {}: {}", i, device);
+            }
+        }
+        
+        // Find Cynthion or compatible device
         let devices = context.devices()?;
         let device = devices
             .iter()
             .find(|device| {
                 if let Ok(descriptor) = device.device_descriptor() {
-                    return descriptor.vendor_id() == CYNTHION_VID && descriptor.product_id() == CYNTHION_PID;
+                    let vid = descriptor.vendor_id();
+                    let pid = descriptor.product_id();
+                    
+                    // Check if this is a supported device
+                    if Self::is_supported_device(vid, pid) {
+                        info!("Found compatible device: VID:{:04x} PID:{:04x}", vid, pid);
+                        return true;
+                    }
+                    
+                    // Additional debugging
+                    debug!("Skipping unsupported device: VID:{:04x} PID:{:04x}", vid, pid);
                 }
                 false
-            })
-            .ok_or_else(|| anyhow!("Cynthion device not found"))?;
+            });
+            
+        // Handle the case where no compatible device is found
+        let device = match device {
+            Some(dev) => dev,
+            None => {
+                // First check if we have permission issues with USB devices
+                let devices = context.devices()?;
+                let has_devices = devices.iter().count() > 0;
+                
+                if !has_devices {
+                    warn!("No USB devices found at all - check USB subsystem");
+                    return Err(anyhow!("No USB devices found. Check if USB is working properly on your system."));
+                }
+                
+                // Try to open first device to check permissions
+                let first_device = devices.iter().next();
+                if let Some(dev) = first_device {
+                    match dev.open() {
+                        Ok(_) => {
+                            // We can open devices, but no compatible ones found
+                            warn!("USB access works, but no compatible devices found");
+                            return Err(anyhow!(
+                                "No compatible USB analyzer devices found. Make sure your Cynthion device is connected."));
+                        }
+                        Err(e) => {
+                            // We have permission issues
+                            warn!("USB permission error: {}", e);
+                            if cfg!(target_os = "linux") {
+                                return Err(anyhow!(
+                                    "USB permission error: {}. Try running with sudo or add udev rules for USB access.", e));
+                            } else {
+                                return Err(anyhow!(
+                                    "USB permission error: {}. You might need administrator privileges to access USB devices.", e));
+                            }
+                        }
+                    }
+                } else {
+                    warn!("No compatible USB devices found");
+                    return Err(anyhow!("No compatible USB analyzer devices found. Please check your connection."));
+                }
+            }
+        };
         
         // Get device handle
         let mut handle = device.open()?;
         
+        // Get device descriptor for logging
+        if let Ok(descriptor) = device.device_descriptor() {
+            let timeout = Duration::from_millis(100);
+            let language = rusb::Language::get_english();
+            let product_name = descriptor.product_string_index()
+                .and_then(|idx| handle.read_product_string(language, &descriptor, timeout).ok())
+                .unwrap_or_else(|| "Unknown Device".to_string());
+                
+            info!("Connecting to {} (VID:{:04x}, PID:{:04x})", 
+                product_name, descriptor.vendor_id(), descriptor.product_id());
+        }
+        
         // Claim interface
         #[cfg(not(target_os = "windows"))]
         {
-            handle.reset()?;
+            if let Err(e) = handle.reset() {
+                warn!("Could not reset device: {}", e);
+                // Continue anyway
+            }
         }
         
         #[cfg(unix)]
         {
-            handle.set_auto_detach_kernel_driver(true)?;
+            if let Err(e) = handle.set_auto_detach_kernel_driver(true) {
+                warn!("Could not set kernel driver auto-detach: {}", e);
+                // Continue anyway, this might be expected on some systems
+            }
         }
         
-        handle.claim_interface(CYNTHION_INTERFACE)?;
-        
-        info!("Connected to Cynthion device");
-        
-        Ok(Self {
-            handle: Some(handle),
-            active: true,
-        })
+        match handle.claim_interface(CYNTHION_INTERFACE) {
+            Ok(_) => {
+                info!("Successfully claimed interface {}", CYNTHION_INTERFACE);
+                Ok(Self {
+                    handle: Some(handle),
+                    active: true,
+                })
+            },
+            Err(e) => {
+                error!("Failed to claim interface: {}", e);
+                Err(anyhow!("Failed to claim USB interface: {}. Check if the device is being used by another application.", e))
+            }
+        }
     }
     
     pub fn disconnect(&mut self) -> Result<()> {

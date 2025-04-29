@@ -90,8 +90,16 @@ impl Application for USBflyApp {
             connected: false,
             error_message: None,
         };
+        
+        // Automatically scan for USB devices when the app starts
+        let refresh_command = Command::perform(
+            async { 
+                crate::gui::views::device_view::Message::RefreshDevices 
+            },
+            Message::DeviceViewMessage
+        );
 
-        (app, Command::none())
+        (app, refresh_command)
     }
 
     fn title(&self) -> String {
