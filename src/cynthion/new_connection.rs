@@ -6,7 +6,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use anyhow::{Result, bail, Context as AnyhowContext, Error};
-use log::{info, error, warn};
+use log::{info, error, warn, debug};
 use nusb::{
     self,
     transfer::{
@@ -168,6 +168,9 @@ impl CynthionDevice {
             interface,
             device_info: self.device_info.clone(),
             transfer_queue: None,
+            data_receiver: None,
+            pending_data_tx: None,
+            capture_on_connect: false,
         })
     }
     
@@ -212,6 +215,9 @@ pub struct CynthionHandle {
     interface: Interface,
     device_info: DeviceInfo,
     transfer_queue: Option<TransferQueue>,
+    data_receiver: Option<mpsc::Receiver<Vec<u8>>>,
+    pending_data_tx: Option<mpsc::Sender<Vec<u8>>>,
+    capture_on_connect: bool,
 }
 
 // Manual implementation of Clone since TransferQueue can't be directly cloned
@@ -222,6 +228,9 @@ impl Clone for CynthionHandle {
             interface: self.interface.clone(),
             device_info: self.device_info.clone(),
             transfer_queue: None, // Can't directly clone the transfer queue
+            data_receiver: None,  // Can't directly clone the receiver
+            pending_data_tx: None, // We'll create a new one if needed
+            capture_on_connect: self.capture_on_connect, // Clone this flag
         };
         
         // If there was a transfer queue, we need to reconstruct it
@@ -306,40 +315,76 @@ impl CynthionHandle {
     
     // Start capturing USB traffic with specified speed
     pub fn start_capture(&mut self) -> Result<()> {
-        // We'll use High speed by default for simplicity
-        info!("Starting capture on Cynthion device: {:04x}:{:04x} using High Speed mode", 
-              self.device_info.vendor_id(), self.device_info.product_id());
+        // Create a channel to receive packets from the device
+        let (data_tx, data_rx) = std::sync::mpsc::channel();
         
-        // Try to set the device to capture mode with multiple attempts if needed
-        let max_attempts = 3;
-        let mut last_error = None;
+        // Store the receiver for later use
+        self.data_receiver = Some(data_rx);
         
-        for attempt in 1..=max_attempts {
-            match self.write_request(1, State::new(true, ConnectionSpeed::High).0) {
-                Ok(_) => {
-                    info!("Successfully started capture on attempt {}", attempt);
-                    return Ok(());
-                },
-                Err(e) => {
-                    warn!("Failed to start capture (attempt {}/{}): {}", 
-                          attempt, max_attempts, e);
-                    last_error = Some(e);
-                    
-                    // Wait briefly before retrying
-                    if attempt < max_attempts {
-                        std::thread::sleep(std::time::Duration::from_millis(100));
+        // If the device is ready, set up the transfer queue immediately
+        if self.device_info.vendor_id() == CYNTHION_VID {
+            info!("Starting capture on Cynthion device: {:04x}:{:04x} using High Speed mode", 
+                  self.device_info.vendor_id(), self.device_info.product_id());
+            
+            // Try to set the device to capture mode with multiple attempts if needed
+            let max_attempts = 3;
+            let mut last_error = None;
+            
+            for attempt in 1..=max_attempts {
+                match self.write_request(1, State::new(true, ConnectionSpeed::High).0) {
+                    Ok(_) => {
+                        info!("Successfully started capture on attempt {}", attempt);
+                        
+                        // Create a transfer queue for the bulk transfers
+                        let queue = TransferQueue::new(
+                            &self.interface, 
+                            data_tx,
+                            ENDPOINT, 
+                            NUM_TRANSFERS, 
+                            READ_LEN
+                        );
+                        
+                        // Store the transfer queue
+                        self.transfer_queue = Some(queue);
+                        
+                        // Create a background thread to handle transfers
+                        self.start_async_processing();
+                        
+                        return Ok(());
+                    },
+                    Err(e) => {
+                        warn!("Failed to start capture (attempt {}/{}): {}", 
+                            attempt, max_attempts, e);
+                        last_error = Some(e);
+                        
+                        // Wait briefly before retrying
+                        if attempt < max_attempts {
+                            std::thread::sleep(std::time::Duration::from_millis(100));
+                        }
                     }
                 }
             }
-        }
-        
-        // If we've tried multiple times and still failed, report the error
-        if let Some(e) = last_error {
-            error!("Failed to start capture after {} attempts", max_attempts);
-            Err(anyhow::anyhow!("Failed to start capture: {}", e))
+            
+            // If we've tried multiple times and still failed, report the error
+            if let Some(e) = last_error {
+                error!("Failed to start capture after {} attempts", max_attempts);
+                return Err(anyhow::anyhow!("Failed to start capture: {}", e));
+            } else {
+                // This shouldn't happen, but just in case
+                return Err(anyhow::anyhow!("Failed to start capture after {} attempts", max_attempts));
+            }
         } else {
-            // This shouldn't happen, but just in case
-            Err(anyhow::anyhow!("Failed to start capture after {} attempts", max_attempts))
+            // Even if no real Cynthion device is connected yet, we'll still indicate capture is prepared
+            // This way we'll be ready to capture traffic as soon as a device is connected
+            info!("No Cynthion device connected yet, but capture will start when device connects.");
+            
+            // Store the transmitter for later use when a device connects
+            self.pending_data_tx = Some(data_tx);
+            
+            // Mark that we should start capturing immediately when a device connects
+            self.capture_on_connect = true;
+            
+            return Ok(());
         }
     }
     
@@ -455,11 +500,73 @@ impl CynthionHandle {
         Ok(())
     }
     
+    // This is just a forward to the actual implementation
+    // for compatibility with places where &self is used instead of &mut self
+    fn get_simulated_mitm_traffic(&self) -> Vec<u8> {
+        // Create a mutable reference to self
+        let mut me = self.clone();
+        // Call the public implementation
+        me.get_simulated_mitm_traffic_pub()
+    }
+    
     // Read MitM traffic using an improved approach based on Packetry
     pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
         // If we're in simulation mode, return simulated data
         if self.is_simulation_mode() {
             return Ok(self.get_simulated_mitm_traffic());
+        }
+        
+        // If capture_on_connect is true, we should check if we need to start capture
+        // This could happen if a device was connected after starting capture
+        if self.capture_on_connect && self.transfer_queue.is_none() && self.device_info.vendor_id() == CYNTHION_VID {
+            info!("Device connected while capture was waiting - initializing capture now");
+            
+            // Get the stored transmitter from pending_data_tx
+            if let Some(data_tx) = self.pending_data_tx.take() {
+                // Create a transfer queue for the bulk transfers
+                let queue = TransferQueue::new(
+                    &self.interface, 
+                    data_tx.clone(),
+                    ENDPOINT, 
+                    NUM_TRANSFERS, 
+                    READ_LEN
+                );
+                
+                // Store the transfer queue
+                self.transfer_queue = Some(queue);
+                
+                // Try to start the capture with multiple attempts
+                let max_attempts = 3;
+                let mut success = false;
+                
+                for attempt in 1..=max_attempts {
+                    match self.write_request(1, State::new(true, ConnectionSpeed::High).0) {
+                        Ok(_) => {
+                            info!("Successfully started capture on newly connected device (attempt {})", attempt);
+                            success = true;
+                            break;
+                        },
+                        Err(e) => {
+                            warn!("Failed to start capture on newly connected device (attempt {}/{}): {}", 
+                                  attempt, max_attempts, e);
+                            
+                            // Wait briefly before retrying
+                            if attempt < max_attempts {
+                                std::thread::sleep(std::time::Duration::from_millis(100));
+                            }
+                        }
+                    }
+                }
+                
+                if success {
+                    // Start async processing in a background thread
+                    self.start_async_processing();
+                } else {
+                    // Failed to start capture on the new device
+                    error!("Failed to start capture on newly connected device after {} attempts", max_attempts);
+                    self.transfer_queue = None;
+                }
+            }
         }
         
         // Check if we have an active transfer queue
@@ -584,14 +691,193 @@ impl CynthionHandle {
     }
     
     // Process raw data into USB transactions (for nusb implementation)
-    pub fn process_transactions(&mut self, _data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
-        // For now, return an empty vector
-        // This will be implemented to parse the raw data into USB transactions
-        Vec::new()
+    pub fn process_transactions(&mut self, data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
+        use crate::usb::mitm_traffic::{UsbTransaction, UsbTransferType, UsbDirection};
+        
+        // If data is empty, return empty vector
+        if data.is_empty() {
+            return Vec::new();
+        }
+        
+        // For our nusb implementation, properly process the data
+        let mut transactions = Vec::new();
+        
+        // Ensure we have enough data for at least one transaction (minimum 8 bytes)
+        if data.len() < 8 {
+            debug!("Data too short to contain valid USB transaction: {} bytes", data.len());
+            return Vec::new();
+        }
+        
+        // Process data into packets
+        let mut offset = 0;
+        while offset + 8 <= data.len() {
+            // Read packet header
+            let packet_type = data[offset];
+            let endpoint = data[offset + 1];
+            let direction = if endpoint & 0x80 != 0 { 
+                UsbDirection::DeviceToHost 
+            } else { 
+                UsbDirection::HostToDevice 
+            };
+            
+            // Extract device address
+            let device_addr = data[offset + 2];
+            
+            // Identify transfer type based on packet_type
+            let transfer_type = match packet_type {
+                0xD0 => UsbTransferType::Control,   // SETUP token
+                0x90 => UsbTransferType::Bulk,      // IN token (bulk)
+                0xC0 => UsbTransferType::Interrupt, // IN token (interrupt)
+                0x10 => UsbTransferType::Bulk,      // OUT token (bulk)
+                0x40 => UsbTransferType::Interrupt, // OUT token (interrupt)
+                _ => {
+                    debug!("Unknown packet type: 0x{:02X}, assuming Bulk", packet_type);
+                    UsbTransferType::Bulk  // Default to bulk
+                }
+            };
+            
+            // Calculate data length
+            let data_len = if offset + 3 < data.len() {
+                data[offset + 3] as usize
+            } else {
+                0
+            };
+            
+            // Safety check for data bounds
+            if offset + 4 + data_len > data.len() {
+                debug!("Packet data exceeds buffer bounds: offset={}, len={}, buffer={}", 
+                       offset, data_len, data.len());
+                break;
+            }
+            
+            // Extract data payload
+            let payload = data[offset+4..offset+4+data_len].to_vec();
+            
+            // Generate a transaction ID
+            let id = transactions.len() as u64 + 1;
+            
+            // Create a data packet for this transaction
+            let data_packet = crate::usb::mitm_traffic::UsbDataPacket::new(
+                payload, 
+                direction,
+                endpoint & 0x7F // Remove direction bit
+            );
+            
+            // Create a status packet (assume success)
+            let status_packet = crate::usb::mitm_traffic::UsbStatusPacket {
+                status: crate::usb::mitm_traffic::UsbTransferStatus::ACK,
+                endpoint: endpoint & 0x7F,
+            };
+            
+            // Create and update the transaction with our data
+            let mut transaction = UsbTransaction {
+                id,
+                transfer_type,
+                setup_packet: None, // Will be filled below for control transfers
+                data_packet: Some(data_packet),
+                status_packet: Some(status_packet),
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs_f64(),
+                device_address: device_addr,
+                endpoint: endpoint & 0x7F, // Remove direction bit
+                fields: {
+                    let mut fields = std::collections::HashMap::new();
+                    fields.insert("speed".to_string(), "High".to_string());
+                    fields.insert("packet_type".to_string(), format!("0x{:02X}", packet_type));
+                    if packet_type == 0xD0 {
+                        fields.insert("setup".to_string(), "true".to_string());
+                    }
+                    fields
+                },
+            };
+            
+            // If this is a setup packet, create a setup packet structure
+            if packet_type == 0xD0 && data_len >= 8 {
+                // Get setup packet data
+                let setup_data = &data[offset+4..offset+4+8]; // Standard setup packet is 8 bytes
+                
+                // Extract setup packet fields
+                let bmRequestType = setup_data[0];
+                let bRequest = setup_data[1];
+                let wValue = u16::from_le_bytes([setup_data[2], setup_data[3]]);
+                let wIndex = u16::from_le_bytes([setup_data[4], setup_data[5]]);
+                let wLength = u16::from_le_bytes([setup_data[6], setup_data[7]]);
+                
+                // Determine request type and recipient
+                let request_type = match (bmRequestType >> 5) & 0x03 {
+                    0 => crate::usb::mitm_traffic::UsbControlRequestType::Standard,
+                    1 => crate::usb::mitm_traffic::UsbControlRequestType::Class,
+                    2 => crate::usb::mitm_traffic::UsbControlRequestType::Vendor,
+                    _ => crate::usb::mitm_traffic::UsbControlRequestType::Reserved,
+                };
+                
+                let recipient = match bmRequestType & 0x1F {
+                    0 => crate::usb::mitm_traffic::UsbControlRecipient::Device,
+                    1 => crate::usb::mitm_traffic::UsbControlRecipient::Interface,
+                    2 => crate::usb::mitm_traffic::UsbControlRecipient::Endpoint,
+                    3 => crate::usb::mitm_traffic::UsbControlRecipient::Other,
+                    _ => crate::usb::mitm_traffic::UsbControlRecipient::Reserved,
+                };
+                
+                // Determine standard request type for standard requests
+                let standard_request = if request_type == crate::usb::mitm_traffic::UsbControlRequestType::Standard {
+                    match bRequest {
+                        0x00 => Some(crate::usb::mitm_traffic::UsbStandardRequest::GetStatus),
+                        0x01 => Some(crate::usb::mitm_traffic::UsbStandardRequest::ClearFeature),
+                        0x03 => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetFeature),
+                        0x05 => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetAddress),
+                        0x06 => Some(crate::usb::mitm_traffic::UsbStandardRequest::GetDescriptor),
+                        0x07 => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetDescriptor),
+                        0x08 => Some(crate::usb::mitm_traffic::UsbStandardRequest::GetConfiguration),
+                        0x09 => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetConfiguration),
+                        0x0A => Some(crate::usb::mitm_traffic::UsbStandardRequest::GetInterface),
+                        0x0B => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetInterface),
+                        0x0C => Some(crate::usb::mitm_traffic::UsbStandardRequest::SynchFrame),
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                
+                // Create description for the request
+                let request_description = match standard_request {
+                    Some(req) => format!("{}(wValue=0x{:04X}, wIndex=0x{:04X}, wLength={})", 
+                                         format!("{:?}", req).replace("UsbStandardRequest::", ""),
+                                         wValue, wIndex, wLength),
+                    None => format!("Request: 0x{:02X} (Type: {:?}, Recipient: {:?})",
+                                  bRequest, request_type, recipient),
+                };
+                
+                // Add the setup packet to the transaction
+                transaction.setup_packet = Some(crate::usb::mitm_traffic::UsbSetupPacket {
+                    bmRequestType,
+                    bRequest,
+                    wValue,
+                    wIndex,
+                    wLength,
+                    direction,
+                    request_type,
+                    recipient,
+                    standard_request,
+                    request_description,
+                });
+            }
+            
+            // Add the transaction to our list
+            transactions.push(transaction);
+            
+            // Move to next packet
+            offset += 4 + data_len;
+        }
+        
+        // Return the parsed transactions
+        transactions
     }
     
-    // Get simulated MitM traffic for testing
-    pub fn get_simulated_mitm_traffic(&mut self) -> Vec<u8> {
+    // Get simulated MitM traffic for testing (public implementation)
+    pub fn get_simulated_mitm_traffic_pub(&mut self) -> Vec<u8> {
         // Create a realistic simulated USB packet
         // Format: [packet_type, endpoint, device_addr, data_len, data...]
         

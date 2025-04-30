@@ -687,7 +687,7 @@ impl Application for USBflyApp {
                                 // Get simulated data while we have the lock if in simulation mode
                                 let data = if is_sim {
                                     // Use enhanced simulation with our new module
-                                    let raw_data = conn.get_simulated_mitm_traffic();
+                                    let raw_data = conn.get_simulated_mitm_traffic_pub();
                                     
                                     // Process the raw data into USB transactions using our new module
                                     let transactions = conn.process_mitm_traffic(&raw_data);
@@ -748,7 +748,7 @@ impl Application for USBflyApp {
                             if is_simulation {
                                 // Use our enhanced simulation module for more realistic data
                                 let sim_data = if let Ok(mut conn) = connection_ref.lock() {
-                                    conn.get_simulated_mitm_traffic()
+                                    conn.get_simulated_mitm_traffic_pub()
                                 } else {
                                     // Fallback if we couldn't get a lock for some reason
                                     crate::usb::generate_simulated_mitm_traffic()
