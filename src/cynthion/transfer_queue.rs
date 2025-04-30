@@ -32,7 +32,7 @@ type BulkTransfer = Completion<Vec<u8>>;
 pub struct TransferQueue {
     interface: Interface,
     data_tx: mpsc::Sender<Vec<u8>>,
-    receiver: Option<mpsc::Receiver<Vec<u8>>>,  // Make Option type since Receiver doesn't implement Clone
+    pub receiver: Option<mpsc::Receiver<Vec<u8>>>,  // Make Option type since Receiver doesn't implement Clone
     endpoint: u8,
     read_size: usize,
     #[allow(dead_code)]
@@ -81,13 +81,14 @@ impl TransferQueue {
         num_transfers: usize,
         read_size: usize,
     ) -> TransferQueue {
-        // Create a channel for receiving data
-        let (_tx, rx) = mpsc::channel();
+        debug!("Creating new transfer queue for endpoint 0x{:02X}", endpoint);
         
+        // Create the queue without initializing the receiver yet
+        // The caller will provide the receiver part of the channel
         let mut queue = TransferQueue {
             interface: interface.clone(),
             data_tx: data_tx.clone(),  // Use the provided transmitter
-            receiver: Some(rx),
+            receiver: None,  // Caller will set this properly
             endpoint,
             read_size,
             active_transfers: VecDeque::with_capacity(num_transfers),
@@ -95,31 +96,57 @@ impl TransferQueue {
             transfer_id: 0,
         };
         
-        // Set up data_tx to be used directly
-        // Since mpsc::Sender doesn't have a subscribe method, we'll use the provided one directly
-
         // Initialize the transfer queue by submitting initial transfers
-        queue.initialize_transfers(num_transfers);
+        // with proper error handling
+        match queue.initialize_transfers(num_transfers) {
+            Ok(_) => {
+                debug!("Successfully initialized {} transfers for endpoint 0x{:02X}", 
+                       num_transfers, endpoint);
+            },
+            Err(e) => {
+                error!("Error initializing transfers: {}", e);
+                // Continue anyway, we'll try to make the best of what we have
+            }
+        }
         
         queue
     }
     
     /// Initialize the transfer queue with a set of transfers
-    fn initialize_transfers(&mut self, num_transfers: usize) {
-        for _ in 0..num_transfers {
+    fn initialize_transfers(&mut self, num_transfers: usize) -> Result<()> {
+        let mut success_count = 0;
+        let mut last_error = None;
+        
+        for i in 0..num_transfers {
             match self.submit_transfer() {
                 Ok(_) => {
                     // Transfer submitted successfully
+                    success_count += 1;
+                    debug!("Submitted transfer {}/{}", i+1, num_transfers);
                 }
                 Err(e) => {
-                    error!("Error submitting initial transfer: {}", e);
-                    // Continue anyway, we'll try to make the best of what we have
+                    error!("Error submitting initial transfer {}/{}: {}", i+1, num_transfers, e);
+                    last_error = Some(e);
+                    // Continue trying the remaining transfers
                 }
             }
         }
+        
+        // If we didn't get any successful transfers, return the last error
+        if success_count == 0 && last_error.is_some() {
+            Err(anyhow::anyhow!("Failed to submit any transfers: {}", last_error.unwrap()))
+        } else if success_count < num_transfers {
+            // Partial success
+            info!("Partially initialized transfer queue: {}/{} transfers submitted",
+                 success_count, num_transfers);
+            Ok(())
+        } else {
+            // Full success
+            Ok(())
+        }
     }
     
-    /// Submit a new bulk transfer request
+    /// Submit a new bulk transfer request with a timeout
     fn submit_transfer(&mut self) -> Result<()> {
         // Create a new buffer for the transfer
         let buffer = vec![0u8; self.read_size];
@@ -130,7 +157,6 @@ impl TransferQueue {
         
         // In nusb, we create a bulk IN transfer (for receiving data)
         // The endpoint address already includes the direction bit (0x80 for IN)
-        // First we get a future, then poll it to get the transfer
         let future = self.interface.bulk_in(self.endpoint, request_buffer);
         
         // Poll the future until we get a result - based on Packetry's approach
@@ -141,21 +167,51 @@ impl TransferQueue {
         // We need to pin the future to poll it
         let mut pinned = Box::pin(future);
         
-        // Poll the future and get the result
-        let completion = match Pin::new(&mut pinned).poll(&mut context) {
-            Poll::Ready(completion) => completion,
-            Poll::Pending => return Err(anyhow::anyhow!("Transfer future is still pending")),
+        // Add a timeout to prevent hanging - try up to 3 attempts with a short delay
+        let start_time = std::time::Instant::now();
+        let timeout = std::time::Duration::from_millis(100); // 100ms timeout
+        let max_attempts = 3;
+        
+        let mut completion = None;
+        let mut attempts = 0;
+        
+        while attempts < max_attempts {
+            attempts += 1;
+            
+            match Pin::new(&mut pinned).poll(&mut context) {
+                Poll::Ready(comp) => {
+                    completion = Some(comp);
+                    break;
+                },
+                Poll::Pending => {
+                    // Check if we've exceeded the timeout
+                    if start_time.elapsed() > timeout {
+                        // If we've tried too many times, give up
+                        if attempts >= max_attempts {
+                            return Err(anyhow::anyhow!("Transfer timed out after {} attempts", attempts));
+                        }
+                        
+                        // Otherwise, sleep briefly and retry
+                        std::thread::sleep(std::time::Duration::from_millis(10));
+                    }
+                }
+            }
+        }
+        
+        // If we didn't get a completion, return an error
+        let completion = match completion {
+            Some(comp) => comp,
+            None => return Err(anyhow::anyhow!("Failed to complete transfer after {} attempts", attempts)),
         };
         
         // Check if there was an error during transfer
         if let Err(e) = &completion.status {
-            return Err(anyhow::anyhow!("Transfer error: {}", e));
+            // All nusb error types - simplify for now
+            return Err(anyhow::anyhow!("Transfer error: {} (device may be disconnected)", e));
         }
         
-        let transfer = completion;
-        
         // Add to active transfers queue
-        self.active_transfers.push_back((transfer, buffer));
+        self.active_transfers.push_back((completion, buffer));
         self.transfer_id += 1;
         
         Ok(())

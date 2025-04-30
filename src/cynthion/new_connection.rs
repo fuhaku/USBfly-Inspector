@@ -6,7 +6,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use anyhow::{Result, bail, Context as AnyhowContext, Error};
-use log::info;
+use log::{info, error, warn, debug};
 use nusb::{
     self,
     transfer::{
@@ -268,7 +268,40 @@ impl CynthionHandle {
     // Start capturing USB traffic with specified speed
     pub fn start_capture(&mut self) -> Result<()> {
         // We'll use High speed by default for simplicity
-        self.write_request(1, State::new(true, ConnectionSpeed::High).0)
+        info!("Starting capture on Cynthion device: {:04x}:{:04x} using High Speed mode", 
+              self.device_info.vendor_id(), self.device_info.product_id());
+        
+        // Try to set the device to capture mode with multiple attempts if needed
+        let max_attempts = 3;
+        let mut last_error = None;
+        
+        for attempt in 1..=max_attempts {
+            match self.write_request(1, State::new(true, ConnectionSpeed::High).0) {
+                Ok(_) => {
+                    info!("Successfully started capture on attempt {}", attempt);
+                    return Ok(());
+                },
+                Err(e) => {
+                    warn!("Failed to start capture (attempt {}/{}): {}", 
+                          attempt, max_attempts, e);
+                    last_error = Some(e);
+                    
+                    // Wait briefly before retrying
+                    if attempt < max_attempts {
+                        std::thread::sleep(std::time::Duration::from_millis(100));
+                    }
+                }
+            }
+        }
+        
+        // If we've tried multiple times and still failed, report the error
+        if let Some(e) = last_error {
+            error!("Failed to start capture after {} attempts", max_attempts);
+            Err(anyhow::anyhow!("Failed to start capture: {}", e))
+        } else {
+            // This shouldn't happen, but just in case
+            Err(anyhow::anyhow!("Failed to start capture after {} attempts", max_attempts))
+        }
     }
     
     // Stop capturing USB traffic
@@ -358,8 +391,17 @@ impl CynthionHandle {
     
     // Check if this is a simulation
     pub fn is_simulation_mode(&self) -> bool {
-        // Check if we're simulating a device
-        std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "0".to_string()) == "1"
+        // Only use simulation mode when explicitly enabled by env var
+        // AND we don't have a real device connected
+        let sim_enabled = std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "0".to_string()) == "1";
+        
+        // If we have a real device connection, never use simulation mode
+        // to prevent showing simulated data with a real device
+        if self.device_info.vendor_id() == CYNTHION_VID {
+            return false;
+        }
+        
+        sim_enabled
     }
     
     // Check if device is connected
@@ -383,18 +425,39 @@ impl CynthionHandle {
         
         // Check if we have an active transfer queue
         if self.transfer_queue.is_none() {
-            // Create a channel for data transfer
-            let (tx, _rx) = mpsc::channel();
+            info!("Initializing transfer queue for Cynthion device: {:04x}:{:04x}", 
+                 self.device_info.vendor_id(), self.device_info.product_id());
             
-            // Create a new transfer queue with the transmitter
-            let transfer_queue = TransferQueue::new(&self.interface, tx,
-                ENDPOINT, NUM_TRANSFERS, READ_LEN);
+            // Create a proper channel for data transfer that we'll actually use
+            let (tx, rx) = mpsc::channel();
+            
+            // Create a new transfer queue with the transmitter, storing the receiver
+            let mut transfer_queue = TransferQueue::new(
+                &self.interface, 
+                tx,
+                ENDPOINT, 
+                NUM_TRANSFERS, 
+                READ_LEN
+            );
+            
+            // Make sure the receiver is stored in the transfer queue for later use
+            transfer_queue.receiver = Some(rx);
                 
             // Store the transfer queue
             self.transfer_queue = Some(transfer_queue);
             
-            // Start the capture
-            self.start_capture()?;
+            // Start the capture with proper error handling
+            match self.start_capture() {
+                Ok(_) => {
+                    info!("Successfully started USB traffic capture");
+                },
+                Err(e) => {
+                    error!("Failed to start USB traffic capture: {}", e);
+                    // Reset the transfer queue since it failed
+                    self.transfer_queue = None;
+                    return Err(anyhow::anyhow!("Failed to start capture: {}", e));
+                }
+            }
             
             // Return empty data for this first call
             return Ok(Vec::new());
@@ -578,13 +641,7 @@ impl CynthionHandle {
                 endpoint: endpoint & 0x7F,
             };
             
-            // Create the transaction
-            let transaction = UsbTransaction::new(id.into(), std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs_f64());
-                
-            // Update the transaction with our data
+            // Create and update the transaction with our data
             let mut transaction = UsbTransaction {
                 id: id.into(), // Convert to u64
                 transfer_type,
