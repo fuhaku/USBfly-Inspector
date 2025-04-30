@@ -567,29 +567,65 @@ impl CynthionConnection {
     
     // Helper method to complete device connection - must use GlobalContext for compatibility with struct
     fn connect_to_device(device: rusb::Device<rusb::GlobalContext>) -> Result<Self> {
-        // Get device handle (no need to be mutable here)
-        let handle = device.open()?;
+        // Before opening the device, get the descriptor first
+        let descriptor = match device.device_descriptor() {
+            Ok(desc) => desc,
+            Err(e) => {
+                error!("🚫 Cannot read device descriptor: {}", e);
+                return Err(anyhow!("Failed to read device descriptor: {}", e));
+            }
+        };
         
-        // Get device descriptor for logging
-        if let Ok(descriptor) = device.device_descriptor() {
-            let timeout = Duration::from_millis(100);
-            
-            // Try to get available languages
-            let default_language = match handle.read_languages(timeout) {
-                Ok(langs) if !langs.is_empty() => Some(langs[0]),
-                _ => None,
-            };
-                
-            // Get product name with language
-            let product_name = match default_language {
-                Some(lang) => descriptor.product_string_index()
-                    .and_then(|_idx| handle.read_product_string(lang, &descriptor, timeout).ok()),
-                None => None,
-            }.unwrap_or_else(|| "Unknown Device".to_string());
-                
-            info!("Connecting to {} (VID:{:04x}, PID:{:04x})", 
-                product_name, descriptor.vendor_id(), descriptor.product_id());
-        }
+        let vendor_id = descriptor.vendor_id();
+        let product_id = descriptor.product_id();
+        info!("Attempting to connect to device VID:{:04x} PID:{:04x}", vendor_id, product_id);
+        
+        // Get device handle with better error handling
+        let handle = match device.open() {
+            Ok(h) => h,
+            Err(e) => {
+                error!("🚫 Cannot open USB device VID:{:04x} PID:{:04x}: {}", 
+                      vendor_id, product_id, e);
+                return Err(anyhow!("Failed to open USB device: {}", e));
+            }
+        };
+        
+        // Additional logging for device information
+        let timeout = Duration::from_millis(100);
+        
+        // Try to get available languages with defensive programming
+        let default_language = match handle.read_languages(timeout) {
+            Ok(langs) if !langs.is_empty() => Some(langs[0]),
+            Ok(_) => {
+                debug!("Device returned empty language list");
+                None
+            },
+            Err(e) => {
+                debug!("Cannot read device languages: {}", e);
+                None
+            }
+        };
+        
+        // Get product name with language (safely)
+        let product_name = match default_language {
+            Some(lang) => {
+                if let Some(idx) = descriptor.product_string_index() {
+                    match handle.read_product_string(lang, &descriptor, timeout) {
+                        Ok(name) => name,
+                        Err(e) => {
+                            debug!("Cannot read product string: {}", e);
+                            "Unknown Device".to_string()
+                        }
+                    }
+                } else {
+                    "Unnamed Device".to_string()
+                }
+            },
+            None => "Unknown Device".to_string(),
+        };
+        
+        info!("Connecting to {} (VID:{:04x}, PID:{:04x})", 
+            product_name, vendor_id, product_id);
         
         // Safety check: Verify if device has the needed interface before attempting to claim it
         let config_result = device.active_config_descriptor();

@@ -1,0 +1,793 @@
+-------------------------------------
+Translated Report (Full Report Below)
+-------------------------------------
+
+Process:               usbfly [4391]
+Path:                  /Users/USER/*/usbfly
+Identifier:            usbfly
+Version:               ???
+Code Type:             X86-64 (Native)
+Parent Process:        zsh [94626]
+Responsible:           Terminal [51613]
+User ID:               501
+
+Date/Time:             2025-04-30 13:48:13.4995 -0700
+OS Version:            macOS 15.4.1 (24E263)
+Report Version:        12
+Bridge OS Version:     9.4 (22P4248)
+Anonymous UUID:        575235E7-B644-AAAD-40CE-4FAF977A83EC
+
+Sleep/Wake UUID:       E10A565B-1575-4D21-8FE5-E13501435CD8
+
+Time Awake Since Boot: 230000 seconds
+Time Since Wake:       16070 seconds
+
+System Integrity Protection: enabled
+
+Crashed Thread:        26
+
+Exception Type:        EXC_BAD_ACCESS (SIGSEGV)
+Exception Codes:       KERN_INVALID_ADDRESS at 0x0000000000000000
+Exception Codes:       0x0000000000000001, 0x0000000000000000
+
+Termination Reason:    Namespace SIGNAL, Code 11 Segmentation fault: 11
+Terminating Process:   exc handler [4391]
+
+VM Region Info: 0 is not in any region.  Bytes before following region: 4431319040
+      REGION TYPE                    START - END         [ VSIZE] PRT/MAX SHRMOD  REGION DETAIL
+      UNUSED SPACE AT START
+--->  
+      __TEXT                      108209000-108a50000    [ 8476K] r-x/r-x SM=COW  /Users/USER/*/usbfly
+
+Thread 0:: main Dispatch queue: com.apple.main-thread
+0   libsystem_kernel.dylib        	    0x7ff8117e6b4a mach_msg2_trap + 10
+1   libsystem_kernel.dylib        	    0x7ff8117f5677 mach_msg2_internal + 83
+2   libsystem_kernel.dylib        	    0x7ff8117edbbe mach_msg_overwrite + 574
+3   libsystem_kernel.dylib        	    0x7ff8117e6e3e mach_msg + 19
+4   CoreFoundation                	    0x7ff811911e32 __CFRunLoopServiceMachPort + 145
+5   CoreFoundation                	    0x7ff81191087f __CFRunLoopRun + 1430
+6   CoreFoundation                	    0x7ff81190fcb2 CFRunLoopRunSpecific + 536
+7   HIToolbox                     	    0x7ff81d32c0d4 RunCurrentEventLoopInMode + 281
+8   HIToolbox                     	    0x7ff81d32ef97 ReceiveNextEventCommon + 499
+9   HIToolbox                     	    0x7ff81d4b819a _BlockUntilNextEventMatchingListInModeWithFilter + 63
+10  AppKit                        	    0x7ff8152c1e39 _DPSNextEvent + 912
+11  AppKit                        	    0x7ff815d4f997 -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 1263
+12  AppKit                        	    0x7ff8152b2f19 -[NSApplication run] + 610
+13  usbfly                        	       0x1082af140 iced_winit::application::platform::run::h3d1e32c23b8cc7e4 + 400
+14  usbfly                        	       0x1082e6ea1 iced::application::Application::run::h548ab6f0813ac417 + 3585
+15  usbfly                        	       0x1082517c7 usbfly::main::ha2a623f73ed222d6 + 10359
+16  usbfly                        	       0x1082676ab std::sys::backtrace::__rust_begin_short_backtrace::hf2664f048ae59be4 + 11
+17  usbfly                        	       0x1082b3175 std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::h15e995514e3e4578 + 21
+18  usbfly                        	       0x10889983e std::rt::lang_start_internal::h303b572b2a7a55e3 + 814
+19  usbfly                        	       0x108251e2c main + 44
+20  dyld                          	    0x7ff811484530 start + 3056
+
+Thread 1:
+0   libsystem_pthread.dylib       	    0x7ff811824834 start_wqthread + 0
+
+Thread 2:
+0   libsystem_pthread.dylib       	    0x7ff811824834 start_wqthread + 0
+
+Thread 3:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 4:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 5:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 6:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117eb81e kevent + 10
+1   usbfly                        	       0x108365511 mio::poll::Poll::poll::hf6eccb058f1e6ded + 97
+2   usbfly                        	       0x10834cc4d tokio::runtime::io::driver::Driver::turn::hd8c9842f20a5f78c + 397
+3   usbfly                        	       0x10835dfd9 tokio::runtime::time::Driver::park_internal::h38772bf9134622d0 + 841
+4   usbfly                        	       0x10834f320 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 80
+5   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+6   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+7   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+8   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+9   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+10  usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+11  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+12  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+13  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+14  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+15  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+16  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+17  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+18  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 7:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 8:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 9:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 10:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 11:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 12:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 13:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 14:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 15:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 16:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 17:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 18:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e96f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182927a _pthread_cond_wait + 988
+2   usbfly                        	       0x10861460b parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099 + 635
+3   usbfly                        	       0x10834f3a0 tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1 + 208
+4   usbfly                        	       0x108354b2f tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032 + 159
+5   usbfly                        	       0x108353d15 tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4 + 3461
+6   usbfly                        	       0x108347e08 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c + 56
+7   usbfly                        	       0x10835a851 tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba + 641
+8   usbfly                        	       0x108352f20 tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f + 128
+9   usbfly                        	       0x108356720 _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661 + 112
+10  usbfly                        	       0x108360473 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892 + 131
+11  usbfly                        	       0x1083452bd tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23 + 173
+12  usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+13  usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+14  usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+15  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 19:
+0   libsystem_pthread.dylib       	    0x7ff811824834 start_wqthread + 0
+
+Thread 20:: com.apple.NSEventThread
+0   libsystem_kernel.dylib        	    0x7ff8117e6b4a mach_msg2_trap + 10
+1   libsystem_kernel.dylib        	    0x7ff8117f5677 mach_msg2_internal + 83
+2   libsystem_kernel.dylib        	    0x7ff8117edbbe mach_msg_overwrite + 574
+3   libsystem_kernel.dylib        	    0x7ff8117e6e3e mach_msg + 19
+4   CoreFoundation                	    0x7ff811911e32 __CFRunLoopServiceMachPort + 145
+5   CoreFoundation                	    0x7ff81191087f __CFRunLoopRun + 1430
+6   CoreFoundation                	    0x7ff81190fcb2 CFRunLoopRunSpecific + 536
+7   AppKit                        	    0x7ff815416a6f _NSEventThread + 127
+8   libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+9   libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 21:
+0   libsystem_pthread.dylib       	    0x7ff811824834 start_wqthread + 0
+
+Thread 22:
+0   libsystem_pthread.dylib       	    0x7ff811824834 start_wqthread + 0
+
+Thread 23:
+0   libsystem_pthread.dylib       	    0x7ff811824834 start_wqthread + 0
+
+Thread 24:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff8117e831a __ulock_wait + 10
+1   libsystem_pthread.dylib       	    0x7ff81182a66d _pthread_join + 348
+2   usbfly                        	       0x1088a6a90 std::sys::pal::unix::thread::Thread::join::h382519c4d6726a34 + 16
+3   usbfly                        	       0x1082c4569 std::thread::JoinInner$LT$T$GT$::join::h7e6cbcad6a32d742 + 25
+4   usbfly                        	       0x10826402b _$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h71fd578bb68f01a7 + 603
+5   usbfly                        	       0x1082407d8 tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::hdb2c2c6b43089637 + 72
+6   usbfly                        	       0x1082a923a tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h756e290540c8dba1 + 122
+7   usbfly                        	       0x1083632e7 tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533 + 247
+8   usbfly                        	       0x10835aeb3 std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e + 195
+9   usbfly                        	       0x1083576e9 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6 + 281
+10  usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+11  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+12  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 25:: org.libusb.device-hotplug
+0   libsystem_kernel.dylib        	    0x7ff8117e95c2 __semwait_signal + 10
+1   libsystem_c.dylib             	    0x7ff8116d626d nanosleep + 199
+2   libsystem_c.dylib             	    0x7ff8116d61a0 usleep + 53
+3   IOUSBLib                      	       0x1192f59f8 IOUSBDeviceClass::start(__CFDictionary const*, unsigned int) + 1346
+4   IOKit                         	    0x7ff81515da93 IOCreatePlugInInterfaceForService + 997
+5   libusb-1.0.0.dylib            	       0x108d1b5f2 darwin_device_from_service + 230
+6   libusb-1.0.0.dylib            	       0x108d1ab7b darwin_get_cached_device + 802
+7   libusb-1.0.0.dylib            	       0x108d1a6b2 darwin_devices_attached + 91
+8   IOKit                         	    0x7ff815155ddf IODispatchCalloutFromCFMessage + 179
+9   CoreFoundation                	    0x7ff81193c9fd __CFMachPortPerform + 280
+10  CoreFoundation                	    0x7ff811912218 __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__ + 41
+11  CoreFoundation                	    0x7ff811912157 __CFRunLoopDoSource1 + 543
+12  CoreFoundation                	    0x7ff811910da5 __CFRunLoopRun + 2748
+13  CoreFoundation                	    0x7ff81190fcb2 CFRunLoopRunSpecific + 536
+14  CoreFoundation                	    0x7ff811986ade CFRunLoopRun + 40
+15  libusb-1.0.0.dylib            	       0x108d1a189 darwin_event_thread_main + 392
+16  libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+17  libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+Thread 26 Crashed:
+0   libusb-1.0.0.dylib            	       0x108d18479 darwin_get_active_config_descriptor + 54
+1   libusb-1.0.0.dylib            	       0x108d1267c get_active_config_descriptor + 26
+2   libusb-1.0.0.dylib            	       0x108d125e5 libusb_get_active_config_descriptor + 49
+3   usbfly                        	       0x10821061f usbfly::cynthion::connection::CynthionConnection::connect_to_device::h3874731583c5d06d + 2559
+4   usbfly                        	       0x10826669e std::sys::backtrace::__rust_begin_short_backtrace::h90e06e4c8efbfd56 + 4126
+5   usbfly                        	       0x1082c588a core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hbf5e69314b741523 + 202
+6   usbfly                        	       0x1088a693b std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d + 43
+7   libsystem_pthread.dylib       	    0x7ff811828df1 _pthread_start + 99
+8   libsystem_pthread.dylib       	    0x7ff811824857 thread_start + 15
+
+
+Thread 26 crashed with X86 Thread State (64-bit):
+  rax: 0x0000000108d23600  rbx: 0x0000600000ca1f00  rcx: 0x0000000000000000  rdx: 0x0000000000000009
+  rdi: 0x0000000000000000  rsi: 0x0000700005a7b94e  rbp: 0x0000700005a7b900  rsp: 0x0000700005a7b8b0
+   r8: 0xffffffff00000000   r9: 0x0000040000000400  r10: 0x00006000037bc620  r11: 0x0000000000000292
+  r12: 0x00000000fffffffb  r13: 0x0000000000000009  r14: 0x0000000000000001  r15: 0x0000700005a7b94e
+  rip: 0x0000000108d18479  rfl: 0x0000000000010202  cr2: 0x0000000000000000
+  
+Logical CPU:     2
+Error Code:      0x00000004 (no mapping for user data read)
+Trap Number:     14
+
+Thread 26 instruction stream:
+  48 8d 15 6f 9a 00 00 48-8d 0d c7 9a 00 00 48 89  H..o...H......H.
+  df be 02 00 00 00 49 89-c0 31 c0 48 83 c4 08 5b  ......I..1.H...[
+  41 5e 41 5f 5d e9 7b 79-ff ff 55 48 89 e5 41 57  A^A_].{y..UH..AW
+  41 56 41 55 41 54 53 48-83 ec 28 48 8b 5f 58 44  AVAUATSH..(H._XD
+  8a 73 61 41 bc fb ff ff-ff 45 84 f6 0f 84 8c 00  .saA.....E......
+  00 00 49 89 d5 49 89 f7-48 89 7d b8 48 8b 7b 50  ..I..I..H.}.H.{P
+ [48]8b 07 48 8d 75 d7 ff-90 98 00 00 00 85 c0 74  H..H.u.........t	<==
+  14 89 c7 e8 67 32 00 00-85 c0 78 5f 4c 89 7d c8  ....g2....x_L.}.
+  45 31 ff eb 42 4c 89 7d-c8 4c 89 6d c0 80 7d d7  E1..BL.}.L.m..}.
+  00 74 4b 45 31 ff 4c 8d-6d b0 48 8b 7b 50 48 8b  .tKE1.L.m.H.{PH.
+  07 41 0f b6 f7 4c 89 ea-ff 90 a8 00 00 00 48 8b  .A...L........H.
+  45 b0 44 38 70 05 74 0b-41 fe c7 44 3a 7d d7 72  E.D8p.t.A..D:}.r
+
+Binary Images:
+       0x108209000 -        0x108a4ffff usbfly (*) <02a0172e-7c5a-357c-9b46-6f5f69149066> /Users/USER/*/usbfly
+       0x108d0d000 -        0x108d22fff libusb-1.0.0.dylib (*) <d0649851-12a2-3cd6-a6e2-48a15f98744d> /usr/local/Cellar/libusb/1.0.28/lib/libusb-1.0.0.dylib
+       0x10c079000 -        0x10c085fff libobjc-trampolines.dylib (*) <e8f0772d-7bb4-36ec-9546-6158cac1f292> /usr/lib/libobjc-trampolines.dylib
+       0x119332000 -        0x119339fff com.apple.iokit.IOUSBLib (900.4.2) <e465c436-8f4c-3cea-9712-c85458c80f8f> /System/Library/Extensions/IOUSBFamily.kext/Contents/PlugIns/IOUSBLib.bundle/Contents/MacOS/IOUSBLib
+       0x1192f4000 -        0x1192fcfff com.apple.iokit.IOUSBLib (900.4.2) <996135ec-c465-3150-b625-149394b66a99> /System/Library/Extensions/IOUSBHostFamily.kext/Contents/PlugIns/IOUSBLib.bundle/Contents/MacOS/IOUSBLib
+    0x7ff8117e6000 -     0x7ff811822837 libsystem_kernel.dylib (*) <05c853af-32f8-317c-91c7-03456d7a4311> /usr/lib/system/libsystem_kernel.dylib
+    0x7ff811896000 -     0x7ff811d4afe2 com.apple.CoreFoundation (6.9) <52038a90-4140-3132-93c2-e08624a409af> /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+    0x7ff81d284000 -     0x7ff81d5656ed com.apple.HIToolbox (2.1.1) <c65d0254-38e8-3d84-89ed-a8b8504c6f57> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
+    0x7ff815282000 -     0x7ff8167d3257 com.apple.AppKit (6.9) <a6b6d3fd-bba9-37b7-909e-e88dbdce2050> /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
+    0x7ff81147e000 -     0x7ff81151843f dyld (*) <d90f985a-73b7-32a6-9f7a-a79a936bf75f> /usr/lib/dyld
+               0x0 - 0xffffffffffffffff ??? (*) <00000000-0000-0000-0000-000000000000> ???
+    0x7ff811823000 -     0x7ff81182edcf libsystem_pthread.dylib (*) <b33f6374-3285-3bc8-8946-3472c31aabcd> /usr/lib/system/libsystem_pthread.dylib
+    0x7ff8116c7000 -     0x7ff81174fca7 libsystem_c.dylib (*) <8fc0db40-599b-3cd2-991c-1faf1534c667> /usr/lib/system/libsystem_c.dylib
+    0x7ff815151000 -     0x7ff81521614e com.apple.framework.IOKit (2.0.2) <307a165d-ced6-34cc-8149-b93421112905> /System/Library/Frameworks/IOKit.framework/Versions/A/IOKit
+
+External Modification Summary:
+  Calls made by other processes targeting this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by all processes on this machine:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+
+VM Region Summary:
+ReadOnly portion of Libraries: Total=1.2G resident=0K(0%) swapped_out_or_unallocated=1.2G(100%)
+Writable regions: Total=1.7G written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=1.7G(100%)
+
+                                VIRTUAL   REGION 
+REGION TYPE                        SIZE    COUNT (non-coalesced) 
+===========                     =======  ======= 
+Accelerate framework               128K        1 
+Activity Tracing                   256K        1 
+CG image                            48K        4 
+ColorSync                          252K       31 
+CoreAnimation                      140K       16 
+CoreGraphics                        12K        2 
+CoreUI image data                  952K        7 
+Foundation                          16K        1 
+Kernel Alloc Once                    8K        1 
+MALLOC                             1.6G       59 
+MALLOC guard page                   48K       12 
+STACK GUARD                        104K       26 
+Stack                             48.2M       27 
+Stack Guard                       56.0M        1 
+VM_ALLOCATE                        256K       31 
+VM_ALLOCATE (reserved)            2304K       18         reserved VM address space (unallocated)
+__CTF                               824        1 
+__DATA                            32.2M      915 
+__DATA_CONST                      99.5M      933 
+__DATA_DIRTY                      2582K      336 
+__FONT_DATA                        2352        1 
+__INFO_FILTER                         8        1 
+__LINKEDIT                       164.3M        6 
+__OBJC_RO                         61.2M        1 
+__OBJC_RW                         2391K        2 
+__TEXT                             1.0G      951 
+__TPRO_CONST                         16        2 
+mapped file                      231.2M       26 
+shared memory                     1312K       20 
+===========                     =======  ======= 
+TOTAL                              3.3G     3433 
+TOTAL, minus reserved VM space     3.3G     3433 
+
+
+
+-----------
+Full Report
+-----------
+
+{"app_name":"usbfly","timestamp":"2025-04-30 13:48:14.00 -0700","app_version":"","slice_uuid":"02a0172e-7c5a-357c-9b46-6f5f69149066","build_version":"","platform":1,"share_with_app_devs":1,"is_first_party":1,"bug_type":"309","os_version":"macOS 15.4.1 (24E263)","roots_installed":0,"incident_id":"0CA57ACC-3FAB-4D0B-9A2B-AA53491A8E98","name":"usbfly"}
+{
+  "uptime" : 230000,
+  "procRole" : "Foreground",
+  "version" : 2,
+  "userID" : 501,
+  "deployVersion" : 210,
+  "modelCode" : "MacBookPro15,1",
+  "coalitionID" : 22834,
+  "osVersion" : {
+    "train" : "macOS 15.4.1",
+    "build" : "24E263",
+    "releaseType" : "User"
+  },
+  "captureTime" : "2025-04-30 13:48:13.4995 -0700",
+  "codeSigningMonitor" : 0,
+  "incident" : "0CA57ACC-3FAB-4D0B-9A2B-AA53491A8E98",
+  "pid" : 4391,
+  "cpuType" : "X86-64",
+  "roots_installed" : 0,
+  "bug_type" : "309",
+  "procLaunch" : "2025-04-30 13:47:55.7748 -0700",
+  "procStartAbsTime" : 234609473980090,
+  "procExitAbsTime" : 234627197450548,
+  "procName" : "usbfly",
+  "procPath" : "\/Users\/USER\/*\/usbfly",
+  "parentProc" : "zsh",
+  "parentPid" : 94626,
+  "coalitionName" : "com.apple.Terminal",
+  "crashReporterKey" : "575235E7-B644-AAAD-40CE-4FAF977A83EC",
+  "appleIntelligenceStatus" : {"state":"unavailable","reasons":["notOptedIn","deviceNotCapable","siriAssetIsNotReady","unableToFetchAvailability"]},
+  "responsiblePid" : 51613,
+  "responsibleProc" : "Terminal",
+  "codeSigningID" : "",
+  "codeSigningTeamID" : "",
+  "codeSigningValidationCategory" : 0,
+  "codeSigningTrustLevel" : 4294967295,
+  "codeSigningAuxiliaryInfo" : 0,
+  "bootSessionUUID" : "41B61DCC-83F9-438E-A52D-0F307AFD1EF1",
+  "wakeTime" : 16070,
+  "bridgeVersion" : {"build":"22P4248","train":"9.4"},
+  "sleepWakeUUID" : "E10A565B-1575-4D21-8FE5-E13501435CD8",
+  "sip" : "enabled",
+  "vmRegionInfo" : "0 is not in any region.  Bytes before following region: 4431319040\n      REGION TYPE                    START - END         [ VSIZE] PRT\/MAX SHRMOD  REGION DETAIL\n      UNUSED SPACE AT START\n--->  \n      __TEXT                      108209000-108a50000    [ 8476K] r-x\/r-x SM=COW  \/Users\/USER\/*\/usbfly",
+  "exception" : {"codes":"0x0000000000000001, 0x0000000000000000","rawCodes":[1,0],"type":"EXC_BAD_ACCESS","signal":"SIGSEGV","subtype":"KERN_INVALID_ADDRESS at 0x0000000000000000"},
+  "termination" : {"flags":0,"code":11,"namespace":"SIGNAL","indicator":"Segmentation fault: 11","byProc":"exc handler","byPid":4391},
+  "vmregioninfo" : "0 is not in any region.  Bytes before following region: 4431319040\n      REGION TYPE                    START - END         [ VSIZE] PRT\/MAX SHRMOD  REGION DETAIL\n      UNUSED SPACE AT START\n--->  \n      __TEXT                      108209000-108a50000    [ 8476K] r-x\/r-x SM=COW  \/Users\/USER\/*\/usbfly",
+  "extMods" : {"caller":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"system":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"targeted":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"warnings":0},
+  "faultingThread" : 26,
+  "threads" : [{"threadState":{"r13":{"value":21592279046},"rax":{"value":268451845},"rflags":{"value":518},"cpu":{"value":0},"r14":{"value":20903605829632},"rsi":{"value":21592279046},"r8":{"value":910819522},"cr2":{"value":0},"rdx":{"value":8589934592},"r10":{"value":20903605829632},"r9":{"value":20903605829632},"r15":{"value":2},"rbx":{"value":140701917444832},"trap":{"value":133},"err":{"value":16777263},"r11":{"value":518},"rip":{"value":140703422114634},"rbp":{"value":140701917444672},"rsp":{"value":140701917444568},"r12":{"value":20903605829632},"rcx":{"value":140701917444568},"flavor":"x86_THREAD_STATE","rdi":{"value":140701917444832}},"id":4891614,"name":"main","queue":"com.apple.main-thread","frames":[{"imageOffset":2890,"symbol":"mach_msg2_trap","symbolLocation":10,"imageIndex":5},{"imageOffset":63095,"symbol":"mach_msg2_internal","symbolLocation":83,"imageIndex":5},{"imageOffset":31678,"symbol":"mach_msg_overwrite","symbolLocation":574,"imageIndex":5},{"imageOffset":3646,"symbol":"mach_msg","symbolLocation":19,"imageIndex":5},{"imageOffset":507442,"symbol":"__CFRunLoopServiceMachPort","symbolLocation":145,"imageIndex":6},{"imageOffset":501887,"symbol":"__CFRunLoopRun","symbolLocation":1430,"imageIndex":6},{"imageOffset":498866,"symbol":"CFRunLoopRunSpecific","symbolLocation":536,"imageIndex":6},{"imageOffset":688340,"symbol":"RunCurrentEventLoopInMode","symbolLocation":281,"imageIndex":7},{"imageOffset":700311,"symbol":"ReceiveNextEventCommon","symbolLocation":499,"imageIndex":7},{"imageOffset":2310554,"symbol":"_BlockUntilNextEventMatchingListInModeWithFilter","symbolLocation":63,"imageIndex":7},{"imageOffset":261689,"symbol":"_DPSNextEvent","symbolLocation":912,"imageIndex":8},{"imageOffset":11327895,"symbol":"-[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]","symbolLocation":1263,"imageIndex":8},{"imageOffset":200473,"symbol":"-[NSApplication run]","symbolLocation":610,"imageIndex":8},{"imageOffset":680256,"symbol":"iced_winit::application::platform::run::h3d1e32c23b8cc7e4","symbolLocation":400,"imageIndex":0},{"imageOffset":908961,"symbol":"iced::application::Application::run::h548ab6f0813ac417","symbolLocation":3585,"imageIndex":0},{"imageOffset":296903,"symbol":"usbfly::main::ha2a623f73ed222d6","symbolLocation":10359,"imageIndex":0},{"imageOffset":386731,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hf2664f048ae59be4","symbolLocation":11,"imageIndex":0},{"imageOffset":696693,"symbol":"std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::h15e995514e3e4578","symbolLocation":21,"imageIndex":0},{"imageOffset":6883390,"symbol":"std::rt::lang_start_internal::h303b572b2a7a55e3","symbolLocation":814,"imageIndex":0},{"imageOffset":298540,"symbol":"main","symbolLocation":44,"imageIndex":0},{"imageOffset":25904,"symbol":"start","symbolLocation":3056,"imageIndex":9}]},{"id":4891625,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":11}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":5639},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145355476992},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145356000120},"rbx":{"value":123145356001280},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703422367796},"rbp":{"value":0},"rsp":{"value":123145356001280},"r12":{"value":5193733},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145356001280}}},{"id":4891628,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":11}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":9283},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145354940416},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145355463544},"rbx":{"value":123145355464704},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703422367796},"rbp":{"value":0},"rsp":{"value":123145355464704},"r12":{"value":5193733},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145355464704}}},{"id":4891647,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261319533088},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145358110720},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145358108448},"rsp":{"value":123145358108296},"r12":{"value":123145358108320},"rcx":{"value":123145358108296},"flavor":"x86_THREAD_STATE","rdi":{"value":140261319533088}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891648,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317436160},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145360220160},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145360217888},"rsp":{"value":123145360217736},"r12":{"value":123145360217760},"rcx":{"value":123145360217736},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317436160}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891649,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261319551600},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145362329600},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145362327328},"rsp":{"value":123145362327176},"r12":{"value":123145362327200},"rcx":{"value":123145362327176},"flavor":"x86_THREAD_STATE","rdi":{"value":140261319551600}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891650,"name":"tokio-runtime-worker","threadState":{"r13":{"value":123145364437080},"rax":{"value":4},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553123313944},"rsi":{"value":0},"r8":{"value":1024},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":140261309188096},"r9":{"value":123145364436872},"r15":{"value":495},"rbx":{"value":105553123313944},"trap":{"value":133},"err":{"value":33554795},"r11":{"value":582},"rip":{"value":140703422134302},"rbp":{"value":123145364436896},"rsp":{"value":123145364436856},"r12":{"value":0},"rcx":{"value":123145364436856},"flavor":"x86_THREAD_STATE","rdi":{"value":3}},"frames":[{"imageOffset":22558,"symbol":"kevent","symbolLocation":10,"imageIndex":5},{"imageOffset":1426705,"symbol":"mio::poll::Poll::poll::hf6eccb058f1e6ded","symbolLocation":97,"imageIndex":0},{"imageOffset":1326157,"symbol":"tokio::runtime::io::driver::Driver::turn::hd8c9842f20a5f78c","symbolLocation":397,"imageIndex":0},{"imageOffset":1396697,"symbol":"tokio::runtime::time::Driver::park_internal::h38772bf9134622d0","symbolLocation":841,"imageIndex":0},{"imageOffset":1336096,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":80,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891651,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317475392},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145366548480},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145366546208},"rsp":{"value":123145366546056},"r12":{"value":123145366546080},"rcx":{"value":123145366546056},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317475392}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891652,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261324768000},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145368657920},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145368655648},"rsp":{"value":123145368655496},"r12":{"value":123145368655520},"rcx":{"value":123145368655496},"flavor":"x86_THREAD_STATE","rdi":{"value":140261324768000}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891653,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261318477536},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145370767360},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145370765088},"rsp":{"value":123145370764936},"r12":{"value":123145370764960},"rcx":{"value":123145370764936},"flavor":"x86_THREAD_STATE","rdi":{"value":140261318477536}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891654,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317476128},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145372876800},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145372874528},"rsp":{"value":123145372874376},"r12":{"value":123145372874400},"rcx":{"value":123145372874376},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317476128}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891655,"name":"tokio-runtime-worker","threadState":{"r13":{"value":3302829851648},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317476864},"rsi":{"value":3302829851648},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":768},"r10":{"value":0},"r9":{"value":160},"r15":{"value":768},"rbx":{"value":123145374986240},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145374983968},"rsp":{"value":123145374983816},"r12":{"value":123145374983840},"rcx":{"value":123145374983816},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317476864}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891656,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317477600},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145377095680},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145377093408},"rsp":{"value":123145377093256},"r12":{"value":123145377093280},"rcx":{"value":123145377093256},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317477600}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891657,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261308037360},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145379205120},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145379202848},"rsp":{"value":123145379202696},"r12":{"value":123145379202720},"rcx":{"value":123145379202696},"flavor":"x86_THREAD_STATE","rdi":{"value":140261308037360}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891658,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317478336},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145381314560},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145381312288},"rsp":{"value":123145381312136},"r12":{"value":123145381312160},"rcx":{"value":123145381312136},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317478336}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891659,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4402341479680},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261320586560},"rsi":{"value":4402341479680},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":1024},"r10":{"value":0},"r9":{"value":160},"r15":{"value":1024},"rbx":{"value":123145383424000},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145383421728},"rsp":{"value":123145383421576},"r12":{"value":123145383421600},"rcx":{"value":123145383421576},"flavor":"x86_THREAD_STATE","rdi":{"value":140261320586560}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891660,"name":"tokio-runtime-worker","threadState":{"r13":{"value":1103806595584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317479072},"rsi":{"value":1103806595584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":256},"r10":{"value":0},"r9":{"value":160},"r15":{"value":256},"rbx":{"value":123145385533440},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145385531168},"rsp":{"value":123145385531016},"r12":{"value":123145385531040},"rcx":{"value":123145385531016},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317479072}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891661,"name":"tokio-runtime-worker","threadState":{"r13":{"value":2203318223616},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317479808},"rsi":{"value":2203318223616},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":512},"r10":{"value":0},"r9":{"value":160},"r15":{"value":512},"rbx":{"value":123145387642880},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145387640608},"rsp":{"value":123145387640456},"r12":{"value":123145387640480},"rcx":{"value":123145387640456},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317479808}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891662,"name":"tokio-runtime-worker","threadState":{"r13":{"value":6601364735744},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140261317480544},"rsi":{"value":6601364735744},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":1536},"r10":{"value":0},"r9":{"value":160},"r15":{"value":1536},"rbx":{"value":123145389752320},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703422125814},"rbp":{"value":123145389750048},"rsp":{"value":123145389749896},"r12":{"value":123145389749920},"rcx":{"value":123145389749896},"flavor":"x86_THREAD_STATE","rdi":{"value":140261317480544}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":5},{"imageOffset":25210,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":11},{"imageOffset":4240907,"symbol":"parking_lot::condvar::Condvar::wait_until_internal::h14b963146673c099","symbolLocation":635,"imageIndex":0},{"imageOffset":1336224,"symbol":"tokio::runtime::scheduler::multi_thread::park::Parker::park::h1bf74de1fbd11cd1","symbolLocation":208,"imageIndex":0},{"imageOffset":1358639,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_timeout::h8d531cd4d1399032","symbolLocation":159,"imageIndex":0},{"imageOffset":1355029,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::run::he1e9d2ef29b162c4","symbolLocation":3461,"imageIndex":0},{"imageOffset":1306120,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h86d3b6aa898b9d3c","symbolLocation":56,"imageIndex":0},{"imageOffset":1382481,"symbol":"tokio::runtime::context::runtime::enter_runtime::h7b2ed56626f8f8ba","symbolLocation":641,"imageIndex":0},{"imageOffset":1351456,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::h14053be52492181f","symbolLocation":128,"imageIndex":0},{"imageOffset":1365792,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h5c0e5a707b6f8661","symbolLocation":112,"imageIndex":0},{"imageOffset":1406067,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h40b7d5f8329dd892","symbolLocation":131,"imageIndex":0},{"imageOffset":1295037,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h1a2375d487c3ef23","symbolLocation":173,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891691,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":11}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":45063},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145389764608},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145390287736},"rbx":{"value":123145390288896},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703422367796},"rbp":{"value":0},"rsp":{"value":123145390288896},"r12":{"value":5193732},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145390288896}}},{"id":4891785,"name":"com.apple.NSEventThread","threadState":{"r13":{"value":21592279046},"rax":{"value":268451845},"rflags":{"value":518},"cpu":{"value":0},"r14":{"value":212218629062656},"rsi":{"value":21592279046},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":8589934592},"r10":{"value":212218629062656},"r9":{"value":212218629062656},"r15":{"value":2},"rbx":{"value":123145391358064},"trap":{"value":133},"err":{"value":16777263},"r11":{"value":518},"rip":{"value":140703422114634},"rbp":{"value":123145391357904},"rsp":{"value":123145391357800},"r12":{"value":212218629062656},"rcx":{"value":123145391357800},"flavor":"x86_THREAD_STATE","rdi":{"value":123145391358064}},"frames":[{"imageOffset":2890,"symbol":"mach_msg2_trap","symbolLocation":10,"imageIndex":5},{"imageOffset":63095,"symbol":"mach_msg2_internal","symbolLocation":83,"imageIndex":5},{"imageOffset":31678,"symbol":"mach_msg_overwrite","symbolLocation":574,"imageIndex":5},{"imageOffset":3646,"symbol":"mach_msg","symbolLocation":19,"imageIndex":5},{"imageOffset":507442,"symbol":"__CFRunLoopServiceMachPort","symbolLocation":145,"imageIndex":6},{"imageOffset":501887,"symbol":"__CFRunLoopRun","symbolLocation":1430,"imageIndex":6},{"imageOffset":498866,"symbol":"CFRunLoopRunSpecific","symbolLocation":536,"imageIndex":6},{"imageOffset":1657455,"symbol":"_NSEventThread","symbolLocation":127,"imageIndex":8},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4891786,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":11}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":60435},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145391374336},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145391897464},"rbx":{"value":123145391898624},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703422367796},"rbp":{"value":0},"rsp":{"value":123145391898624},"r12":{"value":5193732},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145391898624}}},{"id":4891809,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":11}],"threadState":{"r13":{"value":0},"rax":{"value":0},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":0},"r8":{"value":278532},"cr2":{"value":0},"rdx":{"value":123145390301184},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":0},"rbx":{"value":0},"trap":{"value":0},"err":{"value":0},"r11":{"value":0},"rip":{"value":140703422367796},"rbp":{"value":0},"rsp":{"value":123145390825472},"r12":{"value":0},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145390825472}}},{"id":4891810,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":11}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":56851},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145391910912},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145392434040},"rbx":{"value":123145392435200},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703422367796},"rbp":{"value":0},"rsp":{"value":123145392435200},"r12":{"value":5193733},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145392435200}}},{"id":4892159,"name":"tokio-runtime-worker","threadState":{"r13":{"value":123145394542728},"rax":{"value":18446744073709551612},"rflags":{"value":582},"cpu":{"value":0},"r14":{"value":16908290},"rsi":{"value":123145397190708},"r8":{"value":150997247},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":3},"r15":{"value":2},"rbx":{"value":123145397190656},"trap":{"value":133},"err":{"value":33554947},"r11":{"value":582},"rip":{"value":140703422120730},"rbp":{"value":123145394542800},"rsp":{"value":123145394542712},"r12":{"value":123145397190708},"rcx":{"value":123145394542712},"flavor":"x86_THREAD_STATE","rdi":{"value":16908290}},"frames":[{"imageOffset":8986,"symbol":"__ulock_wait","symbolLocation":10,"imageIndex":5},{"imageOffset":30317,"symbol":"_pthread_join","symbolLocation":348,"imageIndex":11},{"imageOffset":6937232,"symbol":"std::sys::pal::unix::thread::Thread::join::h382519c4d6726a34","symbolLocation":16,"imageIndex":0},{"imageOffset":767337,"symbol":"std::thread::JoinInner$LT$T$GT$::join::h7e6cbcad6a32d742","symbolLocation":25,"imageIndex":0},{"imageOffset":372779,"symbol":"_$LT$tokio..runtime..blocking..task..BlockingTask$LT$T$GT$$u20$as$u20$core..future..future..Future$GT$::poll::h71fd578bb68f01a7","symbolLocation":603,"imageIndex":0},{"imageOffset":227288,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::hdb2c2c6b43089637","symbolLocation":72,"imageIndex":0},{"imageOffset":655930,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h756e290540c8dba1","symbolLocation":122,"imageIndex":0},{"imageOffset":1417959,"symbol":"tokio::runtime::blocking::pool::Inner::run::h0bb99175392f1533","symbolLocation":247,"imageIndex":0},{"imageOffset":1384115,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::haf23d132b549111e","symbolLocation":195,"imageIndex":0},{"imageOffset":1369833,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha1143d45a625a7e6","symbolLocation":281,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"id":4892160,"name":"org.libusb.device-hotplug","threadState":{"r13":{"value":4294967256},"rax":{"value":4},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":123145395072240},"rsi":{"value":0},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":1},"r10":{"value":1},"r9":{"value":250000000},"r15":{"value":0},"rbx":{"value":0},"trap":{"value":133},"err":{"value":33554766},"r11":{"value":582},"rip":{"value":140703422125506},"rbp":{"value":123145395072224},"rsp":{"value":123145395072168},"r12":{"value":13883149981252543811},"rcx":{"value":123145395072168},"flavor":"x86_THREAD_STATE","rdi":{"value":7939}},"frames":[{"imageOffset":13762,"symbol":"__semwait_signal","symbolLocation":10,"imageIndex":5},{"imageOffset":62061,"symbol":"nanosleep","symbolLocation":199,"imageIndex":12},{"imageOffset":61856,"symbol":"usleep","symbolLocation":53,"imageIndex":12},{"imageOffset":6648,"symbol":"IOUSBDeviceClass::start(__CFDictionary const*, unsigned int)","symbolLocation":1346,"imageIndex":4},{"imageOffset":51859,"symbol":"IOCreatePlugInInterfaceForService","symbolLocation":997,"imageIndex":13},{"imageOffset":58866,"symbol":"darwin_device_from_service","symbolLocation":230,"imageIndex":1},{"imageOffset":56187,"symbol":"darwin_get_cached_device","symbolLocation":802,"imageIndex":1},{"imageOffset":54962,"symbol":"darwin_devices_attached","symbolLocation":91,"imageIndex":1},{"imageOffset":19935,"symbol":"IODispatchCalloutFromCFMessage","symbolLocation":179,"imageIndex":13},{"imageOffset":682493,"symbol":"__CFMachPortPerform","symbolLocation":280,"imageIndex":6},{"imageOffset":508440,"symbol":"__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__","symbolLocation":41,"imageIndex":6},{"imageOffset":508247,"symbol":"__CFRunLoopDoSource1","symbolLocation":543,"imageIndex":6},{"imageOffset":503205,"symbol":"__CFRunLoopRun","symbolLocation":2748,"imageIndex":6},{"imageOffset":498866,"symbol":"CFRunLoopRunSpecific","symbolLocation":536,"imageIndex":6},{"imageOffset":985822,"symbol":"CFRunLoopRun","symbolLocation":40,"imageIndex":6},{"imageOffset":53641,"symbol":"darwin_event_thread_main","symbolLocation":392,"imageIndex":1},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]},{"triggered":true,"id":4892161,"instructionState":{"instructionStream":{"bytes":[72,141,21,111,154,0,0,72,141,13,199,154,0,0,72,137,223,190,2,0,0,0,73,137,192,49,192,72,131,196,8,91,65,94,65,95,93,233,123,121,255,255,85,72,137,229,65,87,65,86,65,85,65,84,83,72,131,236,40,72,139,95,88,68,138,115,97,65,188,251,255,255,255,69,132,246,15,132,140,0,0,0,73,137,213,73,137,247,72,137,125,184,72,139,123,80,72,139,7,72,141,117,215,255,144,152,0,0,0,133,192,116,20,137,199,232,103,50,0,0,133,192,120,95,76,137,125,200,69,49,255,235,66,76,137,125,200,76,137,109,192,128,125,215,0,116,75,69,49,255,76,141,109,176,72,139,123,80,72,139,7,65,15,182,247,76,137,234,255,144,168,0,0,0,72,139,69,176,68,56,112,5,116,11,65,254,199,68,58,125,215,114],"offset":96}},"threadState":{"r13":{"value":9},"rax":{"value":4442961408,"symbolLocation":0,"symbol":"usbi_backend"},"rflags":{"value":66050},"cpu":{"value":2},"r14":{"value":1},"rsi":{"value":123145397188942},"r8":{"value":18446744069414584320},"cr2":{"value":0},"rdx":{"value":9},"r10":{"value":105553174709792},"r9":{"value":4398046512128},"r15":{"value":123145397188942},"rbx":{"value":105553129512704},"trap":{"value":14,"description":"(no mapping for user data read)"},"err":{"value":4},"r11":{"value":658},"rip":{"value":4442915961,"matchesCrashFrame":1},"rbp":{"value":123145397188864},"rsp":{"value":123145397188784},"r12":{"value":4294967291},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":0}},"frames":[{"imageOffset":46201,"symbol":"darwin_get_active_config_descriptor","symbolLocation":54,"imageIndex":1},{"imageOffset":22140,"symbol":"get_active_config_descriptor","symbolLocation":26,"imageIndex":1},{"imageOffset":21989,"symbol":"libusb_get_active_config_descriptor","symbolLocation":49,"imageIndex":1},{"imageOffset":30239,"symbol":"usbfly::cynthion::connection::CynthionConnection::connect_to_device::h3874731583c5d06d","symbolLocation":2559,"imageIndex":0},{"imageOffset":382622,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::h90e06e4c8efbfd56","symbolLocation":4126,"imageIndex":0},{"imageOffset":772234,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hbf5e69314b741523","symbolLocation":202,"imageIndex":0},{"imageOffset":6936891,"symbol":"std::sys::pal::unix::thread::Thread::new::thread_start::h55e4d2e18c10096d","symbolLocation":43,"imageIndex":0},{"imageOffset":24049,"symbol":"_pthread_start","symbolLocation":99,"imageIndex":11},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":11}]}],
+  "usedImages" : [
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4431319040,
+    "size" : 8679424,
+    "uuid" : "02a0172e-7c5a-357c-9b46-6f5f69149066",
+    "path" : "\/Users\/USER\/*\/usbfly",
+    "name" : "usbfly"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4442869760,
+    "size" : 90112,
+    "uuid" : "d0649851-12a2-3cd6-a6e2-48a15f98744d",
+    "path" : "\/usr\/local\/Cellar\/libusb\/1.0.28\/lib\/libusb-1.0.0.dylib",
+    "name" : "libusb-1.0.0.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 4496789504,
+    "size" : 53248,
+    "uuid" : "e8f0772d-7bb4-36ec-9546-6158cac1f292",
+    "path" : "\/usr\/lib\/libobjc-trampolines.dylib",
+    "name" : "libobjc-trampolines.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4717748224,
+    "CFBundleShortVersionString" : "900.4.2",
+    "CFBundleIdentifier" : "com.apple.iokit.IOUSBLib",
+    "size" : 32768,
+    "uuid" : "e465c436-8f4c-3cea-9712-c85458c80f8f",
+    "path" : "\/System\/Library\/Extensions\/IOUSBFamily.kext\/Contents\/PlugIns\/IOUSBLib.bundle\/Contents\/MacOS\/IOUSBLib",
+    "name" : "IOUSBLib",
+    "CFBundleVersion" : "900.4.2"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4717494272,
+    "CFBundleShortVersionString" : "900.4.2",
+    "CFBundleIdentifier" : "com.apple.iokit.IOUSBLib",
+    "size" : 36864,
+    "uuid" : "996135ec-c465-3150-b625-149394b66a99",
+    "path" : "\/System\/Library\/Extensions\/IOUSBHostFamily.kext\/Contents\/PlugIns\/IOUSBLib.bundle\/Contents\/MacOS\/IOUSBLib",
+    "name" : "IOUSBLib",
+    "CFBundleVersion" : "900.4.2"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703422111744,
+    "size" : 247864,
+    "uuid" : "05c853af-32f8-317c-91c7-03456d7a4311",
+    "path" : "\/usr\/lib\/system\/libsystem_kernel.dylib",
+    "name" : "libsystem_kernel.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 140703422832640,
+    "CFBundleShortVersionString" : "6.9",
+    "CFBundleIdentifier" : "com.apple.CoreFoundation",
+    "size" : 4935651,
+    "uuid" : "52038a90-4140-3132-93c2-e08624a409af",
+    "path" : "\/System\/Library\/Frameworks\/CoreFoundation.framework\/Versions\/A\/CoreFoundation",
+    "name" : "CoreFoundation",
+    "CFBundleVersion" : "3423"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703617794048,
+    "CFBundleShortVersionString" : "2.1.1",
+    "CFBundleIdentifier" : "com.apple.HIToolbox",
+    "size" : 3020526,
+    "uuid" : "c65d0254-38e8-3d84-89ed-a8b8504c6f57",
+    "path" : "\/System\/Library\/Frameworks\/Carbon.framework\/Versions\/A\/Frameworks\/HIToolbox.framework\/Versions\/A\/HIToolbox",
+    "name" : "HIToolbox"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703483568128,
+    "CFBundleShortVersionString" : "6.9",
+    "CFBundleIdentifier" : "com.apple.AppKit",
+    "size" : 22352472,
+    "uuid" : "a6b6d3fd-bba9-37b7-909e-e88dbdce2050",
+    "path" : "\/System\/Library\/Frameworks\/AppKit.framework\/Versions\/C\/AppKit",
+    "name" : "AppKit",
+    "CFBundleVersion" : "2575.50.27"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703418540032,
+    "size" : 631872,
+    "uuid" : "d90f985a-73b7-32a6-9f7a-a79a936bf75f",
+    "path" : "\/usr\/lib\/dyld",
+    "name" : "dyld"
+  },
+  {
+    "size" : 0,
+    "source" : "A",
+    "base" : 0,
+    "uuid" : "00000000-0000-0000-0000-000000000000"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703422361600,
+    "size" : 48592,
+    "uuid" : "b33f6374-3285-3bc8-8946-3472c31aabcd",
+    "path" : "\/usr\/lib\/system\/libsystem_pthread.dylib",
+    "name" : "libsystem_pthread.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703420936192,
+    "size" : 560296,
+    "uuid" : "8fc0db40-599b-3cd2-991c-1faf1534c667",
+    "path" : "\/usr\/lib\/system\/libsystem_c.dylib",
+    "name" : "libsystem_c.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703482318848,
+    "CFBundleShortVersionString" : "2.0.2",
+    "CFBundleIdentifier" : "com.apple.framework.IOKit",
+    "size" : 807247,
+    "uuid" : "307a165d-ced6-34cc-8149-b93421112905",
+    "path" : "\/System\/Library\/Frameworks\/IOKit.framework\/Versions\/A\/IOKit",
+    "name" : "IOKit"
+  }
+],
+  "sharedCache" : {
+  "base" : 140703390330880,
+  "size" : 30064771072,
+  "uuid" : "5182416c-b0ce-39a0-8348-5b0b287e48c6"
+},
+  "vmSummary" : "ReadOnly portion of Libraries: Total=1.2G resident=0K(0%) swapped_out_or_unallocated=1.2G(100%)\nWritable regions: Total=1.7G written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=1.7G(100%)\n\n                                VIRTUAL   REGION \nREGION TYPE                        SIZE    COUNT (non-coalesced) \n===========                     =======  ======= \nAccelerate framework               128K        1 \nActivity Tracing                   256K        1 \nCG image                            48K        4 \nColorSync                          252K       31 \nCoreAnimation                      140K       16 \nCoreGraphics                        12K        2 \nCoreUI image data                  952K        7 \nFoundation                          16K        1 \nKernel Alloc Once                    8K        1 \nMALLOC                             1.6G       59 \nMALLOC guard page                   48K       12 \nSTACK GUARD                        104K       26 \nStack                             48.2M       27 \nStack Guard                       56.0M        1 \nVM_ALLOCATE                        256K       31 \nVM_ALLOCATE (reserved)            2304K       18         reserved VM address space (unallocated)\n__CTF                               824        1 \n__DATA                            32.2M      915 \n__DATA_CONST                      99.5M      933 \n__DATA_DIRTY                      2582K      336 \n__FONT_DATA                        2352        1 \n__INFO_FILTER                         8        1 \n__LINKEDIT                       164.3M        6 \n__OBJC_RO                         61.2M        1 \n__OBJC_RW                         2391K        2 \n__TEXT                             1.0G      951 \n__TPRO_CONST                         16        2 \nmapped file                      231.2M       26 \nshared memory                     1312K       20 \n===========                     =======  ======= \nTOTAL                              3.3G     3433 \nTOTAL, minus reserved VM space     3.3G     3433 \n",
+  "legacyInfo" : {
+  "threadTriggered" : {
+
+  }
+},
+  "logWritingSignature" : "f055e303713563c26ff2cbcb04b947567e7e9e40",
+  "trialInfo" : {
+  "rollouts" : [
+    {
+      "rolloutId" : "6434420a89ec2e0a7a38bf5a",
+      "factorPackIds" : {
+
+      },
+      "deploymentId" : 240000011
+    },
+    {
+      "rolloutId" : "670ea6eb7a111748a97092a4",
+      "factorPackIds" : {
+        "SIRI_TEXT_TO_SPEECH" : "67fda4dede48286df88e1353"
+      },
+      "deploymentId" : 240000118
+    }
+  ],
+  "experiments" : [
+    {
+      "treatmentId" : "ccf01f2d-382e-4ccc-a332-b3f688bc9bbf",
+      "experimentId" : "67f46b1a73932228c9baf274",
+      "deploymentId" : 400000001
+    }
+  ]
+}
+}
+
