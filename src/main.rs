@@ -29,11 +29,25 @@ fn main() -> iced::Result {
     info!("Starting USBfly application v{}", env!("CARGO_PKG_VERSION"));
     info!("Platform: {}", std::env::consts::OS);
     
+    // Check if USBFLY_FORCE_HARDWARE is explicitly set to 1 by the user
+    let force_hardware = env::var("USBFLY_FORCE_HARDWARE")
+        .map(|val| val == "1")
+        .unwrap_or(false);
+        
     // On macOS, set the force hardware flag to prioritize real device connections
+    // but only if the user hasn't explicitly disabled it
     if cfg!(target_os = "macos") {
-        info!("MacOS detected - initializing with hardware mode preference");
-        env::set_var("USBFLY_FORCE_HARDWARE", "1");
-        env::set_var("USBFLY_SIMULATION_MODE", "0");
+        if force_hardware {
+            info!("🔥 HARDWARE MODE EXPLICITLY FORCED on macOS - ALL SAFETY CHECKS DISABLED 🔥");
+            info!("⚠️ This may cause instability with incompatible devices ⚠️");
+            env::set_var("USBFLY_FORCE_HARDWARE", "1");
+            env::set_var("USBFLY_SIMULATION_MODE", "0");
+        } else if env::var("USBFLY_FORCE_HARDWARE").is_err() {
+            // Only set the default if the env var doesn't exist already
+            info!("MacOS detected - initializing with hardware mode preference");
+            env::set_var("USBFLY_FORCE_HARDWARE", "1");
+            env::set_var("USBFLY_SIMULATION_MODE", "0");
+        }
     }
     
     // Actively check for USB devices at startup to force hardware mode if possible

@@ -2,7 +2,7 @@ modules = ["rust"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["glib", "pkg-config", "xorg.libX11", "xorg.libxcb", "xorg.libXcursor", "libglvnd", "xorg.libXrandr", "xorg.libXi", "xorg.libXinerama", "xorg.libXext", "mesa"]
+packages = ["glib", "pkg-config", "xorg.libX11", "xorg.libxcb", "xorg.libXcursor", "libglvnd", "xorg.libXrandr", "xorg.libXi", "xorg.libXinerama", "xorg.libXext", "mesa", "jq"]
 
 [workflows]
 runButton = "Project"

@@ -170,13 +170,35 @@ impl CynthionConnection {
             }
         }
         
+        // First check if force hardware mode is enabled - this overrides all other options
+        let force_hardware = std::env::var("USBFLY_FORCE_HARDWARE")
+            .map(|val| val == "1")
+            .unwrap_or(false);
+            
         // If we found real compatible devices, use the real device list
         if found_real_cynthion {
-            info!("Using real device list with {} devices", real_device_list.len());
+            info!("✓ Using real Cynthion device list with {} devices", real_device_list.len());
             return Ok(real_device_list);
         }
         
-        // Otherwise, check if we should use simulation mode
+        // If hardware mode is forced but no compatible devices were found
+        if force_hardware {
+            // Even if no compatible devices, return whatever real devices we found
+            // instead of falling back to simulation
+            if !real_device_list.is_empty() {
+                warn!("⚠️ HARDWARE MODE FORCED: No compatible Cynthion devices found");
+                warn!("Returning {} real USB devices instead - some features may not work", real_device_list.len());
+                return Ok(real_device_list);
+            } else {
+                // If we're in forced hardware mode but no devices at all, return empty list
+                // This ensures the UI shows "No devices found" instead of simulated devices
+                warn!("⚠️ HARDWARE MODE FORCED but no USB devices found");
+                warn!("Connect a Cynthion device and restart the application");
+                return Ok(vec![]);
+            }
+        }
+        
+        // If not in forced hardware mode, check if we should use simulation mode
         if Self::is_env_simulation_mode() && !force_refresh {
             info!("Using simulated device list (simulation mode enabled)");
             Ok(Self::get_simulated_devices())
@@ -247,17 +269,20 @@ impl CynthionConnection {
     
     // Check if we're in simulation mode based on environment variable
     pub fn is_env_simulation_mode() -> bool {
-        // Always try hardware mode first on macOS with an explicit force flag
-        if cfg!(target_os = "macos") {
-            if let Ok(force_hw) = std::env::var("USBFLY_FORCE_HARDWARE") {
-                if force_hw == "1" {
-                    info!("USBFLY_FORCE_HARDWARE=1 detected, forcing hardware mode");
-                    return false;
-                }
+        // CRITICAL CHECK: First check for force hardware flag, which overrides all other settings
+        // This is intended to be set in production environments to ensure real hardware is used
+        if let Ok(force_hw) = std::env::var("USBFLY_FORCE_HARDWARE") {
+            if force_hw == "1" {
+                info!("⚠️ USBFLY_FORCE_HARDWARE=1 detected, overriding all simulation settings ⚠️");
+                // Explicitly disable simulation mode for all other code paths
+                std::env::set_var("USBFLY_SIMULATION_MODE", "0");
+                return false;
             }
-            
-            // Set the FORCE_HARDWARE flag to prioritize hardware mode on macOS
-            std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
+        }
+        
+        // For macOS, we recommend using the force hardware flag when needed
+        if cfg!(target_os = "macos") {
+            info!("macOS detected - checking for hardware mode flag");
         }
         
         // First check if we have USB access at all and if Cynthion is connected
@@ -269,7 +294,7 @@ impl CynthionConnection {
                         let vid = desc.vendor_id();
                         let pid = desc.product_id();
                         if Self::is_supported_device(vid, pid) {
-                            info!("Found real Cynthion device VID={:04x} PID={:04x}", vid, pid);
+                            info!("Found real Cynthion device VID={:04x} PID={:04x} - hardware mode required", vid, pid);
                             true
                         } else {
                             false
@@ -281,17 +306,28 @@ impl CynthionConnection {
                 
                 // If we found a Cynthion device, force hardware mode
                 if found_cynthion {
-                    info!("Found Cynthion device - forcing hardware mode");
+                    info!("Found real Cynthion device - forcing hardware mode");
+                    // Explicitly disable simulation mode when we find a real device
                     std::env::set_var("USBFLY_SIMULATION_MODE", "0");
                     return false;
                 }
             }
         }
         
-        // Fall back to environment variable if no devices are detected
+        // Check for explicit simulation mode request in environment variable
         match std::env::var("USBFLY_SIMULATION_MODE") {
-            Ok(val) => val == "1",
-            Err(_) => false,
+            Ok(val) => {
+                let is_sim = val == "1";
+                if is_sim {
+                    info!("Simulation mode explicitly enabled via environment variable");
+                }
+                is_sim
+            },
+            Err(_) => {
+                // Default to hardware mode when no environment variables set
+                info!("No simulation mode explicitly set - defaulting to hardware mode");
+                false
+            },
         }
     }
     
@@ -963,22 +999,27 @@ impl CynthionConnection {
         // Special handling for macOS to prevent segfaults - AFTER buffer declaration
         #[cfg(target_os = "macos")]
         {
-            // Only return simulated data if USBFLY_FORCE_HARDWARE is not set
-            // This environment variable is our safety override that indicates we've tested
-            // and hardware operations are safe on this particular macOS machine
+            // First check for USBFLY_FORCE_HARDWARE=1, which is the definitive override for macOS safety
             let force_hardware = std::env::var("USBFLY_FORCE_HARDWARE")
-                .unwrap_or_else(|_| "0".to_string()) == "1";
+                .map(|val| val == "1")
+                .unwrap_or(false);
                 
-            if !force_hardware {
+            // Also check if we explicitly set FORCE_HARDWARE in our env_is_simulation_mode logic
+            // since the correct value might be set but not accessible via env::var in some contexts
+            if !force_hardware && !std::env::var("USBFLY_SIMULATION_MODE").map(|val| val == "0").unwrap_or(false) {
                 // In safe mode, use simulated data to avoid potential crashes
-                info!("macOS safe mode active - using simulated data instead of hardware access");
+                warn!("⚠️ macOS SAFE MODE: Using simulated data instead of hardware access ⚠️");
                 // Log the current state of all related environment variables for debugging
-                info!("Environment variables: USBFLY_FORCE_HARDWARE={}, USBFLY_SIMULATION_MODE={}", 
+                warn!("MacOS Environment variables: USBFLY_FORCE_HARDWARE={}, USBFLY_SIMULATION_MODE={}", 
                      std::env::var("USBFLY_FORCE_HARDWARE").unwrap_or_else(|_| "not set".to_string()),
                      std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "not set".to_string()));
+                warn!("To enable real device access, set USBFLY_FORCE_HARDWARE=1");
                 return Ok(self.get_simulated_data());
             } else {
-                info!("⚠️ macOS HARDWARE MODE ACTIVE ⚠️ Using actual device for USB operations");
+                info!("✓ macOS HARDWARE MODE ACTIVE: Using actual device for USB operations");
+                debug!("macOS Environment variables: USBFLY_FORCE_HARDWARE={}, USBFLY_SIMULATION_MODE={}", 
+                      std::env::var("USBFLY_FORCE_HARDWARE").unwrap_or_else(|_| "not set".to_string()),
+                      std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "not set".to_string()));
                 // Continue to the real device operations below
             }
         }
