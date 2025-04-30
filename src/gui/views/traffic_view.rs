@@ -144,23 +144,45 @@ impl TrafficView {
     
     // Add a USB transaction to the traffic view (for MitM traffic)
     pub fn add_transaction(&mut self, transaction: UsbTransaction) {
+        use log::{debug, info};
+        
+        debug!("Adding transaction ID {} of type {:?}", transaction.id, transaction.transfer_type);
+        
         // Create a transaction node
         let transaction_id = format!("tx_{}", transaction.id);
         let node_id = TreeNodeId::new(transaction_id);
         
         // Determine transaction type label and color
         let (type_label, node_type) = match transaction.transfer_type {
-            UsbTransferType::Control => ("Control Transfer", TreeNodeType::Transaction),
-            UsbTransferType::Bulk => ("Bulk Transfer", TreeNodeType::BulkTransfer),
-            UsbTransferType::Interrupt => ("Interrupt Transfer", TreeNodeType::InterruptTransfer),
-            UsbTransferType::Isochronous => ("Isochronous Transfer", TreeNodeType::IsochronousTransfer),
-            UsbTransferType::Unknown => ("Unknown Transfer", TreeNodeType::Unknown),
+            UsbTransferType::Control => {
+                debug!("Processing control transfer");
+                ("Control Transfer", TreeNodeType::Transaction)
+            },
+            UsbTransferType::Bulk => {
+                debug!("Processing bulk transfer");
+                ("Bulk Transfer", TreeNodeType::BulkTransfer)
+            },
+            UsbTransferType::Interrupt => {
+                debug!("Processing interrupt transfer");
+                ("Interrupt Transfer", TreeNodeType::InterruptTransfer)
+            },
+            UsbTransferType::Isochronous => {
+                debug!("Processing isochronous transfer");
+                ("Isochronous Transfer", TreeNodeType::IsochronousTransfer)
+            },
+            UsbTransferType::Unknown => {
+                debug!("Processing unknown transfer type");
+                ("Unknown Transfer", TreeNodeType::Unknown)
+            },
         };
         
         // Create node data with direction and endpoint info
+        let summary = transaction.get_summary();
+        debug!("Transaction summary: {}", &summary);
+        
         let data = format!("{}: {} (Endpoint: 0x{:02X})", 
                          type_label,
-                         transaction.get_summary(),
+                         summary,
                          transaction.endpoint);
         
         // Create root node if it doesn't exist

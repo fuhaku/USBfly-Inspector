@@ -161,18 +161,14 @@ impl fmt::Display for UsbStandardRequest {
 
 // USB Setup packet structure (8 bytes)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct UsbSetupPacket {
     // Note: These field names follow the USB spec naming convention which uses camelCase.
     // We're keeping the USB standard names despite Rust's convention for field naming.
-    #[allow(non_snake_case)]
     pub bmRequestType: u8,
-    #[allow(non_snake_case)]
     pub bRequest: u8,
-    #[allow(non_snake_case)]
     pub wValue: u16,
-    #[allow(non_snake_case)]
     pub wIndex: u16,
-    #[allow(non_snake_case)]
     pub wLength: u16,
     
     // Decoded request information
@@ -800,15 +796,15 @@ pub fn generate_simulated_mitm_traffic() -> Vec<u8> {
         0x82, device_addr, 0x00  // ACK
     ]);
     
-    // 17. Some bulk data transfers (OUT - host to device)
+    // 17. Some bulk data transfers (OUT - host to device) - Endpoint 0x01
     packets.extend_from_slice(&[
-        0x83, device_addr | 0x10,   // Header + address + endpoint 0x01 (OUT)
+        0x83, device_addr | 0x01,   // Header + address + endpoint 0x01 (OUT endpoint)
         0x01, 0x02, 0x03, 0x04      // Some bulk data
     ]);
     
-    // 18. Some bulk data transfer (IN - device to host)
+    // 18. Some bulk data transfer (IN - device to host) - Endpoint 0x81
     packets.extend_from_slice(&[
-        0x83, device_addr | 0x18,   // Header + address + endpoint 0x81 (IN)
+        0x83, device_addr | 0x08 | 0x01,   // Header + address + endpoint 0x01 + IN direction bit
         0xF1, 0xF2, 0xF3, 0xF4, 0xF5 // Response data
     ]);
     
@@ -865,10 +861,19 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
             
             transaction.device_address = raw_data[1];
             
-            // Direction is determined by bit 7 of header second byte
-            let direction = if (raw_data[1] & 0x80) != 0 {
+            // For control transfers, direction is determined by bit 7 of header second byte
+            // This is different from other transfer types!
+            use log::{debug, info, trace};
+            
+            let raw_byte = raw_data[1];
+            trace!("Processing control data transfer packet with byte 0x{:02X}", raw_byte);
+            
+            let direction_bit = raw_byte & 0x80;
+            let direction = if direction_bit != 0 {
+                debug!("Detected IN direction (device to host) for control data");
                 UsbDirection::DeviceToHost
             } else {
+                debug!("Detected OUT direction (host to device) for control data");
                 UsbDirection::HostToDevice
             };
             
@@ -934,26 +939,39 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
         
         // Bulk transfer
         0x83 => {
+            use log::{debug, info, trace};
             transaction.transfer_type = UsbTransferType::Bulk;
             
             // Need at least 3 bytes (1 header + 1 endpoint + 1 data minimum)
             if raw_data.len() < 3 {
+                debug!("Bulk transfer packet too small: {} bytes", raw_data.len());
                 return None;
             }
             
-            transaction.device_address = raw_data[1] >> 4;
-            transaction.endpoint = raw_data[1] & 0x0F;
+            let raw_byte = raw_data[1];
+            debug!("Processing bulk transfer packet with byte 0x{:02X}", raw_byte);
             
-            // Direction is determined by endpoint high bit
-            let direction = if (transaction.endpoint & 0x80) != 0 {
+            // Address is in the high nibble, endpoint in the low nibble
+            transaction.device_address = raw_byte >> 4;
+            transaction.endpoint = raw_byte & 0x0F;
+            
+            // Direction is determined by bit 3 of the endpoint byte (after masking)
+            let direction_bit = raw_byte & 0x08;
+            let direction = if direction_bit != 0 {
+                info!("Detected IN direction (device to host) for bulk transfer: ep=0x{:X}, bit=0x{:X}", 
+                      transaction.endpoint, direction_bit);
                 UsbDirection::DeviceToHost
             } else {
+                info!("Detected OUT direction (host to device) for bulk transfer: ep=0x{:X}, bit=0x{:X}", 
+                      transaction.endpoint, direction_bit);
                 UsbDirection::HostToDevice
             };
             
             // Create data packet (starts at offset 2)
+            let data = raw_data[2..].to_vec();
+            debug!("Bulk transfer data: {} bytes", data.len());
             let data_packet = UsbDataPacket::new(
-                raw_data[2..].to_vec(),
+                data,
                 direction,
                 transaction.endpoint
             );
@@ -969,32 +987,47 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
                                     format!("0x{:02X}", transaction.endpoint));
             transaction.fields.insert("Direction".to_string(), 
                                     format!("{}", direction));
+            transaction.fields.insert("Data Length".to_string(),
+                                    format!("{} bytes", transaction.data_packet.as_ref().unwrap().data.len()));
             
             return Some(transaction);
         },
         
         // Interrupt transfer
         0x84 => {
+            use log::{debug, info, trace};
             transaction.transfer_type = UsbTransferType::Interrupt;
             
             // Need at least 3 bytes (1 header + 1 endpoint + 1 data minimum)
             if raw_data.len() < 3 {
+                debug!("Interrupt transfer packet too small: {} bytes", raw_data.len());
                 return None;
             }
             
-            transaction.device_address = raw_data[1] >> 4;
-            transaction.endpoint = raw_data[1] & 0x0F;
+            let raw_byte = raw_data[1];
+            debug!("Processing interrupt transfer packet with byte 0x{:02X}", raw_byte);
             
-            // Direction is determined by endpoint high bit
-            let direction = if (transaction.endpoint & 0x80) != 0 {
+            // Address is in the high nibble, endpoint in the low nibble
+            transaction.device_address = raw_byte >> 4;
+            transaction.endpoint = raw_byte & 0x0F;
+            
+            // Direction is determined by bit 3 of the endpoint byte (after masking)
+            let direction_bit = raw_byte & 0x08;
+            let direction = if direction_bit != 0 {
+                info!("Detected IN direction (device to host) for interrupt transfer: ep=0x{:X}, bit=0x{:X}", 
+                      transaction.endpoint, direction_bit);
                 UsbDirection::DeviceToHost
             } else {
+                info!("Detected OUT direction (host to device) for interrupt transfer: ep=0x{:X}, bit=0x{:X}", 
+                      transaction.endpoint, direction_bit);
                 UsbDirection::HostToDevice
             };
             
             // Create data packet (starts at offset 2)
+            let data = raw_data[2..].to_vec();
+            debug!("Interrupt transfer data: {} bytes", data.len());
             let data_packet = UsbDataPacket::new(
-                raw_data[2..].to_vec(),
+                data,
                 direction,
                 transaction.endpoint
             );
@@ -1010,32 +1043,47 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
                                     format!("0x{:02X}", transaction.endpoint));
             transaction.fields.insert("Direction".to_string(), 
                                     format!("{}", direction));
+            transaction.fields.insert("Data Length".to_string(),
+                                    format!("{} bytes", transaction.data_packet.as_ref().unwrap().data.len()));
             
             return Some(transaction);
         },
         
         // Isochronous transfer
         0x85 => {
+            use log::{debug, info, trace};
             transaction.transfer_type = UsbTransferType::Isochronous;
             
             // Need at least 3 bytes (1 header + 1 endpoint + 1 data minimum)
             if raw_data.len() < 3 {
+                debug!("Isochronous transfer packet too small: {} bytes", raw_data.len());
                 return None;
             }
             
-            transaction.device_address = raw_data[1] >> 4;
-            transaction.endpoint = raw_data[1] & 0x0F;
+            let raw_byte = raw_data[1];
+            debug!("Processing isochronous transfer packet with byte 0x{:02X}", raw_byte);
             
-            // Direction is determined by endpoint high bit
-            let direction = if (transaction.endpoint & 0x80) != 0 {
+            // Address is in the high nibble, endpoint in the low nibble
+            transaction.device_address = raw_byte >> 4;
+            transaction.endpoint = raw_byte & 0x0F;
+            
+            // Direction is determined by bit 3 of the endpoint byte (after masking)
+            let direction_bit = raw_byte & 0x08;
+            let direction = if direction_bit != 0 {
+                info!("Detected IN direction (device to host) for isochronous transfer: ep=0x{:X}, bit=0x{:X}", 
+                      transaction.endpoint, direction_bit);
                 UsbDirection::DeviceToHost
             } else {
+                info!("Detected OUT direction (host to device) for isochronous transfer: ep=0x{:X}, bit=0x{:X}", 
+                      transaction.endpoint, direction_bit);
                 UsbDirection::HostToDevice
             };
             
             // Create data packet (starts at offset 2)
+            let data = raw_data[2..].to_vec();
+            debug!("Isochronous transfer data: {} bytes", data.len());
             let data_packet = UsbDataPacket::new(
-                raw_data[2..].to_vec(),
+                data,
                 direction,
                 transaction.endpoint
             );
@@ -1051,6 +1099,8 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
                                     format!("0x{:02X}", transaction.endpoint));
             transaction.fields.insert("Direction".to_string(), 
                                     format!("{}", direction));
+            transaction.fields.insert("Data Length".to_string(),
+                                    format!("{} bytes", transaction.data_packet.as_ref().unwrap().data.len()));
             
             return Some(transaction);
         },

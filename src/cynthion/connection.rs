@@ -905,41 +905,129 @@ impl CynthionConnection {
     
     // Process MitM traffic and decode USB transactions
     pub fn process_mitm_traffic(&self, raw_data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
+        use log::{debug, trace};
+        
         let mut transactions = Vec::new();
-        let counter: u64 = 0;
-        let timestamp = std::time::SystemTime::now()
+        let mut counter: u64 = 0;
+        let base_timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs_f64();
             
-        // Process data in chunks - we'll use a simple approach for now
-        // In a real implementation, we'd need to handle partial packets and reassembly
-        
-        // Check if we have at least some minimum data
+        // Check if we have enough data to process
         if raw_data.len() < 2 {
+            debug!("Raw data too short: {} bytes", raw_data.len());
             return transactions;
         }
         
-        // Based on the first byte, determine if this is a control, bulk, interrupt packet
-        match raw_data[0] {
-            // Control transfer setup
-            0x80 => {
-                if let Some(transaction) = crate::usb::mitm_traffic::decode_mitm_packet(raw_data, timestamp, counter) {
-                    transactions.push(transaction);
-                    // Counter is only used for transaction ID, no need to increment
-                }
-            },
-            
-            // A sequence of different packets - try to parse them all
-            _ => {
-                // Simple parsing approach - this would be enhanced in production with proper state tracking
-                // For now, we'll try to process the entire buffer as a single transaction
-                if let Some(transaction) = crate::usb::mitm_traffic::decode_mitm_packet(raw_data, timestamp, counter) {
-                    transactions.push(transaction);
-                }
+        debug!("Processing {} bytes of MitM traffic data", raw_data.len());
+        
+        // Iterate through the data in chunks to process multiple packets
+        let mut offset = 0;
+        while offset < raw_data.len() {
+            // Need at least header + address (2 bytes)
+            if offset + 2 > raw_data.len() {
+                debug!("Remaining data too short at offset {}: {} bytes", offset, raw_data.len() - offset);
+                break;
             }
+            
+            // Calculate a unique timestamp for each transaction
+            // Add a small fraction based on the counter to ensure uniqueness
+            let timestamp = base_timestamp + (counter as f64 * 0.0001);
+            
+            let packet_type = raw_data[offset];
+            trace!("Processing packet type 0x{:02X} at offset {}", packet_type, offset);
+            
+            // Determine packet length based on packet type
+            let packet_length = match packet_type {
+                0x80 => {
+                    // Control setup packet: header(1) + address(1) + setup data(8)
+                    if offset + 10 > raw_data.len() {
+                        debug!("Setup packet truncated at offset {}", offset);
+                        // Skip this header byte and try to resync
+                        offset += 1;
+                        continue;
+                    }
+                    10
+                },
+                0x81 => {
+                    // Control data packet: variable length
+                    // Start with header(1) + address(1), then determine data length
+                    if offset + 2 > raw_data.len() {
+                        debug!("Data packet truncated at offset {}", offset);
+                        offset += 1;
+                        continue;
+                    }
+                    
+                    // Data length is variable, but for simulated data we know the structure
+                    // For real data, we'd need to parse the length field
+                    // For now, use a heuristic: assume the rest of the packet until next header
+                    let mut data_length = 0;
+                    for i in (offset + 2)..raw_data.len() {
+                        data_length += 1;
+                        // If the next byte looks like a packet header, we've reached the end
+                        if i + 1 < raw_data.len() && (raw_data[i + 1] == 0x80 || raw_data[i + 1] == 0x81 || 
+                                                    raw_data[i + 1] == 0x82 || raw_data[i + 1] == 0x83) {
+                            break;
+                        }
+                    }
+                    2 + data_length
+                },
+                0x82 => {
+                    // Status packet: header(1) + address(1) + status(1)
+                    if offset + 3 > raw_data.len() {
+                        debug!("Status packet truncated at offset {}", offset);
+                        offset += 1;
+                        continue;
+                    }
+                    3
+                },
+                0x83 => {
+                    // Bulk transfer: header(1) + endpoint/address(1) + variable data
+                    if offset + 2 > raw_data.len() {
+                        debug!("Bulk packet truncated at offset {}", offset);
+                        offset += 1;
+                        continue;
+                    }
+                    
+                    // Similar to control data, use heuristic to find end
+                    let mut data_length = 0;
+                    for i in (offset + 2)..raw_data.len() {
+                        data_length += 1;
+                        if i + 1 < raw_data.len() && (raw_data[i + 1] == 0x80 || raw_data[i + 1] == 0x81 || 
+                                                    raw_data[i + 1] == 0x82 || raw_data[i + 1] == 0x83) {
+                            break;
+                        }
+                    }
+                    2 + data_length
+                },
+                _ => {
+                    // Unknown packet type, skip a byte and try to resync
+                    debug!("Unknown packet type 0x{:02X} at offset {}", packet_type, offset);
+                    offset += 1;
+                    continue;
+                }
+            };
+            
+            // Ensure we don't exceed buffer bounds
+            let end_offset = std::cmp::min(offset + packet_length, raw_data.len());
+            let packet_data = &raw_data[offset..end_offset];
+            
+            // Decode the packet
+            if let Some(transaction) = crate::usb::mitm_traffic::decode_mitm_packet(packet_data, timestamp, counter) {
+                debug!("Decoded {} transaction: addr={}, ep=0x{:02X}", 
+                      transaction.transfer_type, transaction.device_address, transaction.endpoint);
+                transactions.push(transaction);
+                counter += 1;
+            } else {
+                debug!("Failed to decode packet at offset {}", offset);
+            }
+            
+            // Move to next packet
+            offset += packet_length;
         }
         
+        debug!("Processed {} USB transactions", transactions.len());
         transactions
     }
 

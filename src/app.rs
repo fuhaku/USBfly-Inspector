@@ -227,6 +227,14 @@ impl Application for USBflyApp {
                     .map(Message::DescriptorViewMessage)
             }
             Message::USBDataReceived(data) => {
+                use log::{debug, info, trace};
+                
+                // Log incoming data size
+                debug!("Received USB data packet: {} bytes", data.len());
+                if data.len() > 4 {
+                    trace!("Data starts with: {:02X?}", &data[0..4]);
+                }
+                
                 // Process received USB data
                 if let Some(decoded) = self.usb_decoder.decode(&data) {
                     // First add the raw packet for traditional view
@@ -236,21 +244,34 @@ impl Application for USBflyApp {
                     if let Some(connection) = &self.connection {
                         if let Ok(conn) = connection.lock() {
                             // Process the raw data into USB transactions
+                            debug!("Processing data through MitM decoder...");
                             let transactions = conn.process_mitm_traffic(&data);
                             
                             if !transactions.is_empty() {
-                                debug!("Adding {} transactions to traffic view", transactions.len());
+                                info!("Successfully decoded {} USB transactions", transactions.len());
+                                debug!("Transaction types: {:?}", transactions.iter()
+                                        .map(|t| t.transfer_type)
+                                        .collect::<Vec<_>>());
                                 
                                 // Add each transaction to the traffic view
                                 for transaction in transactions {
+                                    debug!("Adding transaction ID {} to traffic view", transaction.id);
                                     self.traffic_view.add_transaction(transaction);
                                 }
+                            } else {
+                                debug!("No transactions decoded from packet");
                             }
+                        } else {
+                            debug!("Could not acquire connection lock for MitM processing");
                         }
+                    } else {
+                        trace!("No connection available for MitM processing");
                     }
                     
                     // Continue with descriptor view update
                     self.descriptor_view.update_descriptors(decoded);
+                } else {
+                    debug!("Failed to decode USB data");
                 }
                 Command::none()
             }
