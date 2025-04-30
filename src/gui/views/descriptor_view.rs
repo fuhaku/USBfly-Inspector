@@ -1,7 +1,7 @@
 use iced::widget::{button, column, container, row, scrollable, text, Column};
 use iced::{Command, Element, Length};
 use crate::usb::USBDescriptor;
-use crate::usb::hints::get_descriptor_hints;
+use crate::usb::hints::{get_descriptor_hints, UsbStandardReferences};
 use crate::usb::UsbDescriptorType;
 use crate::usb::UsbEndpointType;
 use crate::gui::styles;
@@ -197,6 +197,21 @@ impl DescriptorView {
                         details_hints.push(format!("Vendor ID: 0x{:04X}", device_desc.vendor_id));
                         details_hints.push(format!("Product ID: 0x{:04X}", device_desc.product_id));
                         
+                        // Add standard references for key fields
+                        if let Some(vendor_ref) = UsbStandardReferences::for_field("idVendor") {
+                            specs_hints.push(format!("idVendor: {}", vendor_ref));
+                        }
+                        
+                        if let Some(product_ref) = UsbStandardReferences::for_field("idProduct") {
+                            specs_hints.push(format!("idProduct: {}", product_ref));
+                        }
+                        
+                        if let Some(device_class_ref) = UsbStandardReferences::for_field_value(
+                            "bDeviceClass", device_desc.device_class.get_value()) {
+                            specs_hints.push(format!("Class 0x{:02X}: {}", 
+                                device_desc.device_class.get_value(), device_class_ref));
+                        }
+                        
                         // Add more device-specific hints directly
                         if let Some(product_str) = &device_desc.product_string {
                             general_hints.push(format!("Product: {}", product_str));
@@ -246,12 +261,32 @@ impl DescriptorView {
                         
                         if (config_desc.attributes & 0x40) != 0 {
                             usage_hints.push("Device is self-powered".to_string());
+                            
+                            // Add attribute details from standard reference
+                            if let Some(attr_ref) = UsbStandardReferences::for_field_value("bmConfigAttributes", config_desc.attributes) {
+                                specs_hints.push(attr_ref);
+                            }
                         } else {
                             usage_hints.push("Device is bus-powered".to_string());
                         }
                         
                         if (config_desc.attributes & 0x20) != 0 {
                             usage_hints.push("Remote wakeup supported".to_string());
+                        }
+                        
+                        // Add standard reference information
+                        if let Some(config_ref) = UsbStandardReferences::for_field("bConfigurationValue") {
+                            specs_hints.push(format!("Configuration Value: {} ({})", 
+                                config_desc.configuration_value, config_ref));
+                        }
+                        
+                        if let Some(max_power_ref) = UsbStandardReferences::for_field("bMaxPower") {
+                            specs_hints.push(format!("bMaxPower: {}", max_power_ref));
+                        }
+                        
+                        if let Some(total_length_ref) = UsbStandardReferences::for_field("wTotalLength") {
+                            specs_hints.push(format!("Total Length: {} bytes ({})", 
+                                config_desc.total_length, total_length_ref));
                         }
                     },
                     // Interface descriptor special handling
@@ -268,6 +303,26 @@ impl DescriptorView {
                             details_hints.push(format!("Protocol: 0x{:02X}", iface_desc.interface_protocol));
                         }
                         
+                        // Add standard reference information for interface fields
+                        if let Some(iface_ref) = UsbStandardReferences::for_field("bInterfaceNumber") {
+                            specs_hints.push(format!("Interface Number: {}", iface_ref));
+                        }
+                        
+                        if let Some(alt_ref) = UsbStandardReferences::for_field("bAlternateSetting") {
+                            specs_hints.push(format!("Alternate Setting: {}", alt_ref));
+                        }
+                        
+                        if let Some(class_ref) = UsbStandardReferences::for_field("bInterfaceClass") {
+                            specs_hints.push(format!("Interface Class: {}", class_ref));
+                        }
+                        
+                        // Add information about class value
+                        if let Some(class_value_ref) = UsbStandardReferences::for_field_value(
+                            "bDeviceClass", iface_desc.interface_class.get_value()) {
+                            specs_hints.push(format!("Class 0x{:02X}: {}", 
+                                iface_desc.interface_class.get_value(), class_value_ref));
+                        }
+                        
                         if !iface_desc.endpoints.is_empty() {
                             details_hints.push(format!("Endpoints: {}", iface_desc.endpoints.len()));
                             for (i, ep) in iface_desc.endpoints.iter().enumerate() {
@@ -277,6 +332,23 @@ impl DescriptorView {
                                     if ep.endpoint_address & 0x80 != 0 { "IN" } else { "OUT" }
                                 ));
                             }
+                        }
+                        
+                        // Based on class, provide specialized information
+                        match iface_desc.interface_class.get_value() {
+                            0x03 => { // HID class
+                                specs_hints.push("Human Interface Device (HID) class interfaces are used for input devices like keyboards, mice, and game controllers.".to_string());
+                                specs_hints.push("HID devices use standardized report formats to describe their capabilities and controls.".to_string());
+                            },
+                            0x08 => { // Mass Storage class
+                                specs_hints.push("Mass Storage class interfaces implement protocols like SCSI, allowing access to storage media.".to_string());
+                                specs_hints.push("These devices typically use bulk transfers for data and control transfers for commands.".to_string());
+                            },
+                            0x0E => { // Video class
+                                specs_hints.push("Video class interfaces handle video streaming from devices like webcams.".to_string());
+                                specs_hints.push("They often use isochronous transfers for continuous video data.".to_string());
+                            },
+                            _ => {}
                         }
                     },
                     // Endpoint descriptor special handling
@@ -290,6 +362,32 @@ impl DescriptorView {
                         
                         // Add endpoint number info
                         details_hints.push(format!("Endpoint Number: {}", ep_desc.endpoint_number));
+                        
+                        // Add standard reference information
+                        if let Some(addr_ref) = UsbStandardReferences::for_field("bEndpointAddress") {
+                            specs_hints.push(format!("Endpoint Address: {}", addr_ref));
+                        }
+                        
+                        if let Some(max_packet_ref) = UsbStandardReferences::for_field("wMaxPacketSize") {
+                            specs_hints.push(format!("Max Packet Size: {}", max_packet_ref));
+                        }
+                        
+                        if let Some(interval_ref) = UsbStandardReferences::for_field("bInterval") {
+                            specs_hints.push(format!("Interval: {}", interval_ref));
+                        }
+                        
+                        // Add endpoint attributes reference
+                        let attr_value = match ep_desc.transfer_type {
+                            UsbEndpointType::Control => 0x00,
+                            UsbEndpointType::Isochronous => 0x01,
+                            UsbEndpointType::Bulk => 0x02,
+                            UsbEndpointType::Interrupt => 0x03,
+                            _ => 0xFF,
+                        };
+                        
+                        if let Some(attr_ref) = UsbStandardReferences::for_field_value("bmEndpointAttributes", attr_value) {
+                            specs_hints.push(attr_ref);
+                        }
                         
                         // Additional endpoint type info based on the transfer type
                         match ep_desc.transfer_type {
@@ -307,12 +405,27 @@ impl DescriptorView {
                             },
                             UsbEndpointType::Bulk => {
                                 specs_hints.push("Bulk endpoints are used for large non-time-critical data transfers".to_string());
+                                
+                                // Get standard reference for bulk endpoint
+                                if let Some(bulk_ref) = UsbStandardReferences::for_field("Bulk") {
+                                    specs_hints.push(bulk_ref);
+                                }
                             },
                             UsbEndpointType::Interrupt => {
                                 specs_hints.push("Interrupt endpoints are used for small, time-sensitive data like keyboard/mouse input".to_string());
+                                
+                                // Get standard reference for interrupt endpoint
+                                if let Some(int_ref) = UsbStandardReferences::for_field("Interrupt") {
+                                    specs_hints.push(int_ref);
+                                }
                             },
                             UsbEndpointType::Control => {
                                 specs_hints.push("Control endpoints are used for device configuration and control".to_string());
+                                
+                                // Get standard reference for control endpoint
+                                if let Some(ctrl_ref) = UsbStandardReferences::for_field("Control") {
+                                    specs_hints.push(ctrl_ref);
+                                }
                             },
                             _ => {}
                         }

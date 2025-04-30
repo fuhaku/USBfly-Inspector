@@ -40,6 +40,7 @@ impl TreeNodeId {
 
 #[derive(Debug, Clone)]
 pub struct TreeNode {
+    #[allow(dead_code)]
     id: TreeNodeId,
     children: Vec<TreeNodeId>,
     expanded: bool,
@@ -54,9 +55,13 @@ pub enum TreeNodeType {
     Configuration,
     Interface,
     Endpoint,
+    #[allow(dead_code)]
     Transaction,
+    #[allow(dead_code)]
     Setup,
+    #[allow(dead_code)]
     Data,
+    #[allow(dead_code)]
     Status,
     Unknown,
 }

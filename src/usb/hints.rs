@@ -13,6 +13,121 @@ pub fn get_descriptor_hints(descriptor_type: &UsbDescriptorType) -> String {
     UsbHints::for_descriptor_type(descriptor_type)
 }
 
+// Struct to provide standard USB-IF reference data for common USB fields
+pub struct UsbStandardReferences;
+
+impl UsbStandardReferences {
+    // Get standard reference for common USB descriptor fields
+    pub fn for_field(field_name: &str) -> Option<String> {
+        match field_name {
+            // Device Descriptor fields
+            "bLength" => Some("Size of this descriptor in bytes".to_string()),
+            "bDescriptorType" => Some("DEVICE Descriptor Type (0x01)".to_string()),
+            "bcdUSB" => Some("USB Specification Release Number in Binary-Coded Decimal".to_string()),
+            "bDeviceClass" => Some("Class code (assigned by USB-IF)".to_string()),
+            "bDeviceSubClass" => Some("Subclass code (assigned by USB-IF)".to_string()),
+            "bDeviceProtocol" => Some("Protocol code (assigned by USB-IF)".to_string()),
+            "bMaxPacketSize0" => Some("Maximum packet size for endpoint zero".to_string()),
+            "idVendor" => Some("Vendor ID (assigned by USB-IF)".to_string()),
+            "idProduct" => Some("Product ID (assigned by manufacturer)".to_string()),
+            "bcdDevice" => Some("Device release number in binary-coded decimal".to_string()),
+            "iManufacturer" => Some("Index of string descriptor describing manufacturer".to_string()),
+            "iProduct" => Some("Index of string descriptor describing product".to_string()),
+            "iSerialNumber" => Some("Index of string descriptor describing device serial number".to_string()),
+            "bNumConfigurations" => Some("Number of possible configurations".to_string()),
+            
+            // Configuration Descriptor fields
+            "wTotalLength" => Some("Total length of data returned for this configuration".to_string()),
+            "bNumInterfaces" => Some("Number of interfaces supported by this configuration".to_string()),
+            "bConfigurationValue" => Some("Value to use as an argument to SetConfiguration() to select this configuration".to_string()),
+            "iConfiguration" => Some("Index of string descriptor describing this configuration".to_string()),
+            "bmConfigAttributes" => Some("Configuration characteristics (D7: Reserved, set to 1; D6: Self-powered; D5: Remote Wakeup; D4..0: Reserved, set to 0)".to_string()),
+            "bMaxPower" => Some("Maximum power consumption from the bus in 2mA units (i.e., 50 = 100mA)".to_string()),
+            
+            // Interface Descriptor fields
+            "bInterfaceNumber" => Some("Number of this interface (zero-based)".to_string()),
+            "bAlternateSetting" => Some("Value used to select an alternate setting for this interface".to_string()),
+            "bNumEndpoints" => Some("Number of endpoints used by this interface (excluding endpoint zero)".to_string()),
+            "bInterfaceClass" => Some("Class code (assigned by USB-IF)".to_string()),
+            "bInterfaceSubClass" => Some("Subclass code (assigned by USB-IF)".to_string()),
+            "bInterfaceProtocol" => Some("Protocol code (assigned by USB-IF)".to_string()),
+            "iInterface" => Some("Index of string descriptor describing this interface".to_string()),
+            
+            // Endpoint Descriptor fields
+            "bEndpointAddress" => Some("Endpoint address (Bit 7: Direction, 0=OUT, 1=IN; Bits 6..4: Reserved; Bits 3..0: Endpoint number)".to_string()),
+            "bmEndpointAttributes" => Some("Endpoint attributes (Bits 1..0: Transfer Type; Bits 3..2: Synchronization Type; Bits 5..4: Usage Type; Bits 7..6: Reserved)".to_string()),
+            "wMaxPacketSize" => Some("Maximum packet size this endpoint is capable of sending or receiving".to_string()),
+            "bInterval" => Some("Interval for polling endpoint for data transfers (frames)".to_string()),
+            
+            // String Descriptor fields
+            "bString" => Some("UNICODE encoded string".to_string()),
+            
+            // USB Transfer Types 
+            "Control" => Some("Control transfers are used for device configuration and can flow in either direction".to_string()),
+            "Isochronous" => Some("Isochronous transfers are used for time-critical data with guaranteed timing but without error correction".to_string()),
+            "Bulk" => Some("Bulk transfers are used for large, non-time-critical data with error detection and correction".to_string()),
+            "Interrupt" => Some("Interrupt transfers are used for small, time-critical data with guaranteed maximum latency".to_string()),
+            
+            _ => None,
+        }
+    }
+    
+    // Get a USB-IF reference text for field value, if available
+    pub fn for_field_value(field_name: &str, value: u8) -> Option<String> {
+        match field_name {
+            "bDeviceClass" => match value {
+                0x00 => Some("Device class is interface-specific".to_string()),
+                0x01 => Some("Audio class device".to_string()),
+                0x02 => Some("Communications and CDC Control device".to_string()),
+                0x03 => Some("Human Interface Device (HID)".to_string()),
+                0x05 => Some("Physical device".to_string()),
+                0x06 => Some("Image class device".to_string()),
+                0x07 => Some("Printer class device".to_string()),
+                0x08 => Some("Mass Storage class device".to_string()),
+                0x09 => Some("Hub class device".to_string()),
+                0x0A => Some("CDC-Data class device".to_string()),
+                0x0B => Some("Smart Card class device".to_string()),
+                0x0D => Some("Content Security class device".to_string()),
+                0x0E => Some("Video class device".to_string()),
+                0x0F => Some("Personal Healthcare class device".to_string()),
+                0x10 => Some("Audio/Video Devices class".to_string()),
+                0x11 => Some("Billboard Device class".to_string()),
+                0x12 => Some("USB Type-C Bridge class".to_string()),
+                0xDC => Some("Diagnostic Device class".to_string()),
+                0xE0 => Some("Wireless Controller class".to_string()),
+                0xEF => Some("Miscellaneous class".to_string()),
+                0xFE => Some("Application Specific class".to_string()),
+                0xFF => Some("Vendor Specific class".to_string()),
+                _ => None,
+            },
+            
+            "bmConfigAttributes" => {
+                // For configuration descriptor bmAttributes
+                if (value & 0x40) != 0 {
+                    Some("Self-powered device (doesn't draw power from USB bus)".to_string())
+                } else if (value & 0x20) != 0 {
+                    Some("Supports remote wakeup (device can wake host from suspend)".to_string())
+                } else {
+                    None
+                }
+            },
+            
+            "bmEndpointAttributes" => {
+                // For endpoint descriptor bmAttributes
+                match value & 0x03 {
+                    0x00 => Some("Control endpoint transfer type".to_string()),
+                    0x01 => Some("Isochronous endpoint transfer type".to_string()),
+                    0x02 => Some("Bulk endpoint transfer type".to_string()),
+                    0x03 => Some("Interrupt endpoint transfer type".to_string()),
+                    _ => None,
+                }
+            },
+            
+            _ => None,
+        }
+    }
+}
+
 #[allow(dead_code)]
 impl UsbHints {
     // Get a hint for a descriptor type

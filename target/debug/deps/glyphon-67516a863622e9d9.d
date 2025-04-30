@@ -1,9 +1,0 @@
-/home/runner/workspace/target/debug/deps/libglyphon-67516a863622e9d9.rmeta: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/error.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/text_atlas.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/text_render.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/shader.wgsl
-
-/home/runner/workspace/target/debug/deps/glyphon-67516a863622e9d9.d: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/error.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/text_atlas.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/text_render.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/shader.wgsl
-
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/lib.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/error.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/text_atlas.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/text_render.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/glyphon-0.3.0/src/shader.wgsl:

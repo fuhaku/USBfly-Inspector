@@ -48,9 +48,11 @@ pub mod color {
         
         // Secondary dark theme colors
         pub const SECONDARY: Color = Color::from_rgb(0.8, 0.2, 0.8);     // Magenta - Secondary neon
+        #[allow(dead_code)]
         pub const SECONDARY_LIGHT: Color = Color::from_rgb(0.9, 0.5, 0.9); // Light magenta highlights
         
         // Accent colors
+        #[allow(dead_code)]
         pub const ACCENT: Color = Color::from_rgb(1.0, 0.8, 0.0);        // Yellow - accent for warnings
         pub const ERROR: Color = Color::from_rgb(1.0, 0.2, 0.3);         // Red - for errors
         
@@ -61,18 +63,26 @@ pub mod color {
         pub const TEXT_SECONDARY: Color = Color::from_rgb(0.7, 0.7, 0.75); // Lighter text
         
         // Status colors
+        #[allow(dead_code)]
         pub const SUCCESS: Color = Color::from_rgb(0.2, 0.9, 0.4);       // Green - success indicators
+        #[allow(dead_code)]
         pub const WARNING: Color = ACCENT;                               // Yellow - warning indicators
+        #[allow(dead_code)]
         pub const INFO: Color = PRIMARY;                                 // Cyan - information
         
         // Electronics-themed colors
         pub const USB_GREEN: Color = Color::from_rgb(0.2, 1.0, 0.6);     // Brighter USB logo green
+        #[allow(dead_code)]
         pub const PCB_GREEN: Color = Color::from_rgb(0.1, 0.6, 0.4);     // PCB color
+        #[allow(dead_code)]
         pub const SIGNAL_BLUE: Color = Color::from_rgb(0.3, 0.7, 1.0);   // Signal trace blue
+        #[allow(dead_code)]
         pub const COPPER: Color = Color::from_rgb(0.9, 0.6, 0.3);        // Copper traces
         
         // Special dark mode colors
+        #[allow(dead_code)]
         pub const GRID_LINES: Color = Color::from_rgba(0.3, 0.9, 0.8, 0.15); // Cyan grid lines
+        #[allow(dead_code)]
         pub const GLOW: Color = Color::from_rgba(0.0, 0.8, 0.8, 0.3);    // Cyan glow effect
         pub const CODE_GREEN: Color = Color::from_rgb(0.0, 0.8, 0.3);    // Matrix-like green text
     }

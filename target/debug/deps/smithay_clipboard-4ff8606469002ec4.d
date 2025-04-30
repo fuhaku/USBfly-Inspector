@@ -1,8 +1,0 @@
-/home/runner/workspace/target/debug/deps/libsmithay_clipboard-4ff8606469002ec4.rmeta: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/mime.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/state.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/worker.rs
-
-/home/runner/workspace/target/debug/deps/smithay_clipboard-4ff8606469002ec4.d: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/mime.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/state.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/worker.rs
-
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/lib.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/mime.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/state.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/smithay-clipboard-0.7.2/src/worker.rs:

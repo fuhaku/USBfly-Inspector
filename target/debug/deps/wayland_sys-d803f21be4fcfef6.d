@@ -1,8 +1,0 @@
-/home/runner/workspace/target/debug/deps/libwayland_sys-d803f21be4fcfef6.rmeta: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/common.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/client.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/server.rs
-
-/home/runner/workspace/target/debug/deps/wayland_sys-d803f21be4fcfef6.d: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/common.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/client.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/server.rs
-
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/lib.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/common.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/client.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.29.5/src/server.rs:

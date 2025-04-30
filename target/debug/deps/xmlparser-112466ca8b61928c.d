@@ -1,9 +1,0 @@
-/home/runner/workspace/target/debug/deps/libxmlparser-112466ca8b61928c.rmeta: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/error.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/stream.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/strspan.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/xmlchar.rs
-
-/home/runner/workspace/target/debug/deps/xmlparser-112466ca8b61928c.d: /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/lib.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/error.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/stream.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/strspan.rs /home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/xmlchar.rs
-
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/lib.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/error.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/stream.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/strspan.rs:
-/home/runner/workspace/.local/share/.cargo/registry/src/index.crates.io-6f17d22bba15001f/xmlparser-0.13.6/src/xmlchar.rs:

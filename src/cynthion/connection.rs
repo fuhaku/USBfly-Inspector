@@ -318,7 +318,7 @@ impl CynthionConnection {
             }
         };
         
-        // Get device handle
+        // Get device handle (no need to be mutable here)
         let handle = device.open()?;
         
         // Get device descriptor for logging
