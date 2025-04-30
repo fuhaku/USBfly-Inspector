@@ -9,7 +9,7 @@ use crate::gui::styles;
 pub struct DescriptorView {
     descriptors: Vec<USBDescriptor>,
     selected_descriptor: Option<usize>,
-    decoded_data: Vec<crate::usb::decoder::DecodedUSBData>,
+    decoded_data: Vec<crate::usb::DecodedUSBData>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,7 +42,7 @@ impl DescriptorView {
         }
     }
     
-    pub fn update_descriptors(&mut self, decoded_data: crate::usb::decoder::DecodedUSBData) {
+    pub fn update_descriptors(&mut self, decoded_data: crate::usb::DecodedUSBData) {
         // Store the complete decoded data for context and hints
         self.decoded_data.push(decoded_data.clone());
         

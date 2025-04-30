@@ -4,16 +4,15 @@ pub mod decoder;
 pub mod hints;
 
 // Re-export commonly used types for easier access
-pub use descriptor_types::{
+pub use self::descriptor_types::{
     UsbDescriptorType,
     UsbDeviceClass,
     UsbEndpointType,
     UsbIsoSyncType,
-    #[allow(unused_imports)]
     UsbIsoUsageType,
 };
 
-pub use descriptors::{
+pub use self::descriptors::{
     DeviceDescriptor,
     ConfigurationDescriptor,
     InterfaceDescriptor,
@@ -23,3 +22,5 @@ pub use descriptors::{
     StringDescriptor,
     DeviceQualifierDescriptor,
 };
+
+pub use self::decoder::{DecodedUSBData, UsbDecoder};

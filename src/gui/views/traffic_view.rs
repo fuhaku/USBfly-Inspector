@@ -1,11 +1,10 @@
 use iced::widget::{button, column, container, row, scrollable, text, text_input, Column};
 use iced::{Command, Element, Length};
-use crate::usb::decoder::DecodedUSBData;
-use crate::usb::descriptors::USBDescriptor;
+use crate::usb::DecodedUSBData;
+use crate::usb::USBDescriptor;
 use crate::gui::styles;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::fmt;
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,6 +12,7 @@ pub struct TrafficItem {
     pub timestamp: f64,
     pub raw_data: Vec<u8>,
     pub decoded_data: DecodedUSBData,
+    #[serde(skip)]
     _phantom: PhantomData<()>, // Add phantom data to help with sizing
 }
 
@@ -88,14 +88,12 @@ impl TrafficView {
     }
     
     pub fn add_packet(&mut self, raw_data: Vec<u8>, decoded_data: DecodedUSBData) {
-        let traffic_item = TrafficItem {
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs_f64(),
-            raw_data,
-            decoded_data,
-        };
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs_f64();
+            
+        let traffic_item = TrafficItem::new(timestamp, raw_data, decoded_data);
         
         self.traffic_data.push(traffic_item);
         
@@ -375,12 +373,12 @@ fn format_timestamp(timestamp: f64) -> String {
 }
 
 // Creates a hierarchical tree view of USB descriptors
-fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor]) -> Vec<Element<Message>> {
+fn build_descriptor_tree(descriptors: &[USBDescriptor]) -> Vec<Element<Message>> {
     let mut elements = Vec::new();
     
     for (i, descriptor) in descriptors.iter().enumerate() {
         match descriptor {
-            crate::usb::descriptors::USBDescriptor::Device(dev) => {
+            USBDescriptor::Device(dev) => {
                 // Device descriptor is a top-level item
                 elements.push(
                     column![
@@ -420,7 +418,7 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                     ].into()
                 );
             },
-            crate::usb::descriptors::USBDescriptor::Configuration(cfg) => {
+            USBDescriptor::Configuration(cfg) => {
                 // Configuration descriptor
                 elements.push(
                     column![
@@ -450,7 +448,7 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                     ].into()
                 );
             },
-            crate::usb::descriptors::USBDescriptor::Interface(iface) => {
+            USBDescriptor::Interface(iface) => {
                 // Interface descriptor (indented under configuration)
                 elements.push(
                     column![
@@ -479,7 +477,7 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                     ].into()
                 );
             },
-            crate::usb::descriptors::USBDescriptor::Endpoint(ep) => {
+            USBDescriptor::Endpoint(ep) => {
                 // Endpoint descriptor (indented under interface)
                 let direction = if ep.endpoint_address & 0x80 == 0x80 {
                     "IN (Device to Host)"
@@ -513,7 +511,7 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                     ].into()
                 );
             },
-            crate::usb::descriptors::USBDescriptor::String(str_desc) => {
+            USBDescriptor::String(str_desc) => {
                 // String descriptor
                 let string_content = str_desc.string.clone();
                 
@@ -528,7 +526,7 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                     ].into()
                 );
             },
-            crate::usb::descriptors::USBDescriptor::HID(hid_data) => {
+            USBDescriptor::HID(hid_data) => {
                 // HID descriptor - we have raw data, not a structured HID descriptor yet
                 elements.push(
                     column![
@@ -544,7 +542,7 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                     ].into()
                 );
             },
-            crate::usb::descriptors::USBDescriptor::DeviceQualifier(dev_qual) => {
+            USBDescriptor::DeviceQualifier(dev_qual) => {
                 // Device Qualifier descriptor
                 // Extract the major and minor from USB version BCD
                 let major = (dev_qual.usb_version >> 8) & 0xFF;
@@ -566,7 +564,7 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                     ].into()
                 );
             },
-            crate::usb::descriptors::USBDescriptor::Unknown { descriptor_type, data } => {
+            USBDescriptor::Unknown { descriptor_type, data } => {
                 // Unknown descriptor type
                 elements.push(
                     column![

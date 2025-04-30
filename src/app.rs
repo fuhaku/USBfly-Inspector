@@ -1,6 +1,6 @@
 use crate::cynthion::connection::CynthionConnection;
 use crate::gui::views::{DeviceView, TrafficView, DescriptorView};
-use crate::usb::decoder::UsbDecoder;
+use crate::usb::UsbDecoder;
 use iced::widget::{button, column, container, row, text};
 use iced::{executor, Application, Background, Color, Command, Element, Length, Subscription, Theme};
 use std::sync::{Arc, Mutex};
