@@ -208,11 +208,50 @@ impl CynthionDevice {
 }
 
 /// A handle to an open Cynthion device.
-#[derive(Clone)]
 pub struct CynthionHandle {
     interface: Interface,
     device_info: DeviceInfo,
     transfer_queue: Option<TransferQueue>,
+}
+
+// Manual implementation of Clone since TransferQueue can't be directly cloned
+impl Clone for CynthionHandle {
+    fn clone(&self) -> Self {
+        // We can clone the interface and device_info
+        let cloned = CynthionHandle {
+            interface: self.interface.clone(),
+            device_info: self.device_info.clone(),
+            transfer_queue: None, // Can't directly clone the transfer queue
+        };
+        
+        // If there was a transfer queue, we need to reconstruct it
+        if let Some(queue) = &self.transfer_queue {
+            // Get the transferable info
+            let info = queue.get_info();
+            
+            // Create a new channel
+            let (tx, rx) = mpsc::channel();
+            
+            // Create a new TransferQueue for the clone
+            // This won't be fully functional for transfers but will have the
+            // same data_tx and transfer_length properties
+            let mut new_queue = TransferQueue::new(
+                &cloned.interface,
+                info.data_tx.clone(),  // Use the original tx
+                ENDPOINT,
+                NUM_TRANSFERS,
+                info.transfer_length
+            );
+            
+            // Set the new receiver
+            new_queue.set_receiver(rx);
+            
+            // Assign to the clone
+            cloned.transfer_queue = Some(new_queue);
+        }
+        
+        cloned
+    }
 }
 
 // Manual implementation of Debug since Interface doesn't implement Debug
@@ -416,7 +455,7 @@ impl CynthionHandle {
         Ok(())
     }
     
-    // Read MitM traffic using a safe clone-based approach for thread safety
+    // Read MitM traffic using an improved approach based on Packetry
     pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
         // If we're in simulation mode, return simulated data
         if self.is_simulation_mode() {
@@ -428,10 +467,10 @@ impl CynthionHandle {
             info!("Initializing transfer queue for Cynthion device: {:04x}:{:04x}", 
                  self.device_info.vendor_id(), self.device_info.product_id());
             
-            // Create a proper channel for data transfer that we'll actually use
+            // Create a proper channel for data transfer
             let (tx, rx) = mpsc::channel();
             
-            // Create a new transfer queue with the transmitter, storing the receiver
+            // Create a new transfer queue with the transmitter
             let mut transfer_queue = TransferQueue::new(
                 &self.interface, 
                 tx,
@@ -440,8 +479,8 @@ impl CynthionHandle {
                 READ_LEN
             );
             
-            // Make sure the receiver is stored in the transfer queue for later use
-            transfer_queue.receiver = Some(rx);
+            // Set the receiver in the transfer queue
+            transfer_queue.set_receiver(rx);
                 
             // Store the transfer queue
             self.transfer_queue = Some(transfer_queue);
@@ -450,6 +489,8 @@ impl CynthionHandle {
             match self.start_capture() {
                 Ok(_) => {
                     info!("Successfully started USB traffic capture");
+                    // Start async processing in a separate thread
+                    self.start_async_processing();
                 },
                 Err(e) => {
                     error!("Failed to start USB traffic capture: {}", e);
@@ -463,15 +504,10 @@ impl CynthionHandle {
             return Ok(Vec::new());
         }
         
-        // Process any completed transfers to keep the queue moving
-        if let Some(queue) = &mut self.transfer_queue {
-            queue.process_completed_transfers()?;
-        }
-        
-        // For nusb, we don't directly read from the device
-        // Instead, we check if any data has been received from the transfers
+        // For our new approach, we don't need to manually process transfers
+        // They're handled by the async processing thread
+        // Just check if there's data available in the channel
         if let Some(queue) = &self.transfer_queue {
-            // Check if there's data available in the transfer queue's channel
             if let Some(receiver) = queue.get_receiver() {
                 match receiver.try_recv() {
                     Ok(data) => {
@@ -483,19 +519,66 @@ impl CynthionHandle {
                         return Ok(Vec::new());
                     },
                     Err(mpsc::TryRecvError::Disconnected) => {
-                        // Channel is disconnected, something went wrong
-                        return Err(anyhow::anyhow!("Transfer queue channel disconnected"));
+                        // Channel is disconnected, possibly device disconnected
+                        warn!("Transfer queue channel disconnected - device may have been unplugged");
+                        // Reset the transfer queue to force re-initialization
+                        self.transfer_queue = None;
+                        return Ok(Vec::new());
                     }
                 }
             } else {
-                // No receiver available (this should not happen for the original connection)
-                // but might happen for cloned connections
+                // No receiver available (can happen for cloned connections)
                 return Ok(Vec::new());
             }
         }
         
         // Fallback if no queue is available
         Ok(Vec::new())
+    }
+    
+    // Start async processing of USB transfers in a background thread
+    fn start_async_processing(&self) {
+        // We need to clone these for the thread
+        let interface = self.interface.clone();
+        
+        // If we have a transfer queue, set up async processing
+        if let Some(queue) = &self.transfer_queue {
+            // Get the cloneable information from the queue
+            let transfer_info = queue.get_info();
+            
+            // Create a oneshot channel for signaling stopping
+            let (stop_tx, stop_rx) = futures_channel::oneshot::channel();
+            
+            // Create a new transfer queue with the same properties
+            std::thread::spawn(move || {
+                // Set up tokio runtime for async processing
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("Failed to create tokio runtime");
+                
+                // Process transfers in the async runtime
+                if let Err(e) = rt.block_on(async {
+                    // Create a new queue for this thread
+                    let mut queue = TransferQueue::new(
+                        &interface, 
+                        transfer_info.data_tx,
+                        ENDPOINT, 
+                        NUM_TRANSFERS, 
+                        transfer_info.transfer_length
+                    );
+                    
+                    // Process transfers until stopped
+                    queue.process(stop_rx).await
+                }) {
+                    error!("Error in transfer processing thread: {}", e);
+                }
+                
+                // Thread will exit when processing is complete or errors
+            });
+            
+            info!("Started async transfer processing thread");
+        }
     }
     
     // Process raw data into USB transactions (for nusb implementation)

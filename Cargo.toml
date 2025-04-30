@@ -15,6 +15,8 @@ iced_futures = "0.6"
 
 # Async runtime
 tokio = { version = "1.28", features = ["full"] }
+futures-util = { package = "futures-util", version = "0.3.28" }
+futures-channel = { package = "futures-channel", version = "0.3.28" }
 
 # From Packetry
 anyhow = "1.0"
