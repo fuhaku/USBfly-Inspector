@@ -873,3 +873,37 @@ impl iced::widget::button::StyleSheet for DarkModeTreeNodeButton {
         }
     }
 }
+
+/// Style for the tree view guide lines - light mode
+pub struct TreeGuide;
+
+impl widget::container::StyleSheet for TreeGuide {
+    type Style = Theme;
+    
+    fn appearance(&self, _style: &Self::Style) -> widget::container::Appearance {
+        widget::container::Appearance {
+            text_color: None,
+            background: Some(Background::Color(Color::from_rgb(0.7, 0.7, 0.75))), // Light gray guide lines
+            border_radius: 0.0.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+/// Style for the tree view guide lines - dark mode
+pub struct DarkModeTreeGuide;
+
+impl widget::container::StyleSheet for DarkModeTreeGuide {
+    type Style = Theme;
+    
+    fn appearance(&self, _style: &Self::Style) -> widget::container::Appearance {
+        widget::container::Appearance {
+            text_color: None,
+            background: Some(Background::Color(Color::from_rgb(0.27, 0.27, 0.3))), // Dark gray/blue guide lines
+            border_radius: 0.0.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}

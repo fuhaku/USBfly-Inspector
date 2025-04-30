@@ -901,44 +901,140 @@ impl CynthionConnection {
     pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
         // First check connection state
         if !self.active {
+            debug!("MitM traffic capture failed: Device not active");
             return Err(anyhow!("Device not active"));
         }
         
         // If in simulation mode, return simulated MitM traffic data
         if self.simulation_mode {
-            debug!("Returning simulated MitM USB traffic data");
+            debug!("MitM traffic: Using simulated data (simulation mode enabled)");
             // Add small delay to prevent UI from being overwhelmed
             std::thread::sleep(Duration::from_millis(150));
-            return Ok(self.get_simulated_mitm_traffic());
+            let data = self.get_simulated_mitm_traffic();
+            debug!("MitM traffic: Generated {} bytes of simulated data", data.len());
+            return Ok(data);
         }
         
         // Extra safety check - this protects against null pointer issues
         if self.handle.is_none() {
+            error!("MitM traffic capture failed: Device handle is None");
             self.active = false; // Mark as inactive
             return Err(anyhow!("Device disconnected - no handle available"));
         }
+        
+        info!("MitM traffic: Requesting data from connected Cynthion device");
         
         // For real devices, we need to implement the protocol for reading MitM traffic
         // This would involve sending a command to switch to MitM mode and reading from
         // a different endpoint or using a different command protocol
         
-        // For now, we'll use the available mechanism to read data
-        // In a real implementation, this would use a different endpoint or command sequence
-        
         // First, send command to get captured data - this sets up the device to send MitM data
         let command = [CMD_GET_CAPTURED_DATA];
+        info!("MitM traffic: Sending GET_CAPTURED_DATA command to device");
+        
         match self.send_command(&command) {
             Ok(_) => {
+                debug!("MitM traffic: Command sent successfully, reading response...");
                 // Now read the actual data - with real hardware, this would return the MitM data
-                // For now, this reads the same endpoint that read_data_sync uses
-                self.read_data_sync()
+                match self.read_data_sync() {
+                    Ok(data) => {
+                        info!("MitM traffic: Received {} bytes of traffic data", data.len());
+                        // Add detailed hexdump of first 32 bytes (if available) for debugging
+                        if !data.is_empty() {
+                            let preview_len = std::cmp::min(data.len(), 32);
+                            let mut hex_preview = String::new();
+                            for b in data.iter().take(preview_len) {
+                                hex_preview.push_str(&format!("{:02X} ", b));
+                            }
+                            debug!("MitM traffic data preview: {}", hex_preview);
+                            
+                            // Additional packet analysis
+                            Self::analyze_packet_headers(&data);
+                        }
+                        Ok(data)
+                    },
+                    Err(e) => {
+                        error!("MitM traffic: Failed to read response: {}", e);
+                        Err(e)
+                    }
+                }
             },
             Err(e) => {
-                warn!("Failed to request MitM traffic data: {}", e);
-                // Fallback to normal read for now
-                self.read_data_sync()
+                warn!("MitM traffic: Failed to send command: {}", e);
+                // Try fallback to normal read
+                info!("MitM traffic: Attempting fallback to standard read");
+                match self.read_data_sync() {
+                    Ok(data) => {
+                        info!("MitM traffic: Fallback read successful, got {} bytes", data.len());
+                        Ok(data)
+                    },
+                    Err(e) => {
+                        error!("MitM traffic: Fallback read also failed: {}", e);
+                        Err(e)
+                    }
+                }
             }
         }
+    }
+    
+    // Helper function to analyze USB packet headers for debugging
+    fn analyze_packet_headers(data: &[u8]) {
+        if data.len() < 2 {
+            debug!("MitM analysis: Data too short for packet analysis");
+            return;
+        }
+        
+        let mut i = 0;
+        let mut packet_counts = std::collections::HashMap::new();
+        
+        while i + 1 < data.len() {
+            let packet_type = data[i];
+            // Count packet types
+            *packet_counts.entry(packet_type).or_insert(0) += 1;
+            
+            // Basic packet type identification
+            match packet_type {
+                0x80 => {
+                    if i + 9 < data.len() {
+                        let bmrequest_type = data[i+2];
+                        let brequest = data[i+3];
+                        let wvalue = u16::from_le_bytes([data[i+4], data[i+5]]);
+                        let windex = u16::from_le_bytes([data[i+6], data[i+7]]);
+                        let wlength = u16::from_le_bytes([data[i+8], data[i+9]]);
+                        
+                        debug!("MitM packet: SETUP bmRequestType=0x{:02X} bRequest=0x{:02X} wValue=0x{:04X} wIndex=0x{:04X} wLength={}", 
+                               bmrequest_type, brequest, wvalue, windex, wlength);
+                        
+                        i += 10; // Skip the setup packet
+                    } else {
+                        i += 1; // Not enough data, move forward cautiously
+                    }
+                },
+                0x81 => {
+                    debug!("MitM packet: DATA at offset {}", i);
+                    i += 2; // Skip header and address
+                },
+                0x82 => {
+                    if i + 2 < data.len() {
+                        debug!("MitM packet: STATUS at offset {}, value: 0x{:02X}", i, data[i+2]);
+                        i += 3; // Skip status packet
+                    } else {
+                        i += 1;
+                    }
+                },
+                0x83 => {
+                    debug!("MitM packet: BULK at offset {}", i);
+                    i += 2; // Skip header and endpoint/address
+                },
+                _ => {
+                    debug!("MitM packet: Unknown type 0x{:02X} at offset {}", packet_type, i);
+                    i += 1; // Unknown packet type, move forward cautiously
+                }
+            }
+        }
+        
+        // Summary of packet types
+        debug!("MitM traffic summary: {:?} packets", packet_counts);
     }
     
     // Send a command to the Cynthion device 

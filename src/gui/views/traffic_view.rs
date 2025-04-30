@@ -1,4 +1,4 @@
-use iced::widget::{button, column, container, row, scrollable, text, text_input, Column};
+use iced::widget::{button, column, container, row, scrollable, text, text_input, Column, Space};
 use iced::{Command, Element, Length};
 use crate::usb::DecodedUSBData;
 use crate::usb::USBDescriptor;
@@ -612,28 +612,57 @@ impl TrafficView {
                 (_, false, false) => "|---", // non-root collapsed node with children
             };
             
-            // Build the row with toggle button and node content
+            // Build the row with toggle button and node content with improved visual styling
             let node_row = row![
-                // Indentation space
-                container(text(""))
-                    .width(Length::Fixed(indent_width)),
+                // Indentation space with subtle visual guides
+                if level > 0 {
+                    let guides = container(
+                        column![
+                            container(Space::with_height(Length::Fill))
+                                .width(Length::Fixed(1.0))
+                                .height(Length::Fill)
+                                .style(if self.dark_mode {
+                                    iced::theme::Container::Custom(Box::new(styles::DarkModeTreeGuide))
+                                } else {
+                                    iced::theme::Container::Custom(Box::new(styles::TreeGuide))
+                                })
+                        ]
+                    )
+                    .width(Length::Fixed(indent_width))
+                    .height(Length::Fill)
+                    .center_x();
+                    
+                    guides
+                } else {
+                    container(text(""))
+                        .width(Length::Fixed(indent_width))
+                        .into()
+                },
                 
-                // Connector line
+                // Improved connector line with better contrast
                 if level > 0 {
                     text(connector_symbol)
                         .style(if self.dark_mode {
-                            iced::theme::Text::Color(color::dark::TEXT_SECONDARY)
+                            iced::theme::Text::Color(color::dark::PRIMARY_LIGHT)
                         } else {
-                            iced::theme::Text::Color(color::TEXT_SECONDARY)
+                            iced::theme::Text::Color(color::SECONDARY)
                         })
+                        .size(13) // Slightly smaller for better proportions
                 } else {
                     text("")
                 },
                 
-                // Toggle button with enhanced styling and color
+                // Enhanced toggle button with better visual feedback
                 if !node.children.is_empty() {
                     let btn: Element<Message> = button(
-                        text(toggle_icon).style(iced::theme::Text::Color(icon_color))
+                        container(
+                            text(toggle_icon)
+                                .style(iced::theme::Text::Color(icon_color))
+                                .size(14)
+                        )
+                        .padding(2)
+                        .center_x()
+                        .center_y()
                     )
                     .on_press(Message::ToggleTreeNode(node_id.clone()))
                     .style(if self.dark_mode {
@@ -641,22 +670,41 @@ impl TrafficView {
                     } else {
                         iced::theme::Button::Custom(Box::new(styles::TreeNodeButton))
                     })
-                    .width(Length::Fixed(30.0))
+                    .width(Length::Fixed(24.0))
+                    .height(Length::Fixed(24.0))
                     .into();
                     btn
                 } else {
                     container(
-                        text(toggle_icon).style(iced::theme::Text::Color(icon_color))
+                        text(toggle_icon)
+                            .style(iced::theme::Text::Color(icon_color))
+                            .size(14)
                     )
-                    .width(Length::Fixed(30.0))
+                    .width(Length::Fixed(24.0))
+                    .height(Length::Fixed(24.0))
+                    .center_x()
+                    .center_y()
                     .into()
                 },
                 
-                // Node content
-                text(&node.data)
-                    .style(iced::theme::Text::Color(node_color))
+                // Node content with improved typography and visual weight
+                {
+                    if node.item_type == TreeNodeType::Root {
+                        // Root nodes get bold text with slightly larger size
+                        text(&node.data)
+                            .style(iced::theme::Text::Color(node_color))
+                            .width(Length::Fill)
+                            .size(15)
+                    } else {
+                        // All other nodes use standard styling
+                        text(&node.data)
+                            .style(iced::theme::Text::Color(node_color))
+                            .width(Length::Fill)
+                    }
+                }
             ]
-            .spacing(5)
+            .spacing(2) // Tighter spacing for a cleaner look
+            .align_items(iced::Alignment::Center) // Better vertical alignment
             .width(Length::Fill);
             
             // Choose the appropriate style based on node type
