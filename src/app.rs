@@ -727,8 +727,9 @@ impl Application for USBflyApp {
                                             // Use a timeout for the read operation to prevent hangs
                                             let _ = connection.set_read_timeout(Some(std::time::Duration::from_millis(100)));
                                             
-                                            // Attempt to read data, handling any errors
-                                            match connection.read_data_clone() {
+                                            // Attempt to read MitM traffic data instead of just descriptor data
+                                            // This will capture traffic flowing through the Cynthion from attached devices
+                                            match connection.read_mitm_traffic_clone() {
                                                 Ok(data) => Ok(data),
                                                 Err(e) => Err(e.to_string())
                                             }

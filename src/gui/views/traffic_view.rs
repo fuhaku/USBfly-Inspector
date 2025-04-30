@@ -214,8 +214,8 @@ impl TrafficView {
         if let Some(setup) = &transaction.setup_packet {
             let setup_id = TreeNodeId::new(format!("setup_{}", transaction.id));
             let direction_str = match setup.direction {
-                UsbDirection::HostToDevice => "Host → Device",
-                UsbDirection::DeviceToHost => "Device → Host",
+                UsbDirection::HostToDevice => "Host to Device",
+                UsbDirection::DeviceToHost => "Device to Host",
                 UsbDirection::Unknown => "Unknown Direction",
             };
             
@@ -238,8 +238,8 @@ impl TrafficView {
         if let Some(data_pkt) = &transaction.data_packet {
             let data_id = TreeNodeId::new(format!("data_{}", transaction.id));
             let direction_str = match data_pkt.direction {
-                UsbDirection::HostToDevice => "Host → Device",
-                UsbDirection::DeviceToHost => "Device → Host",
+                UsbDirection::HostToDevice => "Host to Device",
+                UsbDirection::DeviceToHost => "Device to Host",
                 UsbDirection::Unknown => "Unknown Direction",
             };
             
@@ -604,12 +604,12 @@ impl TrafficView {
                 }
             };
             
-            // Add connection line symbol based on level, position, and expansion state
+            // Use simple ASCII characters for tree connecting lines to avoid font rendering issues
             let connector_symbol = match (level, node.children.is_empty(), node.expanded) {
                 (0, _, _) => "", // root level, no connector
-                (_, true, _) => "├──►", // non-root leaf node
-                (_, false, true) => "├──┬", // non-root expanded node with children
-                (_, false, false) => "├──►", // non-root collapsed node with children
+                (_, true, _) => "|---", // non-root leaf node
+                (_, false, true) => "|---", // non-root expanded node with children
+                (_, false, false) => "|---", // non-root collapsed node with children
             };
             
             // Build the row with toggle button and node content
