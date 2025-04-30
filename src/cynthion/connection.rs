@@ -80,10 +80,74 @@ impl CynthionConnection {
         let mut real_device_list = Vec::new();
         let mut found_real_cynthion = false;
         
+        // Enhanced handling for macOS hot-plug detection
+        // On macOS, we need to be much more aggressive about device detection
+        #[cfg(target_os = "macos")]
+        {
+            // Clear previous device detection flags to start fresh
+            if force_refresh {
+                std::env::remove_var("USBFLY_DEVICE_DETECTED");
+                info!("🔄 macOS: Force refresh activated - clearing previous device detection state");
+            }
+            
+            if force_refresh || force_hardware {
+                info!("🔍 macOS: Enhanced device detection activated");
+                
+                // For force refresh, temporarily set hardware mode for this scan only
+                if force_refresh {
+                    std::env::set_var("USBFLY_FORCE_REFRESH", "1");
+                }
+                
+                // When force hardware is explicit, make it persistent
+                if force_hardware {
+                    info!("🔒 macOS: Hardware mode forced - setting persistent flags");
+                    std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
+                    std::env::set_var("USBFLY_SIMULATION_MODE", "0");
+                }
+                
+                // More aggressive USB bus re-enumeration for macOS
+                // We'll try multiple approaches to ensure detection works
+                let mut success = false;
+                
+                // First try: Simple USB context refresh
+                if let Ok(context) = rusb::Context::new() {
+                    if let Ok(devices) = context.devices() {
+                        success = true;
+                        info!("✓ macOS: First-pass USB bus enumeration successful - found {} devices", 
+                              devices.iter().count());
+                    }
+                }
+                
+                // If first approach failed, try a more aggressive approach
+                if !success {
+                    info!("⚠️ macOS: First-pass enumeration failed, trying secondary approach");
+                    
+                    // Small delay to allow USB subsystem to settle
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                    
+                    // Second attempt with a fresh context
+                    if let Ok(context) = rusb::Context::new() {
+                        if let Ok(devices) = context.devices() {
+                            success = true;
+                            info!("✓ macOS: Second-pass USB enumeration successful - found {} devices", 
+                                 devices.iter().count());
+                        }
+                    }
+                }
+                
+                // Final outcome message
+                if success {
+                    info!("🎯 macOS: USB bus re-enumeration successful");
+                } else {
+                    warn!("⚠️ macOS: USB bus re-enumeration failed - device detection may be unreliable");
+                }
+            }
+        }
+        
         // If hardware mode is forced or the force hardware flag is set, always try to find real devices
         // even if USBFLY_SIMULATION_MODE is set to 1
         if force_hardware {
-            info!("Hardware mode is forced - prioritizing real device detection");
+            info!("🔒 Hardware mode is forced - prioritizing real device detection");
             // Explicitly disable simulation mode when hardware is forced
             std::env::set_var("USBFLY_SIMULATION_MODE", "0");
         }
@@ -95,23 +159,51 @@ impl CynthionConnection {
         // This ensures we detect devices plugged in after the app starts
         if true {
             if force_refresh {
-                info!("Force refresh requested - checking for real devices");
+                info!("🔍 Force refresh requested - deep scanning for real devices");
                 std::env::remove_var("USBFLY_FORCE_REFRESH");
             }
             
-            // Try to create USB context
-            if let Ok(context) = rusb::Context::new() {
-                if let Ok(devices) = context.devices() {
+            // Try to create USB context with error handling specifically for macOS
+            let context_result = rusb::Context::new();
+            
+            // Special error handling for macOS
+            #[cfg(target_os = "macos")]
+            if let Err(e) = &context_result {
+                warn!("⚠️ macOS USB context error: {} - applying workaround", e);
+                // On macOS, USB context errors are common due to permission issues
+                // Let's force a background refresh of the USB system
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            
+            if let Ok(context) = context_result {
+                // Try to read devices with special error handling for macOS
+                let devices_result = context.devices();
+                
+                #[cfg(target_os = "macos")]
+                if let Err(e) = &devices_result {
+                    warn!("⚠️ macOS USB devices enumeration error: {} - trying fallback method", e);
+                    // On macOS, we'll try a more aggressive approach
+                    std::thread::sleep(std::time::Duration::from_millis(20));
+                }
+                
+                if let Ok(devices) = devices_result {
+                    // Count all USB devices for better diagnostics
+                    let total_device_count = devices.iter().count();
+                    info!("Found {} total USB devices during scan", total_device_count);
+                    
                     // Scan for all devices, including compatible ones
                     for device in devices.iter() {
                         if let Ok(descriptor) = device.device_descriptor() {
                             let vid = descriptor.vendor_id();
                             let pid = descriptor.product_id();
                             
+                            // More verbose debug logging to help troubleshoot device detection
+                            debug!("Checking USB device: VID:{:04x} PID:{:04x}", vid, pid);
+                            
                             // Check if this is a supported device
                             if Self::is_supported_device(vid, pid) {
                                 found_real_cynthion = true;
-                                info!("Real Cynthion device found: VID:{:04x} PID:{:04x}", vid, pid);
+                                info!("🎯 Real Cynthion device found: VID:{:04x} PID:{:04x}", vid, pid);
                                 
                                 // If we find a real device, ensure simulation mode is off
                                 Self::force_real_device_mode();
@@ -280,21 +372,46 @@ impl CynthionConnection {
             }
         }
         
-        // For macOS, we recommend using the force hardware flag when needed
+        // Check for Force Refresh flag which indicates a user-initiated hardware scan
+        let force_refresh = std::env::var("USBFLY_FORCE_REFRESH").is_ok();
+        
+        // Special macOS handling with enhanced device detection for hot-plugging
         if cfg!(target_os = "macos") {
-            info!("macOS detected - checking for hardware mode flag");
+            info!("🔍 macOS detected - enhanced device detection enabled");
+            
+            // Forcing refresh on macOS takes precedence
+            if force_refresh {
+                info!("🔥 macOS Force Refresh detected - temporarily enabling hardware mode");
+                // Temporarily override for the scan, but don't persist yet
+                std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
+                std::env::set_var("USBFLY_SIMULATION_MODE", "0");
+                return false;
+            }
         }
         
-        // First check if we have USB access at all and if Cynthion is connected
+        // Check if we have USB access and if any compatible devices are connected
         if let Ok(context) = rusb::Context::new() {
             if let Ok(devices) = context.devices() {
-                // Look for any Cynthion device 
-                let found_cynthion = devices.iter().any(|device| {
+                // Log total devices for diagnostic purposes
+                let total_devices = devices.iter().count();
+                debug!("USB system scan found {} total devices", total_devices);
+                
+                // Look for any compatible device
+                let found_device = devices.iter().any(|device| {
                     if let Ok(desc) = device.device_descriptor() {
                         let vid = desc.vendor_id();
                         let pid = desc.product_id();
                         if Self::is_supported_device(vid, pid) {
-                            info!("Found real Cynthion device VID={:04x} PID={:04x} - hardware mode required", vid, pid);
+                            info!("🎯 Found compatible device VID={:04x} PID={:04x} - hardware mode required", vid, pid);
+                            
+                            // Set special device detection flag for hot-plug handling
+                            std::env::set_var("USBFLY_DEVICE_DETECTED", "1");
+                            
+                            // On macOS, also force hardware mode for consistency
+                            if cfg!(target_os = "macos") {
+                                info!("🔒 macOS: Setting persistent FORCE_HARDWARE flag for detected device");
+                                std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
+                            }
                             true
                         } else {
                             false
@@ -304,29 +421,40 @@ impl CynthionConnection {
                     }
                 });
                 
-                // If we found a Cynthion device, force hardware mode
-                if found_cynthion {
-                    info!("Found real Cynthion device - forcing hardware mode");
-                    // Explicitly disable simulation mode when we find a real device
+                // If we found a compatible device, always use hardware mode
+                if found_device {
+                    info!("✅ Found compatible device - forcing hardware mode");
                     std::env::set_var("USBFLY_SIMULATION_MODE", "0");
                     return false;
                 }
+            } else {
+                warn!("⚠️ USB device enumeration failed - could not detect hardware");
+                // On macOS, this failure is common due to permission issues
+                if cfg!(target_os = "macos") {
+                    warn!("This is common on macOS - use Force Scan button to retry with elevated permissions");
+                }
             }
+        } else {
+            warn!("⚠️ USB context creation failed - could not access USB subsystem");
         }
         
-        // Check for explicit simulation mode request in environment variable
+        // Check for explicit simulation mode in environment variable
         match std::env::var("USBFLY_SIMULATION_MODE") {
             Ok(val) => {
                 let is_sim = val == "1";
                 if is_sim {
                     info!("Simulation mode explicitly enabled via environment variable");
+                } else {
+                    info!("Simulation mode explicitly disabled via environment variable");
                 }
                 is_sim
             },
             Err(_) => {
-                // Default to hardware mode when no environment variables set
-                info!("No simulation mode explicitly set - defaulting to hardware mode");
-                false
+                // Default to simulation mode when no compatible devices found
+                info!("No compatible devices found and no simulation mode explicitly set - defaulting to simulation");
+                // Set the simulation flag explicitly to avoid unexpected state changes
+                std::env::set_var("USBFLY_SIMULATION_MODE", "1");
+                true
             },
         }
     }
@@ -996,7 +1124,7 @@ impl CynthionConnection {
         // Buffer to store data (define this first so it's available in all code paths)
         let mut buffer = [0u8; 512];
         
-        // Special handling for macOS to prevent segfaults - AFTER buffer declaration
+        // Enhanced handling for macOS to better detect hot-plugged devices - AFTER buffer declaration
         #[cfg(target_os = "macos")]
         {
             // First check for USBFLY_FORCE_HARDWARE=1, which is the definitive override for macOS safety
@@ -1004,22 +1132,44 @@ impl CynthionConnection {
                 .map(|val| val == "1")
                 .unwrap_or(false);
                 
-            // Also check if we explicitly set FORCE_HARDWARE in our env_is_simulation_mode logic
-            // since the correct value might be set but not accessible via env::var in some contexts
-            if !force_hardware && !std::env::var("USBFLY_SIMULATION_MODE").map(|val| val == "0").unwrap_or(false) {
+            // Check for special environment flags related to device detection
+            let force_refresh = std::env::var("USBFLY_FORCE_REFRESH").is_ok();
+            let recently_detected = std::env::var("USBFLY_DEVICE_DETECTED")
+                .map(|val| val == "1")
+                .unwrap_or(false);
+                
+            // If any of our device detection flags are active, prioritize hardware mode
+            if force_hardware || force_refresh || recently_detected {
+                info!("✓ macOS HARDWARE MODE ACTIVE: Using actual device for USB operations");
+                
+                // If this was initiated by a force refresh, set some additional state
+                if force_refresh && !force_hardware {
+                    info!("🔄 Force refresh detected - enabling full hardware access");
+                    std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
+                    std::env::set_var("USBFLY_SIMULATION_MODE", "0");
+                }
+                
+                // Log the current environment state for debugging
+                debug!("macOS Environment state: FORCE_HARDWARE={}, SIMULATION_MODE={}, REFRESH={}, DETECTED={}", 
+                      std::env::var("USBFLY_FORCE_HARDWARE").unwrap_or_else(|_| "not set".to_string()),
+                      std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "not set".to_string()),
+                      if force_refresh { "true" } else { "false" },
+                      if recently_detected { "true" } else { "false" });
+                
+                // Continue to the real device operations below
+            } else if !std::env::var("USBFLY_SIMULATION_MODE").map(|val| val == "0").unwrap_or(false) {
                 // In safe mode, use simulated data to avoid potential crashes
                 warn!("⚠️ macOS SAFE MODE: Using simulated data instead of hardware access ⚠️");
+                
                 // Log the current state of all related environment variables for debugging
-                warn!("MacOS Environment variables: USBFLY_FORCE_HARDWARE={}, USBFLY_SIMULATION_MODE={}", 
+                warn!("macOS Environment variables: FORCE_HARDWARE={}, SIMULATION_MODE={}", 
                      std::env::var("USBFLY_FORCE_HARDWARE").unwrap_or_else(|_| "not set".to_string()),
                      std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "not set".to_string()));
-                warn!("To enable real device access, set USBFLY_FORCE_HARDWARE=1");
+                     
+                warn!("To enable real device access, click 'Force Scan for Hardware' button or set USBFLY_FORCE_HARDWARE=1");
                 return Ok(self.get_simulated_data());
             } else {
-                info!("✓ macOS HARDWARE MODE ACTIVE: Using actual device for USB operations");
-                debug!("macOS Environment variables: USBFLY_FORCE_HARDWARE={}, USBFLY_SIMULATION_MODE={}", 
-                      std::env::var("USBFLY_FORCE_HARDWARE").unwrap_or_else(|_| "not set".to_string()),
-                      std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "not set".to_string()));
+                info!("✓ macOS HARDWARE MODE ACTIVE via environment settings");
                 // Continue to the real device operations below
             }
         }

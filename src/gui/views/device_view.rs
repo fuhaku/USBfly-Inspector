@@ -131,10 +131,30 @@ impl DeviceView {
             },
             Message::ForceRefreshDevices => {
                 info!("Force refreshing connected USB devices (checking for real hardware)");
+                
                 // Set the force refresh flag
                 std::env::set_var("USBFLY_FORCE_REFRESH", "1");
+                
+                // If this is macOS, set specific environment variables to enhance
+                // hot-plug detection on this platform which has more limitations
+                if cfg!(target_os = "macos") {
+                    info!("🔄 macOS device refresh: Re-checking for hardware devices");
+                    info!("🔥 Force enabling hardware mode for fresh device detection");
+                    std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
+                    std::env::set_var("USBFLY_SIMULATION_MODE", "0");
+                    
+                    // Temporarily clear any cached device info for a fresh scan
+                    if let Ok(mut value) = std::env::var("USBFLY_CACHED_DEVICES") {
+                        if !value.is_empty() {
+                            info!("Clearing device cache for fresh hardware detection");
+                            std::env::set_var("USBFLY_CACHED_DEVICES", "");
+                        }
+                    }
+                }
+                
                 // Update last refresh time
                 self.last_refresh_time = std::time::Instant::now();
+                
                 // Query connected devices asynchronously
                 Command::perform(
                     async {

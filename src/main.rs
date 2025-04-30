@@ -67,9 +67,26 @@ fn main() -> iced::Result {
                             // Check if this is a Cynthion device
                             if (vid == 0x1d50 && (pid == 0x615c || pid == 0x60e6 || pid == 0x615b)) ||
                                (vid == 0x16d0 && pid == 0x0f3b) {
-                                info!("Cynthion device detected at startup! Forcing hardware mode");
+                                info!("🔥 Cynthion device detected at startup! 🔥");
+                                info!("◉ Setting environment for hardware access mode");
+                                env::set_var("USBFLY_FORCE_HARDWARE", "1");
                                 env::set_var("USBFLY_SIMULATION_MODE", "0");
                                 found_device = true;
+                            }
+                            
+                            // Special handling for macOS - any USB device could potentially be a Cynthion device
+                            // due to ID confusion or driver issues on macOS
+                            if cfg!(target_os = "macos") && !found_device {
+                                info!("◉ macOS device detection: VID:{:04x} PID:{:04x}", vid, pid);
+                                
+                                // Only vendors we know are compatible with our device (GoodFet, GreatFET, etc.)
+                                let known_vendors = [0x1d50, 0x16d0, 0x1fc9, 0x0403];
+                                if known_vendors.contains(&vid) {
+                                    info!("Compatible vendor detected! Setting hardware mode");
+                                    env::set_var("USBFLY_FORCE_HARDWARE", "1");
+                                    env::set_var("USBFLY_SIMULATION_MODE", "0");
+                                    found_device = true;
+                                }
                             }
                         }
                     }
