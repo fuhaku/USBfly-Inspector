@@ -66,6 +66,7 @@ pub enum TreeNodeType {
     VendorRequest, // Vendor-specific request
     StandardRequest, // Standard request
     Unknown,
+    Other,       // Other/Unknown transaction types
 }
 
 pub struct TrafficView {
@@ -403,8 +404,8 @@ impl TrafficView {
             // Add connection line symbol based on level and position
             let connector_symbol = match (level, node.children.is_empty()) {
                 (0, _) => "", // root level, no connector
-                (_, true) => "├──⮞", // non-root leaf node
-                (_, false) => "├──⮟", // non-root internal node
+                (_, true) => "├──►", // non-root leaf node
+                (_, false) => "├──┬", // non-root internal node with children
             };
             
             // Build the row with toggle button and node content
@@ -654,26 +655,86 @@ impl TrafficView {
                     .join(", ");
                 
                 // Create a transaction summary based on the data and descriptors
-                let transaction_summary = if descriptor_types.contains("Device") {
-                    create_device_transaction_entry(&item.raw_data, &item.decoded_data)
+                let (transaction_summary, node_type) = if descriptor_types.contains("Device") {
+                    (create_device_transaction_entry(&item.raw_data, &item.decoded_data), TreeNodeType::Device)
                 } else if descriptor_types.contains("Configuration") {
-                    create_config_transaction_entry(&item.raw_data, &item.decoded_data)
+                    (create_config_transaction_entry(&item.raw_data, &item.decoded_data), TreeNodeType::Configuration)
                 } else if descriptor_types.contains("Interface") {
-                    create_interface_transaction_entry(&item.raw_data, &item.decoded_data)
+                    (create_interface_transaction_entry(&item.raw_data, &item.decoded_data), TreeNodeType::Interface)
                 } else if descriptor_types.contains("Endpoint") {
-                    create_endpoint_transaction_entry(&item.raw_data, &item.decoded_data)
-                } else if item.raw_data.len() > 4 && item.raw_data[0] & 0x80 == 0x80 {
-                    // Simple heuristic for data IN packet
-                    format!("IN data packet on endpoint 0x{:02X}, {} bytes", 
+                    (create_endpoint_transaction_entry(&item.raw_data, &item.decoded_data), TreeNodeType::Endpoint)
+                } 
+                // Identify specific transaction types
+                else if item.raw_data.len() >= 8 && item.raw_data[0] == 0x2D {
+                    // Control Transfer - SETUP packet (bmRequestType=0x2D)
+                    (format!("Control Transfer: SETUP packet, {} bytes", item.raw_data.len()),
+                     TreeNodeType::Transaction)
+                } 
+                // Identify different transfer types
+                else if !item.raw_data.is_empty() && (item.raw_data[0] & 0x03) == 0x01 {
+                    // Isochronous Transfer (based on PID bits)
+                    (format!("Isochronous Transfer on endpoint 0x{:02X}, {} bytes", 
                             item.raw_data[0] & 0x7F, 
-                            item.raw_data.len())
-                } else if !item.raw_data.is_empty() {
-                    // Generic OUT packet
-                    format!("OUT data packet on endpoint 0x{:02X}, {} bytes", 
+                            item.raw_data.len()),
+                     TreeNodeType::IsochronousTransfer)
+                } 
+                else if !item.raw_data.is_empty() && (item.raw_data[0] & 0x03) == 0x03 {
+                    // Interrupt Transfer (based on PID bits)
+                    (format!("Interrupt Transfer on endpoint 0x{:02X}, {} bytes", 
                             item.raw_data[0] & 0x7F, 
-                            item.raw_data.len())
-                } else {
-                    "Unknown transaction".to_string()
+                            item.raw_data.len()),
+                     TreeNodeType::InterruptTransfer)
+                } 
+                else if !item.raw_data.is_empty() && (item.raw_data[0] & 0x03) == 0x02 {
+                    // Bulk Transfer (based on PID bits)
+                    (format!("Bulk Transfer on endpoint 0x{:02X}, {} bytes", 
+                            item.raw_data[0] & 0x7F, 
+                            item.raw_data.len()),
+                     TreeNodeType::BulkTransfer)
+                }
+                // Identify data direction 
+                else if item.raw_data.len() >= 8 && (item.raw_data[0] & 0x80) != 0 {
+                    // Data IN packet (device to host)
+                    (format!("IN data packet on endpoint 0x{:02X}, {} bytes", 
+                            item.raw_data[0] & 0x7F, 
+                            item.raw_data.len()),
+                     TreeNodeType::Data)
+                } 
+                else if item.raw_data.len() <= 4 {
+                    // Very small packets are likely status/ACK
+                    (format!("Status/ACK packet: {} bytes", item.raw_data.len()),
+                     TreeNodeType::Status)
+                } 
+                else if !item.raw_data.is_empty() && (item.raw_data[0] & 0x80) == 0 {
+                    // Generic OUT packet (host to device)
+                    (format!("OUT data packet on endpoint 0x{:02X}, {} bytes", 
+                            item.raw_data[0] & 0x7F, 
+                            item.raw_data.len()),
+                     TreeNodeType::Data)
+                } 
+                // Identify request types
+                else if !item.raw_data.is_empty() && (item.raw_data[1] & 0x60) == 0x20 {
+                    // Vendor request (based on bmRequestType)
+                    (format!("Vendor-specific request, {} bytes", item.raw_data.len()),
+                     TreeNodeType::VendorRequest)
+                } 
+                else if !item.raw_data.is_empty() && (item.raw_data[1] & 0x60) == 0x40 {
+                    // Class request (based on bmRequestType)
+                    (format!("Class-specific request, {} bytes", item.raw_data.len()),
+                     TreeNodeType::ClassRequest)
+                } 
+                else if !item.raw_data.is_empty() && (item.raw_data[1] & 0x60) == 0x00 {
+                    // Standard request (based on bmRequestType)
+                    (format!("Standard request, {} bytes", item.raw_data.len()),
+                     TreeNodeType::StandardRequest)
+                } 
+                else if !item.raw_data.is_empty() && (item.raw_data[0] & 0x0F) == 0x0D {
+                    // SETUP packet identification (alternate method)
+                    (format!("SETUP packet: {} bytes", item.raw_data.len()),
+                     TreeNodeType::Setup)
+                }
+                else {
+                    ("Unknown transaction".to_string(), TreeNodeType::Other)
                 };
                 
                 // Display the data with collapsible effect
@@ -702,9 +763,41 @@ impl TrafficView {
                         text(transaction_summary)
                             .width(Length::Fill)
                             .style(if self.dark_mode {
-                                iced::theme::Text::Color(color::dark::USB_GREEN)
+                                match node_type {
+                                    TreeNodeType::Device => iced::theme::Text::Color(color::dark::PRIMARY),
+                                    TreeNodeType::Configuration => iced::theme::Text::Color(color::dark::SECONDARY),
+                                    TreeNodeType::Interface => iced::theme::Text::Color(color::dark::USB_GREEN),
+                                    TreeNodeType::Endpoint => iced::theme::Text::Color(color::dark::USB_YELLOW),
+                                    TreeNodeType::Data => iced::theme::Text::Color(color::dark::USB_CYAN),
+                                    TreeNodeType::Setup => iced::theme::Text::Color(color::dark::USB_MAGENTA),
+                                    TreeNodeType::Status => iced::theme::Text::Color(color::dark::USB_YELLOW),
+                                    TreeNodeType::Transaction => iced::theme::Text::Color(color::dark::PRIMARY),
+                                    TreeNodeType::BulkTransfer => iced::theme::Text::Color(color::dark::USB_CYAN),
+                                    TreeNodeType::InterruptTransfer => iced::theme::Text::Color(color::dark::USB_YELLOW),
+                                    TreeNodeType::IsochronousTransfer => iced::theme::Text::Color(color::dark::USB_MAGENTA),
+                                    TreeNodeType::ClassRequest => iced::theme::Text::Color(color::dark::USB_MAGENTA),
+                                    TreeNodeType::VendorRequest => iced::theme::Text::Color(color::dark::USB_CYAN),
+                                    TreeNodeType::StandardRequest => iced::theme::Text::Color(color::dark::PRIMARY),
+                                    _ => iced::theme::Text::Color(color::dark::TEXT),
+                                }
                             } else {
-                                iced::theme::Text::Color(color::USB_GREEN)
+                                match node_type {
+                                    TreeNodeType::Device => iced::theme::Text::Color(color::PRIMARY),
+                                    TreeNodeType::Configuration => iced::theme::Text::Color(color::SECONDARY),
+                                    TreeNodeType::Interface => iced::theme::Text::Color(color::USB_GREEN),
+                                    TreeNodeType::Endpoint => iced::theme::Text::Color(color::USB_YELLOW),
+                                    TreeNodeType::Data => iced::theme::Text::Color(color::USB_CYAN),
+                                    TreeNodeType::Setup => iced::theme::Text::Color(color::USB_MAGENTA),
+                                    TreeNodeType::Status => iced::theme::Text::Color(color::USB_YELLOW),
+                                    TreeNodeType::Transaction => iced::theme::Text::Color(color::PRIMARY),
+                                    TreeNodeType::BulkTransfer => iced::theme::Text::Color(color::USB_CYAN),
+                                    TreeNodeType::InterruptTransfer => iced::theme::Text::Color(color::USB_YELLOW),
+                                    TreeNodeType::IsochronousTransfer => iced::theme::Text::Color(color::USB_MAGENTA),
+                                    TreeNodeType::ClassRequest => iced::theme::Text::Color(color::USB_MAGENTA),
+                                    TreeNodeType::VendorRequest => iced::theme::Text::Color(color::USB_CYAN),
+                                    TreeNodeType::StandardRequest => iced::theme::Text::Color(color::PRIMARY),
+                                    _ => iced::theme::Text::Color(color::TEXT),
+                                }
                             })
                     ]
                     .spacing(5)
@@ -759,7 +852,7 @@ impl TrafficView {
                             row![
                                 container(text(""))
                                     .width(Length::Fixed(20.0)), // Indentation
-                                text(format!("│ {}", chunk))
+                                text(format!("├─ {}", chunk))
                                     .font(iced::Font::MONOSPACE)
                                     .style(if self.dark_mode {
                                         iced::theme::Text::Color(color::dark::CODE_GREEN)
