@@ -1,15 +1,31 @@
 use iced::widget::{button, column, container, row, scrollable, text, text_input, Column};
 use iced::{Command, Element, Length};
 use crate::usb::decoder::DecodedUSBData;
+use crate::usb::descriptors::USBDescriptor;
 use crate::gui::styles;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::fmt;
+use std::marker::PhantomData;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrafficItem {
     pub timestamp: f64,
     pub raw_data: Vec<u8>,
     pub decoded_data: DecodedUSBData,
+    _phantom: PhantomData<()>, // Add phantom data to help with sizing
+}
+
+// Implement necessary methods for TrafficItem
+impl TrafficItem {
+    pub fn new(timestamp: f64, raw_data: Vec<u8>, decoded_data: DecodedUSBData) -> Self {
+        Self {
+            timestamp,
+            raw_data,
+            decoded_data,
+            _phantom: PhantomData,
+        }
+    }
 }
 
 pub struct TrafficView {

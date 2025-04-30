@@ -87,6 +87,7 @@ impl UsbHints {
     }
     
     // Get a hint for a device class
+    #[allow(dead_code)]
     pub fn for_device_class(device_class: &UsbDeviceClass) -> String {
         match device_class {
             UsbDeviceClass::UseInterfaceDescriptor => 

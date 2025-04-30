@@ -1,7 +1,9 @@
 use iced::widget::{button, column, container, row, scrollable, text, Column};
 use iced::{Command, Element, Length};
-use crate::usb::descriptors::USBDescriptor;
+use crate::usb::USBDescriptor;
 use crate::usb::hints::get_descriptor_hints;
+use crate::usb::UsbDescriptorType;
+use crate::usb::UsbEndpointType;
 use crate::gui::styles;
 
 pub struct DescriptorView {
@@ -151,14 +153,14 @@ impl DescriptorView {
                 
                 // Get hints for this descriptor type
                 let descriptor_type = match descriptor {
-                    crate::usb::descriptors::USBDescriptor::Device(desc) => &desc.descriptor_type,
-                    crate::usb::descriptors::USBDescriptor::Configuration(desc) => &desc.descriptor_type,
-                    crate::usb::descriptors::USBDescriptor::Interface(desc) => &desc.descriptor_type,
-                    crate::usb::descriptors::USBDescriptor::Endpoint(desc) => &desc.descriptor_type,
-                    crate::usb::descriptors::USBDescriptor::String(desc) => &desc.descriptor_type,
-                    crate::usb::descriptors::USBDescriptor::DeviceQualifier(desc) => &desc.descriptor_type,
-                    crate::usb::descriptors::USBDescriptor::Unknown { descriptor_type, .. } => descriptor_type,
-                    _ => &crate::usb::descriptor_types::UsbDescriptorType::Unknown(0),
+                    USBDescriptor::Device(desc) => &desc.descriptor_type,
+                    USBDescriptor::Configuration(desc) => &desc.descriptor_type,
+                    USBDescriptor::Interface(desc) => &desc.descriptor_type,
+                    USBDescriptor::Endpoint(desc) => &desc.descriptor_type,
+                    USBDescriptor::String(desc) => &desc.descriptor_type,
+                    USBDescriptor::DeviceQualifier(desc) => &desc.descriptor_type,
+                    USBDescriptor::Unknown { descriptor_type, .. } => descriptor_type,
+                    _ => &UsbDescriptorType::Unknown(0),
                 };
                 
                 // Create structured hints with categories
@@ -175,7 +177,7 @@ impl DescriptorView {
                 
                 match descriptor {
                     // Device descriptor special handling
-                    crate::usb::descriptors::USBDescriptor::Device(device_desc) => {
+                    USBDescriptor::Device(device_desc) => {
                         // Basic device information for general category
                         let usb_version = format!("USB {}.{}", 
                             (device_desc.usb_version >> 8) & 0xFF, 
@@ -238,7 +240,7 @@ impl DescriptorView {
                         }
                     },
                     // Configuration descriptor special handling  
-                    crate::usb::descriptors::USBDescriptor::Configuration(config_desc) => {
+                    USBDescriptor::Configuration(config_desc) => {
                         general_hints.push(format!("Interfaces: {}", config_desc.num_interfaces));
                         usage_hints.push(format!("Power consumption: {}mA", config_desc.max_power as u16 * 2));
                         
@@ -253,7 +255,7 @@ impl DescriptorView {
                         }
                     },
                     // Interface descriptor special handling
-                    crate::usb::descriptors::USBDescriptor::Interface(iface_desc) => {
+                    USBDescriptor::Interface(iface_desc) => {
                         general_hints.push(format!("Interface Number: {}", iface_desc.interface_number));
                         general_hints.push(format!("Class: {}", iface_desc.interface_class.name()));
                         
@@ -278,7 +280,7 @@ impl DescriptorView {
                         }
                     },
                     // Endpoint descriptor special handling
-                    crate::usb::descriptors::USBDescriptor::Endpoint(ep_desc) => {
+                    USBDescriptor::Endpoint(ep_desc) => {
                         // Use the fields available in the endpoint descriptor
                         general_hints.push(format!("Address: 0x{:02X}", ep_desc.endpoint_address));
                         general_hints.push(format!("Direction: {}", ep_desc.direction.name()));
@@ -291,7 +293,7 @@ impl DescriptorView {
                         
                         // Additional endpoint type info based on the transfer type
                         match ep_desc.transfer_type {
-                            crate::usb::descriptor_types::UsbEndpointType::Isochronous => {
+                            UsbEndpointType::Isochronous => {
                                 specs_hints.push("Isochronous endpoints are used for time-critical data like audio/video".to_string());
                                 
                                 // Add sync and usage type if available
@@ -303,20 +305,20 @@ impl DescriptorView {
                                     details_hints.push(format!("Usage Type: {}", usage.name()));
                                 }
                             },
-                            crate::usb::descriptor_types::UsbEndpointType::Bulk => {
+                            UsbEndpointType::Bulk => {
                                 specs_hints.push("Bulk endpoints are used for large non-time-critical data transfers".to_string());
                             },
-                            crate::usb::descriptor_types::UsbEndpointType::Interrupt => {
+                            UsbEndpointType::Interrupt => {
                                 specs_hints.push("Interrupt endpoints are used for small, time-sensitive data like keyboard/mouse input".to_string());
                             },
-                            crate::usb::descriptor_types::UsbEndpointType::Control => {
+                            UsbEndpointType::Control => {
                                 specs_hints.push("Control endpoints are used for device configuration and control".to_string());
                             },
                             _ => {}
                         }
                     },
                     // String descriptor handling
-                    crate::usb::descriptors::USBDescriptor::String(string_desc) => {
+                    USBDescriptor::String(string_desc) => {
                         general_hints.push(format!("String Index: {}", string_desc.string_index));
                         general_hints.push(format!("String: \"{}\"", string_desc.string));
                         specs_hints.push("String descriptors provide human-readable information for the device".to_string());
@@ -329,7 +331,7 @@ impl DescriptorView {
                         }
                     },
                     // Device qualifier descriptor handling
-                    crate::usb::descriptors::USBDescriptor::DeviceQualifier(qual_desc) => {
+                    USBDescriptor::DeviceQualifier(qual_desc) => {
                         let usb_version = format!("USB {}.{}", 
                             (qual_desc.usb_version >> 8) & 0xFF, 
                             (qual_desc.usb_version >> 4) & 0xF);
@@ -348,7 +350,7 @@ impl DescriptorView {
                         details_hints.push(format!("Configurations: {}", qual_desc.num_configurations));
                     },
                     // HID descriptor handling
-                    crate::usb::descriptors::USBDescriptor::HID(hid_desc) => {
+                    USBDescriptor::HID(hid_desc) => {
                         // Since HID is stored as raw Vec<u8>, we provide general information about HID
                         general_hints.push("HID Descriptor Raw Data".to_string());
                         
@@ -375,7 +377,7 @@ impl DescriptorView {
                         }
                     },
                     // Unknown descriptor type
-                    crate::usb::descriptors::USBDescriptor::Unknown { descriptor_type, data } => {
+                    USBDescriptor::Unknown { descriptor_type, data } => {
                         general_hints.push(format!("Type: 0x{:02X}", descriptor_type.get_value()));
                         details_hints.push(format!("Data Length: {} bytes", data.len()));
                         

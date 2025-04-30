@@ -710,7 +710,7 @@ impl CynthionConnection {
             return Ok(());
         }
         
-        let mut handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
+        let handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
         
         match handle.write_bulk(CYNTHION_OUT_EP, command, TIMEOUT_MS) {
             Ok(len) => {
