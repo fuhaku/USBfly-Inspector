@@ -142,6 +142,22 @@ impl iced::widget::container::StyleSheet for HintCategoryContainer {
     }
 }
 
+pub struct DarkModeHintCategoryContainer;
+
+impl iced::widget::container::StyleSheet for DarkModeHintCategoryContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(Color::WHITE),
+            background: Some(Background::Color(color::dark::PRIMARY)),
+            border_radius: (BORDER_RADIUS * 0.7).into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
 /// Style for title text
 pub struct TitleContainer;
 
@@ -569,6 +585,41 @@ impl iced::widget::button::StyleSheet for DarkModeSecondaryButton {
         let active = self.active(style);
         iced::widget::button::Appearance {
             background: Some(Background::Color(Color::from_rgb(0.7, 0.1, 0.7))),
+            shadow_offset: iced::Vector::new(0.0, 0.0),
+            ..active
+        }
+    }
+}
+
+pub struct DarkModeDestructiveButton;
+
+impl iced::widget::button::StyleSheet for DarkModeDestructiveButton {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced::widget::button::Appearance {
+        iced::widget::button::Appearance {
+            shadow_offset: iced::Vector::new(0.0, 1.0),
+            background: Some(Background::Color(color::dark::ERROR)),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            text_color: Color::WHITE,
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgb(1.0, 0.3, 0.4))),
+            shadow_offset: iced::Vector::new(0.0, 2.0),
+            ..active
+        }
+    }
+
+    fn pressed(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgb(0.8, 0.1, 0.2))),
             shadow_offset: iced::Vector::new(0.0, 0.0),
             ..active
         }

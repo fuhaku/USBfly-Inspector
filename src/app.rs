@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex};
 // Custom tab styles
 struct ActiveTabStyle;
 struct InactiveTabStyle;
+struct DarkModeActiveTabStyle;
+struct DarkModeInactiveTabStyle;
 
 impl iced::widget::button::StyleSheet for ActiveTabStyle {
     type Style = Theme;
@@ -39,6 +41,36 @@ impl iced::widget::button::StyleSheet for InactiveTabStyle {
     }
 }
 
+impl iced::widget::button::StyleSheet for DarkModeActiveTabStyle {
+    type Style = Theme;
+    
+    fn active(&self, _style: &Self::Style) -> iced::widget::button::Appearance {
+        iced::widget::button::Appearance {
+            text_color: Color::from_rgb(0.9, 0.9, 1.0),
+            background: Some(Background::Color(Color::from_rgb(0.1, 0.4, 0.6))),
+            border_radius: 4.0.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            shadow_offset: iced::Vector::default(),
+        }
+    }
+}
+
+impl iced::widget::button::StyleSheet for DarkModeInactiveTabStyle {
+    type Style = Theme;
+    
+    fn active(&self, _style: &Self::Style) -> iced::widget::button::Appearance {
+        iced::widget::button::Appearance {
+            text_color: Color::from_rgb(0.7, 0.7, 0.7),
+            background: Some(Background::Color(Color::from_rgb(0.2, 0.2, 0.2))),
+            border_radius: 4.0.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            shadow_offset: iced::Vector::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Tab {
     Devices,
@@ -55,6 +87,7 @@ pub struct USBflyApp {
     descriptor_view: DescriptorView,
     connected: bool,
     error_message: Option<String>,
+    dark_mode: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -71,6 +104,7 @@ pub enum Message {
     SaveCapture,
     LoadCapture,
     ClearCapture,
+    ToggleDarkMode(bool),
 }
 
 impl Application for USBflyApp {
@@ -92,6 +126,7 @@ impl Application for USBflyApp {
             descriptor_view: DescriptorView::new(),
             connected: false,
             error_message: None,
+            dark_mode: true, // Default to dark mode for a hacker-friendly UI
         };
         
         // Map the device command to our application's message type
@@ -217,6 +252,25 @@ impl Application for USBflyApp {
                 self.traffic_view.clear();
                 self.descriptor_view.clear();
                 Command::none()
+            },
+            Message::ToggleDarkMode(enabled) => {
+                self.dark_mode = enabled;
+                // Sync dark mode with child views
+                let mut commands = Vec::new();
+                
+                // Update traffic view's dark mode
+                commands.push(
+                    self.traffic_view.update(crate::gui::views::traffic_view::Message::ToggleDarkMode(enabled))
+                        .map(Message::TrafficViewMessage)
+                );
+                
+                // Update descriptor view's dark mode
+                commands.push(
+                    self.descriptor_view.update(crate::gui::views::descriptor_view::Message::ToggleDarkMode(enabled))
+                        .map(Message::DescriptorViewMessage)
+                );
+                
+                Command::batch(commands)
             }
         }
     }
@@ -272,31 +326,66 @@ impl Application for USBflyApp {
             .size(28)
             .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.8)));
 
+        // Dark mode toggle
+        let dark_mode_button = if self.dark_mode {
+            button("Light Mode")
+                .on_press(Message::ToggleDarkMode(false))
+                .style(if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModePrimaryButton))
+                } else {
+                    iced::theme::Button::Primary
+                })
+        } else {
+            button("Dark Mode")
+                .on_press(Message::ToggleDarkMode(true))
+                .style(iced::theme::Button::Primary)
+        };
+        
         let connect_button = if self.connected {
             button("Disconnect")
                 .on_press(Message::Disconnect)
-                .style(iced::theme::Button::Destructive)
+                .style(if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModeDestructiveButton))
+                } else {
+                    iced::theme::Button::Destructive
+                })
         } else {
             button("Connect to Cynthion")
                 .on_press(Message::Connect)
-                .style(iced::theme::Button::Primary)
+                .style(if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModePrimaryButton))
+                } else {
+                    iced::theme::Button::Primary
+                })
         };
 
         let save_button = button("Save Capture")
             .on_press(Message::SaveCapture)
-            .style(iced::theme::Button::Secondary);
+            .style(if self.dark_mode {
+                iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModeSecondaryButton))
+            } else {
+                iced::theme::Button::Secondary
+            });
 
         let load_button = button("Load Capture")
             .on_press(Message::LoadCapture)
-            .style(iced::theme::Button::Secondary);
+            .style(if self.dark_mode {
+                iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModeSecondaryButton))
+            } else {
+                iced::theme::Button::Secondary
+            });
 
         let clear_button = button("Clear")
             .on_press(Message::ClearCapture)
-            .style(iced::theme::Button::Destructive);
+            .style(if self.dark_mode {
+                iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModeDestructiveButton))
+            } else {
+                iced::theme::Button::Destructive
+            });
 
         let header = row![
             title,
-            row![connect_button, save_button, load_button, clear_button]
+            row![connect_button, save_button, load_button, clear_button, dark_mode_button]
                 .spacing(10)
                 .align_items(iced::Alignment::Center)
         ]
@@ -329,9 +418,17 @@ impl Application for USBflyApp {
             .padding(10)
             .width(Length::Fill)
             .style(if matches!(self.active_tab, Tab::Devices) {
-                iced::theme::Button::Custom(Box::new(ActiveTabStyle))
+                if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(DarkModeActiveTabStyle))
+                } else {
+                    iced::theme::Button::Custom(Box::new(ActiveTabStyle))
+                }
             } else {
-                iced::theme::Button::Custom(Box::new(InactiveTabStyle))
+                if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(DarkModeInactiveTabStyle))
+                } else {
+                    iced::theme::Button::Custom(Box::new(InactiveTabStyle))
+                }
             })
             .on_press(Message::TabSelected(Tab::Devices)),
             
@@ -345,9 +442,17 @@ impl Application for USBflyApp {
             .padding(10)
             .width(Length::Fill)
             .style(if matches!(self.active_tab, Tab::Traffic) {
-                iced::theme::Button::Custom(Box::new(ActiveTabStyle))
+                if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(DarkModeActiveTabStyle))
+                } else {
+                    iced::theme::Button::Custom(Box::new(ActiveTabStyle))
+                }
             } else {
-                iced::theme::Button::Custom(Box::new(InactiveTabStyle))
+                if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(DarkModeInactiveTabStyle))
+                } else {
+                    iced::theme::Button::Custom(Box::new(InactiveTabStyle))
+                }
             })
             .on_press(Message::TabSelected(Tab::Traffic)),
             
@@ -361,9 +466,17 @@ impl Application for USBflyApp {
             .padding(10)
             .width(Length::Fill)
             .style(if matches!(self.active_tab, Tab::Descriptors) {
-                iced::theme::Button::Custom(Box::new(ActiveTabStyle))
+                if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(DarkModeActiveTabStyle))
+                } else {
+                    iced::theme::Button::Custom(Box::new(ActiveTabStyle))
+                }
             } else {
-                iced::theme::Button::Custom(Box::new(InactiveTabStyle))
+                if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(DarkModeInactiveTabStyle))
+                } else {
+                    iced::theme::Button::Custom(Box::new(InactiveTabStyle))
+                }
             })
             .on_press(Message::TabSelected(Tab::Descriptors))
         ]
@@ -377,9 +490,19 @@ impl Application for USBflyApp {
             Tab::Descriptors => self.descriptor_view.view().map(Message::DescriptorViewMessage),
         };
 
-        column![header, error_banner, tab_buttons, content]
+        let main_content = column![header, error_banner, tab_buttons, content]
             .spacing(20)
-            .padding(20)
-            .into()
+            .padding(20);
+            
+        // Apply dark mode container if needed
+        if self.dark_mode {
+            container(main_content)
+                .style(iced::theme::Container::Custom(Box::new(crate::gui::styles::DarkModeContainer)))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
+        } else {
+            main_content.into()
+        }
     }
 }

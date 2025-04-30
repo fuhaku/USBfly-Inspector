@@ -10,12 +10,14 @@ pub struct DescriptorView {
     descriptors: Vec<USBDescriptor>,
     selected_descriptor: Option<usize>,
     decoded_data: Vec<crate::usb::DecodedUSBData>,
+    dark_mode: bool,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     DescriptorSelected(usize),
     ClearDescriptors,
+    ToggleDarkMode(bool),
 }
 
 impl DescriptorView {
@@ -24,6 +26,7 @@ impl DescriptorView {
             descriptors: Vec::new(),
             selected_descriptor: None,
             decoded_data: Vec::new(),
+            dark_mode: true, // Default to dark mode for hacker-friendly UI
         }
     }
     
@@ -37,6 +40,10 @@ impl DescriptorView {
                 self.descriptors.clear();
                 self.decoded_data.clear();
                 self.selected_descriptor = None;
+                Command::none()
+            },
+            Message::ToggleDarkMode(enabled) => {
+                self.dark_mode = enabled;
                 Command::none()
             },
         }
@@ -68,11 +75,19 @@ impl DescriptorView {
     pub fn view(&self) -> Element<Message> {
         let title = text("USB Descriptors")
             .size(24)
-            .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.8)));
+            .style(if self.dark_mode {
+                iced::theme::Text::Color(styles::color::dark::PRIMARY)
+            } else {
+                iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.8))
+            });
             
         let clear_button = button("Clear Descriptors")
             .on_press(Message::ClearDescriptors)
-            .style(iced::theme::Button::Destructive);
+            .style(if self.dark_mode {
+                iced::theme::Button::Custom(Box::new(styles::DarkModeDestructiveButton))
+            } else {
+                iced::theme::Button::Destructive
+            });
             
         let header = row![title, clear_button]
             .spacing(20)
@@ -116,7 +131,11 @@ impl DescriptorView {
                         
                         if Some(index) == self.selected_descriptor {
                             container(row)
-                                .style(iced::theme::Container::Custom(Box::new(styles::SelectedContainer)))
+                                .style(if self.dark_mode {
+                                    iced::theme::Container::Custom(Box::new(styles::DarkModeSelectedContainer))
+                                } else {
+                                    iced::theme::Container::Custom(Box::new(styles::SelectedContainer))
+                                })
                                 .width(Length::Fill)
                                 .padding(10)
                                 .into()
@@ -124,12 +143,20 @@ impl DescriptorView {
                             // Use a button instead of container with on_press
                             button(
                                 container(row)
-                                    .style(iced::theme::Container::Box)
+                                    .style(if self.dark_mode {
+                                        iced::theme::Container::Custom(Box::new(styles::DarkModeContainer)) 
+                                    } else {
+                                        iced::theme::Container::Box
+                                    })
                                     .width(Length::Fill)
                                     .padding(5)
                             )
                             .width(Length::Fill)
-                            .style(iced::theme::Button::Text)
+                            .style(if self.dark_mode {
+                                iced::theme::Button::Custom(Box::new(styles::DarkModeTreeNodeButton))
+                            } else {
+                                iced::theme::Button::Text
+                            })
                             .on_press(Message::DescriptorSelected(index))
                             .into()
                         }
@@ -508,14 +535,22 @@ impl DescriptorView {
                         container(text("General Information").size(16))
                             .width(Length::Fill)
                             .padding(5)
-                            .style(iced::theme::Container::Custom(Box::new(styles::HintCategoryContainer)))
+                            .style(if self.dark_mode {
+                                iced::theme::Container::Custom(Box::new(styles::DarkModeHintCategoryContainer))
+                            } else {
+                                iced::theme::Container::Custom(Box::new(styles::HintCategoryContainer))
+                            })
                             .into()
                     );
                     
                     let general_items: Vec<Element<'_, Message>> = general_hints.iter().map(|hint| {
                         container(
                             text(hint)
-                                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0)))
+                                .style(if self.dark_mode {
+                                    iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.9, 0.7))
+                                } else {
+                                    iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0))
+                                })
                         )
                         .padding(5)
                         .width(Length::Fill)
@@ -536,14 +571,22 @@ impl DescriptorView {
                         container(text("Power & Usage").size(16))
                             .width(Length::Fill)
                             .padding(5)
-                            .style(iced::theme::Container::Custom(Box::new(styles::HintCategoryContainer)))
+                            .style(if self.dark_mode {
+                                iced::theme::Container::Custom(Box::new(styles::DarkModeHintCategoryContainer))
+                            } else {
+                                iced::theme::Container::Custom(Box::new(styles::HintCategoryContainer))
+                            })
                             .into()
                     );
                     
                     let usage_items: Vec<Element<'_, Message>> = usage_hints.iter().map(|hint| {
                         container(
                             text(hint)
-                                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0)))
+                                .style(if self.dark_mode {
+                                    iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.9, 0.7))
+                                } else {
+                                    iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0))
+                                })
                         )
                         .padding(5)
                         .width(Length::Fill)
@@ -564,14 +607,22 @@ impl DescriptorView {
                         container(text("Technical Details").size(16))
                             .width(Length::Fill)
                             .padding(5)
-                            .style(iced::theme::Container::Custom(Box::new(styles::HintCategoryContainer)))
+                            .style(if self.dark_mode {
+                                iced::theme::Container::Custom(Box::new(styles::DarkModeHintCategoryContainer))
+                            } else {
+                                iced::theme::Container::Custom(Box::new(styles::HintCategoryContainer))
+                            })
                             .into()
                     );
                     
                     let details_items: Vec<Element<'_, Message>> = details_hints.iter().map(|hint| {
                         container(
                             text(hint)
-                                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0)))
+                                .style(if self.dark_mode {
+                                    iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.9, 0.7))
+                                } else {
+                                    iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0))
+                                })
                         )
                         .padding(5)
                         .width(Length::Fill)
@@ -592,14 +643,22 @@ impl DescriptorView {
                         container(text("USB Specification").size(16))
                             .width(Length::Fill)
                             .padding(5)
-                            .style(iced::theme::Container::Custom(Box::new(styles::HintCategoryContainer)))
+                            .style(if self.dark_mode {
+                                iced::theme::Container::Custom(Box::new(styles::DarkModeHintCategoryContainer))
+                            } else {
+                                iced::theme::Container::Custom(Box::new(styles::HintCategoryContainer))
+                            })
                             .into()
                     );
                     
                     let specs_items: Vec<Element<'_, Message>> = specs_hints.iter().map(|hint| {
                         container(
                             text(hint)
-                                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0)))
+                                .style(if self.dark_mode {
+                                    iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.9, 0.7))
+                                } else {
+                                    iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0))
+                                })
                         )
                         .padding(5)
                         .width(Length::Fill)
@@ -622,7 +681,11 @@ impl DescriptorView {
                 } else {
                     column![
                         text("No hints available for this descriptor")
-                            .style(iced::theme::Text::Color(iced::Color::from_rgb(0.5, 0.5, 0.5)))
+                            .style(if self.dark_mode {
+                                iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                            } else {
+                                iced::theme::Text::Color(iced::Color::from_rgb(0.5, 0.5, 0.5))
+                            })
                     ]
                 };
                 
@@ -637,7 +700,11 @@ impl DescriptorView {
                         )
                         .padding(10)
                         .height(Length::Fill)
-                        .style(iced::theme::Container::Box)
+                        .style(if self.dark_mode {
+                            iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                        } else {
+                            iced::theme::Container::Box
+                        })
                         .width(Length::Fill),
                         text("Hints").size(18),
                         container(
@@ -645,25 +712,41 @@ impl DescriptorView {
                         )
                         .padding(10)
                         .height(Length::FillPortion(2))
-                        .style(iced::theme::Container::Box)
+                        .style(if self.dark_mode {
+                            iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                        } else {
+                            iced::theme::Container::Box
+                        })
                         .width(Length::Fill)
                     ]
                     .spacing(10)
                     .padding(10)
                     .height(Length::Fill)
                 )
-                .style(iced::theme::Container::Box)
+                .style(if self.dark_mode {
+                    iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                } else {
+                    iced::theme::Container::Box
+                })
                 .width(Length::Fill)
                 .height(Length::Fill)
             } else {
                 container(text("Invalid selection"))
-                    .style(iced::theme::Container::Box)
+                    .style(if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                    } else {
+                        iced::theme::Container::Box
+                    })
                     .width(Length::Fill)
                     .height(Length::Fill)
             }
         } else {
             container(text("No descriptor selected"))
-                .style(iced::theme::Container::Box)
+                .style(if self.dark_mode {
+                    iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                } else {
+                    iced::theme::Container::Box
+                })
                 .width(Length::Fill)
                 .height(Length::Fill)
         };
@@ -672,10 +755,19 @@ impl DescriptorView {
             header,
             row![
                 container(descriptor_list)
-                    .style(iced::theme::Container::Box)
+                    .style(if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                    } else {
+                        iced::theme::Container::Box
+                    })
                     .width(Length::FillPortion(1))
                     .height(Length::Fill),
                 container(selected_descriptor_view)
+                    .style(if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                    } else {
+                        iced::theme::Container::Box
+                    })
                     .width(Length::FillPortion(4))
                     .height(Length::Fill)
             ]
