@@ -1535,6 +1535,22 @@ impl CynthionConnection {
         }
     }
     
+    // Check if this is a real hardware device (not simulated)
+    pub fn is_real_hardware_device(&self) -> bool {
+        // First check the simulation mode flag
+        if self.simulation_mode {
+            return false;
+        }
+        
+        // Check if we have a real device handle
+        if self.handle.is_none() {
+            return false;
+        }
+        
+        // If we've gotten this far, we're connected to real hardware
+        true
+    }
+    
     // Process MitM traffic and decode USB transactions
     pub fn process_mitm_traffic(&self, raw_data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
         use log::{debug, trace};

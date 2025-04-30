@@ -102,19 +102,44 @@ impl UsbDecoder {
     
     // Decode USB data into a structured format for UI display
     pub fn decode(&self, data: &[u8]) -> Option<DecodedUSBData> {
+        // If we're in simulation mode or encounter packet format that's unsupported,
+        // we should still show something useful rather than returning None
+        
         // Create a clone of self to process the data without modifying state
         let mut decoder_clone = UsbDecoder::new();
         
+        // Check if the data has a valid MitM header structure
+        let is_mitm_packet = data.len() > 2 && 
+            (data[0] == 0x80 || data[0] == 0x81 || data[0] == 0x82 || data[0] == 0x83);
+            
         // Try to process the data
-        if let Err(e) = decoder_clone.process_data(data) {
-            error!("Failed to decode USB data: {}", e);
-            return None;
+        let process_result = decoder_clone.process_data(data);
+        
+        if let Err(e) = process_result {
+            // Log the error but don't return None yet
+            debug!("Standard processing of USB data failed: {}", e);
+            
+            // If it looks like a MitM packet, create a fallback decoded structure
+            if is_mitm_packet {
+                return Some(self.decode_mitm_fallback(data));
+            }
+            
+            // If it doesn't look like a recognizable packet format, try one more
+            // approach with raw decoding
+            return Some(self.decode_raw_data(data));
         }
         
         // Extract descriptors from processed data
         let descriptors = decoder_clone.device.get_all_descriptors();
         if descriptors.is_empty() {
-            return None;
+            // If no descriptors were found but it looks like a MitM packet,
+            // fall back to MitM decoding
+            if is_mitm_packet {
+                return Some(self.decode_mitm_fallback(data));
+            }
+            
+            // Last resort - try raw decoding
+            return Some(self.decode_raw_data(data));
         }
         
         // Create DecodedUSBData structure
@@ -268,8 +293,166 @@ impl UsbDecoder {
         strings
     }
     
+    // Decode MitM packets when standard processing fails
+    pub fn decode_mitm_fallback(&self, data: &[u8]) -> DecodedUSBData {
+        let mut decoded = DecodedUSBData {
+            data_type: "MitM Traffic".to_string(),
+            description: "USB Man-in-the-Middle Traffic".to_string(),
+            fields: HashMap::new(),
+            details: None,
+            descriptors: Vec::new(),
+        };
+        
+        if data.len() < 2 {
+            decoded.description = "Invalid MitM Data (too short)".to_string();
+            return decoded;
+        }
+        
+        // Extract packet type and other data
+        let packet_type = data[0];
+        let device_address = if data.len() > 1 { data[1] } else { 0 };
+        
+        // Add basic packet info
+        decoded.fields.insert("Packet Type".to_string(), format!("0x{:02X}", packet_type));
+        decoded.fields.insert("Device Address".to_string(), format!("{}", device_address));
+        
+        // Identify packet type
+        match packet_type {
+            0x80 => {
+                decoded.data_type = "Control Setup Packet".to_string();
+                
+                if data.len() >= 10 {
+                    // Extract setup data
+                    // bmRequestType(1) + bRequest(1) + wValue(2) + wIndex(2) + wLength(2)
+                    let bm_request_type = data[2];
+                    let b_request = data[3];
+                    let w_value = (data[5] as u16) << 8 | (data[4] as u16);
+                    let w_index = (data[7] as u16) << 8 | (data[6] as u16);
+                    let w_length = (data[9] as u16) << 8 | (data[8] as u16);
+                    
+                    // Determine request direction
+                    let direction = if (bm_request_type & 0x80) != 0 {
+                        "Device-to-Host"
+                    } else {
+                        "Host-to-Device"
+                    };
+                    
+                    // Determine request type
+                    let req_type = match (bm_request_type >> 5) & 0x03 {
+                        0 => "Standard",
+                        1 => "Class",
+                        2 => "Vendor",
+                        _ => "Reserved",
+                    };
+                    
+                    // Determine recipient
+                    let recipient = match bm_request_type & 0x1F {
+                        0 => "Device",
+                        1 => "Interface",
+                        2 => "Endpoint",
+                        3 => "Other",
+                        _ => "Reserved",
+                    };
+                    
+                    // Add fields
+                    decoded.fields.insert("Direction".to_string(), direction.to_string());
+                    decoded.fields.insert("Request Type".to_string(), req_type.to_string());
+                    decoded.fields.insert("Recipient".to_string(), recipient.to_string());
+                    decoded.fields.insert("Request".to_string(), format!("0x{:02X}", b_request));
+                    decoded.fields.insert("Value".to_string(), format!("0x{:04X}", w_value));
+                    decoded.fields.insert("Index".to_string(), format!("0x{:04X}", w_index));
+                    decoded.fields.insert("Length".to_string(), format!("{} bytes", w_length));
+                    
+                    // Add detailed description
+                    decoded.details = Some(format!(
+                        "{} {} request (0x{:02X}) to {} with Value=0x{:04X}, Index=0x{:04X}, Length={}",
+                        direction, req_type, b_request, recipient, w_value, w_index, w_length
+                    ));
+                }
+            },
+            0x81 => {
+                decoded.data_type = "Control Data Packet".to_string();
+                
+                if data.len() > 2 {
+                    let data_len = data.len() - 2;
+                    decoded.fields.insert("Data Length".to_string(), format!("{} bytes", data_len));
+                    
+                    if data_len > 0 {
+                        // Add first few bytes of data as a sample
+                        let sample_size = std::cmp::min(8, data_len);
+                        let mut sample = String::new();
+                        for i in 0..sample_size {
+                            sample.push_str(&format!("{:02X} ", data[i + 2]));
+                        }
+                        if data_len > sample_size {
+                            sample.push_str("...");
+                        }
+                        decoded.fields.insert("Data Sample".to_string(), sample);
+                    }
+                    
+                    decoded.details = Some(format!("Control data packet with {} bytes", data_len));
+                }
+            },
+            0x82 => {
+                decoded.data_type = "Status Packet".to_string();
+                
+                if data.len() >= 3 {
+                    let status = data[2];
+                    let status_str = match status {
+                        0 => "ACK (Success)",
+                        1 => "NAK (Try Again)",
+                        2 => "STALL (Error)",
+                        3 => "DATA",
+                        _ => "Unknown",
+                    };
+                    
+                    decoded.fields.insert("Status".to_string(), status_str.to_string());
+                    decoded.fields.insert("Status Code".to_string(), format!("0x{:02X}", status));
+                    
+                    decoded.details = Some(format!("USB status: {}", status_str));
+                }
+            },
+            0x83 => {
+                decoded.data_type = "Bulk/Interrupt Transfer".to_string();
+                
+                if data.len() > 2 {
+                    let endpoint = data[1] & 0x7F;
+                    let direction = if (data[1] & 0x80) != 0 { "IN" } else { "OUT" };
+                    let data_len = data.len() - 2;
+                    
+                    decoded.fields.insert("Endpoint".to_string(), format!("0x{:02X}", endpoint));
+                    decoded.fields.insert("Direction".to_string(), direction.to_string());
+                    decoded.fields.insert("Data Length".to_string(), format!("{} bytes", data_len));
+                    
+                    if data_len > 0 {
+                        // Add first few bytes of data as a sample
+                        let sample_size = std::cmp::min(8, data_len);
+                        let mut sample = String::new();
+                        for i in 0..sample_size {
+                            sample.push_str(&format!("{:02X} ", data[i + 2]));
+                        }
+                        if data_len > sample_size {
+                            sample.push_str("...");
+                        }
+                        decoded.fields.insert("Data Sample".to_string(), sample);
+                    }
+                    
+                    decoded.details = Some(format!(
+                        "{} transfer on endpoint 0x{:02X} with {} bytes",
+                        direction, endpoint, data_len
+                    ));
+                }
+            },
+            _ => {
+                decoded.data_type = "Unknown Packet".to_string();
+                decoded.details = Some(format!("Unknown packet type: 0x{:02X}", packet_type));
+            }
+        }
+        
+        decoded
+    }
+    
     // Decode raw USB data into structured format for display
-    #[allow(dead_code)]
     pub fn decode_raw_data(&self, data: &[u8]) -> DecodedUSBData {
         let mut decoded = DecodedUSBData {
             data_type: "Unknown".to_string(),

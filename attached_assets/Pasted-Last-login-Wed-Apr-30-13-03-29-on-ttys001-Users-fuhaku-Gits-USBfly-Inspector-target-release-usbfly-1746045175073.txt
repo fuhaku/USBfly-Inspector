@@ -1,0 +1,1426 @@
+Last login: Wed Apr 30 13:03:29 on ttys001
+/Users/fuhaku/Gits/USBfly-Inspector/target/release/usbfly ; exit;
+fuhaku@Jasons-MacBook-Pro ~ % /Users/fuhaku/Gits/USBfly-Inspector/target/release/usbfly ; exit;
+ INFO  usbfly > Starting USBfly application v0.1.0
+ INFO  usbfly > Platform: macos
+ INFO  usbfly > MacOS detected - initializing with hardware mode preference
+ INFO  usbfly > Found USB device: VID=05ac PID=12a8
+ INFO  usbfly > ◉ macOS device detection: VID:05ac PID:12a8
+ INFO  usbfly > No Cynthion device found at startup
+ INFO  usbfly > USB subsystem initialized successfully. Found 1 devices
+ INFO  usbfly > Found 1 physical USB devices. Using real device mode.
+ INFO  usbfly > Using real USB devices - simulation mode disabled
+ INFO  usbfly > Using default software renderer for cross-platform compatibility
+ INFO  wgpu_hal::gles::egl > Unable to open libEGL: Library(DlOpen { desc: "dlopen(libEGL.dylib, 0x0005): tried: \'libEGL.dylib\' (no such file), \'/System/Volumes/Preboot/Cryptexes/OSlibEGL.dylib\' (no such file), \'/usr/lib/libEGL.dylib\' (no such file, not in dyld cache), \'libEGL.dylib\' (no such file)" })
+ INFO  iced_wgpu::window::compositor > Settings {
+    present_mode: AutoVsync,
+    internal_backend: Backends(
+        VULKAN | GL | METAL | DX12 | DX11 | BROWSER_WEBGPU,
+    ),
+    default_font: Font {
+        family: SansSerif,
+        weight: Normal,
+        stretch: Normal,
+        monospaced: false,
+    },
+    default_text_size: 16.0,
+    antialiasing: Some(
+        MSAAx4,
+    ),
+}
+ INFO  wgpu_core::instance           > Adapter Metal AdapterInfo { name: "AMD Radeon Pro 560X", vendor: 0, device: 0, device_type: DiscreteGpu, driver: "", driver_info: "", backend: Metal }
+ INFO  wgpu_core::instance           > Adapter Metal AdapterInfo { name: "Intel(R) UHD Graphics 630", vendor: 0, device: 0, device_type: IntegratedGpu, driver: "", driver_info: "", backend: Metal }
+ INFO  iced_wgpu::window::compositor > Available adapters: [
+    AdapterInfo {
+        name: "AMD Radeon Pro 560X",
+        vendor: 0,
+        device: 0,
+        device_type: DiscreteGpu,
+        driver: "",
+        driver_info: "",
+        backend: Metal,
+    },
+    AdapterInfo {
+        name: "Intel(R) UHD Graphics 630",
+        vendor: 0,
+        device: 0,
+        device_type: IntegratedGpu,
+        driver: "",
+        driver_info: "",
+        backend: Metal,
+    },
+]
+ INFO  wgpu_core::instance           > Adapter Metal AdapterInfo { name: "AMD Radeon Pro 560X", vendor: 0, device: 0, device_type: DiscreteGpu, driver: "", driver_info: "", backend: Metal }
+ INFO  iced_wgpu::window::compositor > Selected: AdapterInfo {
+    name: "AMD Radeon Pro 560X",
+    vendor: 0,
+    device: 0,
+    device_type: DiscreteGpu,
+    driver: "",
+    driver_info: "",
+    backend: Metal,
+}
+ INFO  iced_wgpu::window::compositor > Selected format: Bgra8UnormSrgb
+ INFO  cosmic_text::font::system::std > Parsed 802 font faces in 114ms.
+ INFO  wgpu_core::device              > Created buffer Valid((0, 1, Metal)) with BufferDescriptor { label: Some("glyphon params"), size: 16, usage: BufferUsages(COPY_DST | UNIFORM), mapped_at_creation: false }
+ INFO  wgpu_core::device              > Created texture Valid((0, 1, Metal)) with TextureDescriptor { label: Some("glyphon atlas"), size: Extent3d { width: 256, height: 256, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: D2, format: Rgba8UnormSrgb, usage: TextureUsages(COPY_DST | TEXTURE_BINDING), view_formats: [] }
+ INFO  wgpu_core::device              > Created texture Valid((1, 1, Metal)) with TextureDescriptor { label: Some("glyphon atlas"), size: Extent3d { width: 256, height: 256, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: D2, format: R8Unorm, usage: TextureUsages(COPY_DST | TEXTURE_BINDING), view_formats: [] }
+ INFO  wgpu_core::device              > Created buffer Valid((1, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::quad vertex buffer"), size: 32, usage: BufferUsages(VERTEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Created buffer Valid((2, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::quad index buffer"), size: 12, usage: BufferUsages(INDEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Created render pipeline Valid((0, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu.quad.solid.pipeline"), layout: Some((1, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 1, Metal), entry_point: "solid_vs_main" }, buffers: [VertexBufferLayout { array_stride: 8, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }] }, VertexBufferLayout { array_stride: 68, step_mode: Instance, attributes: [VertexAttribute { format: Float32x4, offset: 0, shader_location: 1 }, VertexAttribute { format: Float32x2, offset: 16, shader_location: 2 }, VertexAttribute { format: Float32x2, offset: 24, shader_location: 3 }, VertexAttribute { format: Float32x4, offset: 32, shader_location: 4 }, VertexAttribute { format: Float32x4, offset: 48, shader_location: 5 }, VertexAttribute { format: Float32, offset: 64, shader_location: 6 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 1, Metal), entry_point: "solid_fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((1, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu.quad.gradient.pipeline"), layout: Some((2, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 2, Metal), entry_point: "gradient_vs_main" }, buffers: [VertexBufferLayout { array_stride: 8, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }] }, VertexBufferLayout { array_stride: 148, step_mode: Instance, attributes: [VertexAttribute { format: Uint32x4, offset: 0, shader_location: 1 }, VertexAttribute { format: Uint32x4, offset: 16, shader_location: 2 }, VertexAttribute { format: Uint32x4, offset: 32, shader_location: 3 }, VertexAttribute { format: Uint32x4, offset: 48, shader_location: 4 }, VertexAttribute { format: Uint32x4, offset: 64, shader_location: 5 }, VertexAttribute { format: Float32x4, offset: 80, shader_location: 6 }, VertexAttribute { format: Float32x4, offset: 96, shader_location: 7 }, VertexAttribute { format: Float32x4, offset: 112, shader_location: 8 }, VertexAttribute { format: Float32x4, offset: 128, shader_location: 9 }, VertexAttribute { format: Float32, offset: 144, shader_location: 10 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 2, Metal), entry_point: "gradient_fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((2, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu::triangle::msaa pipeline"), layout: Some((3, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 3, Metal), entry_point: "vs_main" }, buffers: [] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 3, Metal), entry_point: "fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((3, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu::triangle::solid pipeline"), layout: Some((4, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 4, Metal), entry_point: "solid_vs_main" }, buffers: [VertexBufferLayout { array_stride: 24, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }, VertexAttribute { format: Float32x4, offset: 8, shader_location: 1 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 4, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 4, Metal), entry_point: "solid_fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((4, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu.triangle.gradient.pipeline"), layout: Some((5, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 5, Metal), entry_point: "gradient_vs_main" }, buffers: [VertexBufferLayout { array_stride: 104, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }, VertexAttribute { format: Uint32x4, offset: 8, shader_location: 1 }, VertexAttribute { format: Uint32x4, offset: 24, shader_location: 2 }, VertexAttribute { format: Uint32x4, offset: 40, shader_location: 3 }, VertexAttribute { format: Uint32x4, offset: 56, shader_location: 4 }, VertexAttribute { format: Uint32x4, offset: 72, shader_location: 5 }, VertexAttribute { format: Float32x4, offset: 88, shader_location: 6 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 4, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 5, Metal), entry_point: "gradient_fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((5, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu::image pipeline"), layout: Some((6, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 6, Metal), entry_point: "vs_main" }, buffers: [VertexBufferLayout { array_stride: 8, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }] }, VertexBufferLayout { array_stride: 36, step_mode: Instance, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 1 }, VertexAttribute { format: Float32x2, offset: 8, shader_location: 2 }, VertexAttribute { format: Float32x2, offset: 16, shader_location: 3 }, VertexAttribute { format: Float32x2, offset: 24, shader_location: 4 }, VertexAttribute { format: Sint32, offset: 32, shader_location: 5 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 6, Metal), entry_point: "fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created buffer Valid((3, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::image vertex buffer"), size: 32, usage: BufferUsages(VERTEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Created buffer Valid((4, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::image index buffer"), size: 12, usage: BufferUsages(INDEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Created texture Valid((2, 1, Metal)) with TextureDescriptor { label: Some("iced_wgpu::image texture atlas"), size: Extent3d { width: 2048, height: 2048, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: D2, format: Rgba8UnormSrgb, usage: TextureUsages(COPY_SRC | COPY_DST | TEXTURE_BINDING), view_formats: [] }
+ INFO  wgpu_core::device              > configuring surface with SurfaceConfiguration { usage: TextureUsages(RENDER_ATTACHMENT), format: Bgra8UnormSrgb, width: 2048, height: 1536, present_mode: AutoVsync, alpha_mode: Auto, view_formats: [] }
+ INFO  wgpu_core::device              > Automatically choosing presentation mode by rule AutoVsync. Chose Fifo
+ INFO  wgpu_core::device              > Automatically choosing alpha mode by rule Auto. Chose Opaque
+ INFO  wgpu_hal::metal::surface       > build swapchain SurfaceConfiguration { swap_chain_size: 3, present_mode: Fifo, composite_alpha_mode: Opaque, format: Bgra8UnormSrgb, extent: Extent3d { width: 2048, height: 1536, depth_or_array_layers: 1 }, usage: TextureUses(COLOR_TARGET), view_formats: [] }
+ INFO  usbfly::cynthion::connection   > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection   > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  wgpu_core::device              > configuring surface with SurfaceConfiguration { usage: TextureUsages(RENDER_ATTACHMENT), format: Bgra8UnormSrgb, width: 2048, height: 1536, present_mode: AutoVsync, alpha_mode: Auto, view_formats: [] }
+ INFO  wgpu_core::device              > Automatically choosing presentation mode by rule AutoVsync. Chose Fifo
+ INFO  wgpu_core::device              > Automatically choosing alpha mode by rule Auto. Chose Opaque
+ INFO  wgpu_hal::metal::surface       > build swapchain SurfaceConfiguration { swap_chain_size: 3, present_mode: Fifo, composite_alpha_mode: Opaque, format: Bgra8UnormSrgb, extent: Extent3d { width: 2048, height: 1536, depth_or_array_layers: 1 }, usage: TextureUses(COLOR_TARGET), view_formats: [] }
+ INFO  wgpu_core::device              > Created buffer Valid((5, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::quad uniforms buffer"), size: 80, usage: BufferUsages(COPY_DST | UNIFORM), mapped_at_creation: false }
+ INFO  wgpu_core::device              > Created buffer Valid((6, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu.quad.solid.buffer"), size: 262144, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device              > Created buffer Valid((7, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu.quad.gradient.buffer"), size: 524288, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device              > Created buffer Valid((8, 1, Metal)) with BufferDescriptor { label: Some("glyphon vertices"), size: 4096, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device              > Created buffer Valid((9, 1, Metal)) with BufferDescriptor { label: Some("glyphon indices"), size: 4096, usage: BufferUsages(COPY_DST | INDEX), mapped_at_creation: false }
+ INFO  wgpu_core::device              > Created render pipeline Valid((6, 1, Metal)) with RenderPipelineDescriptor { label: Some("glyphon pipeline"), layout: Some((0, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (0, 1, Metal), entry_point: "vs_main" }, buffers: [VertexBufferLayout { array_stride: 28, step_mode: Vertex, attributes: [VertexAttribute { format: Sint32x2, offset: 0, shader_location: 0 }, VertexAttribute { format: Uint32, offset: 8, shader_location: 1 }, VertexAttribute { format: Uint32, offset: 12, shader_location: 2 }, VertexAttribute { format: Uint32, offset: 16, shader_location: 3 }, VertexAttribute { format: Uint32, offset: 20, shader_location: 4 }, VertexAttribute { format: Float32, offset: 24, shader_location: 5 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Ccw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (0, 1, Metal), entry_point: "fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created texture Valid((4, 1, Metal)) with TextureDescriptor { label: Some("glyphon atlas"), size: Extent3d { width: 512, height: 512, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: D2, format: R8Unorm, usage: TextureUsages(COPY_DST | TEXTURE_BINDING), view_formats: [] }
+ INFO  wgpu_core::device              > Buffer (8, 1, Metal) is destroyed
+ INFO  wgpu_core::device              > Created buffer Valid((10, 1, Metal)) with BufferDescriptor { label: Some("glyphon vertices"), size: 65536, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Buffer (9, 1, Metal) is destroyed
+ INFO  usbfly::cynthion::connection   > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  wgpu_core::device              > Created buffer Valid((11, 1, Metal)) with BufferDescriptor { label: Some("glyphon indices"), size: 8192, usage: BufferUsages(COPY_DST | INDEX), mapped_at_creation: true }
+ INFO  usbfly::cynthion::connection   > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection   > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection   > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection   > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection   > Device VID:05ac PID:12a8 is not in the supported device list
+ WARN  usbfly::cynthion::connection   > ⚠️ HARDWARE MODE FORCED: No compatible Cynthion devices found
+ WARN  usbfly::cynthion::connection   > Returning 1 real USB devices instead - some features may not work
+ INFO  usbfly::gui::views::device_view > USB device list updated: 1 devices
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ WARN  usbfly::cynthion::connection    > ⚠️ HARDWARE MODE FORCED: No compatible Cynthion devices found
+ WARN  usbfly::cynthion::connection    > Returning 1 real USB devices instead - some features may not work
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ WARN  usbfly::cynthion::connection    > ⚠️ HARDWARE MODE FORCED: No compatible Cynthion devices found
+ WARN  usbfly::cynthion::connection    > Returning 1 real USB devices instead - some features may not work
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ WARN  usbfly::cynthion::connection    > ⚠️ HARDWARE MODE FORCED: No compatible Cynthion devices found
+ WARN  usbfly::cynthion::connection    > Returning 1 real USB devices instead - some features may not work
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ WARN  usbfly::cynthion::connection    > ⚠️ HARDWARE MODE FORCED: No compatible Cynthion devices found
+ WARN  usbfly::cynthion::connection    > Returning 1 real USB devices instead - some features may not work
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ INFO  usbfly::gui::views::device_view > USB device list updated: 1 devices
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::gui::views::device_view > Selected device: 1d50:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > macOS detected with FORCE_HARDWARE flag - prioritizing hardware connections
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Found real Cynthion VID:1d50 PID:615b - forcing hardware mode
+ INFO  usbfly::cynthion::connection    > ⚠️ USBFLY_FORCE_HARDWARE=1 detected, overriding all simulation settings ⚠️
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Searching for compatible USB devices...
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ INFO  usbfly::cynthion::connection    > USB Device 0: Cynthion Project USB Analyzer [291b51df30c460de] (VID:1d50 PID:615b)
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Found compatible device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Reconnecting to device VID:1d50 PID:615b on bus 20 address 18
+ INFO  usbfly::cynthion::connection    > Found matching device in global context
+ INFO  usbfly::cynthion::connection    > Connecting to USB Analyzer (VID:1d50, PID:615b)
+ INFO  usbfly::cynthion::connection    > Set auto-detach kernel driver
+ INFO  usbfly::cynthion::connection    > Successfully claimed interface 0
+ DEBUG usbfly::cynthion::connection    > Testing device capture capability
+ DEBUG usbfly::cynthion::connection    > Successfully claimed interface 0 for test
+ DEBUG usbfly::cynthion::connection    > Sending test command: [C0]
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ DEBUG usbfly::cynthion::connection    > Error sending test command: Operation timed out
+ INFO  usbfly::app                     > Using simulation mode: Device doesn't support MitM capture
+ INFO  usbfly::cynthion::connection    > Setting connection to simulation mode for safer operation
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::app                     > Starting USB traffic capture...
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ INFO  usbfly::app                     > Starting simulated USB traffic capture
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::app                     > USB traffic capture started successfully
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 1 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 1 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 1 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 2 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Found 2 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 2 devices
+ INFO  usbfly::gui::views::device_view > USB device list updated: 2 devices
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 2 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 2 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 2 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 2 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 2 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 2 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::app                     > Stopping USB traffic capture...
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ INFO  usbfly::app                     > Stopping simulated USB traffic capture
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::app                     > USB traffic capture stopped successfully
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 2 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ INFO  usbfly::cynthion::connection    > Found 2 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 2 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Using simulated data (simulation mode enabled)
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::cynthion::connection    > Using enhanced MitM traffic simulation
+ DEBUG usbfly::cynthion::connection    > MitM traffic: Generated 197 bytes of simulated data
+ INFO  usbfly::cynthion::connection    > Disconnected from simulated Cynthion device
+ INFO  usbfly::cynthion::connection    > Disconnected from simulated Cynthion device
+ DEBUG usbfly::app                     > Received USB data packet: 197 bytes
+ DEBUG usbfly::usb::decoder            > Resetting USB decoder state
+ DEBUG usbfly::app                     > Failed to decode USB data
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 2 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 2 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 2 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 2 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 2 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 2 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  wgpu_core::device               > Created buffer Valid((9, 2, Metal)) with BufferDescriptor { label: Some("iced_wgpu::quad uniforms buffer"), size: 80, usage: BufferUsages(COPY_DST | UNIFORM), mapped_at_creation: false }
+ INFO  wgpu_core::device               > Created buffer Valid((8, 2, Metal)) with BufferDescriptor { label: Some("iced_wgpu.quad.solid.buffer"), size: 262144, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device               > Created buffer Valid((12, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu.quad.gradient.buffer"), size: 524288, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device               > Created buffer Valid((13, 1, Metal)) with BufferDescriptor { label: Some("glyphon vertices"), size: 4096, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device               > Created buffer Valid((14, 1, Metal)) with BufferDescriptor { label: Some("glyphon indices"), size: 4096, usage: BufferUsages(COPY_DST | INDEX), mapped_at_creation: false }
+ INFO  wgpu_core::device               > Buffer (13, 1, Metal) is destroyed
+ INFO  wgpu_core::device               > Created buffer Valid((15, 1, Metal)) with BufferDescriptor { label: Some("glyphon vertices"), size: 32768, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: true }
+ INFO  wgpu_core::device               > Created buffer Valid((16, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::quad uniforms buffer"), size: 80, usage: BufferUsages(COPY_DST | UNIFORM), mapped_at_creation: false }
+ INFO  wgpu_core::device               > Created buffer Valid((17, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu.quad.solid.buffer"), size: 262144, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device               > Created buffer Valid((18, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu.quad.gradient.buffer"), size: 524288, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ DEBUG usbfly::gui::views::device_view > Auto-refreshing USB device list
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > 🔍 macOS: Enhanced device detection activated
+ INFO  usbfly::cynthion::connection    > 🔒 macOS: Hardware mode forced - setting persistent flags
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > ✓ macOS: First-pass USB bus enumeration successful - found 2 devices
+ INFO  usbfly::cynthion::connection    > 🎯 macOS: USB bus re-enumeration successful
+ INFO  usbfly::cynthion::connection    > 🔒 Hardware mode is forced - prioritizing real device detection
+ INFO  usbfly::cynthion::connection    > Found 2 total USB devices during scan
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:05ac PID:12a8
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ DEBUG usbfly::cynthion::connection    > Checking USB device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > 🎯 Real Cynthion device found: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::connection    > ✓ Using real Cynthion device list with 2 devices
+ DEBUG usbfly::gui::views::device_view > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view > Updated selected device information
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ DEBUG usbfly::cynthion::connection    > Device VID:05ac PID:12a8 is not in the supported device list
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  usbfly::cynthion::connection    > Device VID:1d50 PID:615b is supported
+ INFO  wgpu_core::hub                  > Dropping Global
+ INFO  wgpu_core::device               > Destroying 4 command encoders
+
+Saving session...
+...copying shared history...
+...saving history...truncating history files...
+...completed.
+
+[Process completed]
+

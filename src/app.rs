@@ -5,7 +5,7 @@ use iced::widget::{button, column, container, row, text};
 use iced::{executor, Application, Background, Color, Command, Element, Length, Subscription, Theme};
 use std::sync::{Arc, Mutex};
 // Use the log macros for consistent error handling
-use log::{info, error, debug};
+use log::{info, error, debug, warn};
 
 // Custom tab styles
 struct ActiveTabStyle;
@@ -162,17 +162,39 @@ impl Application for USBflyApp {
                             Ok(mut conn) => {
                                 // Extra safety check - verify connection is actually valid
                                 if conn.is_connected() {
-                                    // Smart handling for platform-specific behaviors
-                                    let (use_simulation, reason) = if cfg!(target_os = "macos") {
-                                        // Check if we can do hardware MitM capture on macOS
-                                        match conn.test_capture_capability() {
-                                            Ok(true) => (false, "Device supports direct hardware capture".to_string()),
-                                            Ok(false) => (true, "Device doesn't support MitM capture".to_string()),
-                                            Err(e) => (true, format!("Error testing capture: {}", e))
+                                    // Check if hardware mode is forced via environment variable
+                                    let force_hardware = std::env::var("USBFLY_FORCE_HARDWARE")
+                                        .map(|val| val == "1")
+                                        .unwrap_or(false);
+                                    
+                                    // Check if we have a real Cynthion device
+                                    let is_real_device = conn.is_real_hardware_device();
+                                    
+                                    // Determine when to use simulation vs hardware mode
+                                    let (use_simulation, reason) = if force_hardware {
+                                        // If hardware mode is forced, always use real device
+                                        (false, "Hardware mode forced via USBFLY_FORCE_HARDWARE".to_string())
+                                    } else if is_real_device {
+                                        // Real device detected, check features
+                                        if cfg!(target_os = "macos") {
+                                            // On macOS, we may need additional checks
+                                            match conn.test_capture_capability() {
+                                                Ok(true) => (false, "Device supports direct hardware capture".to_string()),
+                                                // CRITICAL CHANGE: Don't fall back to simulation if a real device was found
+                                                // Even with timeout issues, we should use the real device for all other operations
+                                                Ok(false) => (false, "Using real device with limited MitM capture".to_string()),
+                                                Err(e) => {
+                                                    warn!("MitM test error, but using real device anyway: {}", e);
+                                                    (false, "Using real device despite testing error".to_string())
+                                                }
+                                            }
+                                        } else {
+                                            // For non-macOS, use hardware by default when a real device is detected
+                                            (false, "Real device detected".to_string())
                                         }
                                     } else {
-                                        // For non-macOS, assume we can use hardware by default
-                                        (false, "Non-macOS platform".to_string())
+                                        // No real device found, use simulation
+                                        (true, "No real device detected".to_string())
                                     };
                                     
                                     if use_simulation {
@@ -186,6 +208,9 @@ impl Application for USBflyApp {
                                         Message::ConnectionEstablished(connection)
                                     } else {
                                         info!("Using real hardware mode: {}", reason);
+                                        
+                                        // Ensure simulation mode is explicitly disabled
+                                        conn.set_simulation_mode(false);
                                         
                                         // Continue with normal operation for hardware access
                                         let connection = Arc::new(Mutex::new(conn));

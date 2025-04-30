@@ -144,7 +144,7 @@ impl DeviceView {
                     std::env::set_var("USBFLY_SIMULATION_MODE", "0");
                     
                     // Temporarily clear any cached device info for a fresh scan
-                    if let Ok(mut value) = std::env::var("USBFLY_CACHED_DEVICES") {
+                    if let Ok(value) = std::env::var("USBFLY_CACHED_DEVICES") {
                         if !value.is_empty() {
                             info!("Clearing device cache for fresh hardware detection");
                             std::env::set_var("USBFLY_CACHED_DEVICES", "");
