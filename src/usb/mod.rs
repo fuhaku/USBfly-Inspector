@@ -2,6 +2,7 @@ pub mod descriptors;
 pub mod descriptor_types;
 pub mod decoder;
 pub mod hints;
+pub mod mitm_traffic;
 
 // Re-export commonly used types for easier access
 pub use self::descriptor_types::{
@@ -23,3 +24,10 @@ pub use self::descriptors::{
 };
 
 pub use self::decoder::{DecodedUSBData, UsbDecoder};
+
+// Re-export the essential MitM traffic types
+pub use self::mitm_traffic::{
+    generate_simulated_mitm_traffic,
+    decode_mitm_packet,
+    UsbTransaction
+};

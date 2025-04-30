@@ -519,21 +519,30 @@ impl Application for USBflyApp {
                     // Use a simulated capture data approach for safety
                     // This avoids the Send/Sync issues with MutexGuard across await points
                     // First get the info we need under a short-lived lock
-                    let (is_simulation, maybe_data) = {
+                    let (is_simulation, maybe_data, connection_ref) = {
                         match conn_clone.lock() {
                             Ok(conn) => {
                                 let is_sim = conn.is_simulation_mode();
                                 
                                 // Get simulated data while we have the lock if in simulation mode
                                 let data = if is_sim {
-                                    // Special simulated data function for MitM traffic
-                                    Some(conn.get_simulated_mitm_traffic())
+                                    // Use enhanced simulation with our new module
+                                    let raw_data = conn.get_simulated_mitm_traffic();
+                                    
+                                    // Process the raw data into USB transactions using our new module
+                                    let transactions = conn.process_mitm_traffic(&raw_data);
+                                    
+                                    // For simulated data, always provide something to show
+                                    info!("Generated {} simulated USB transactions", transactions.len());
+                                    
+                                    // Still need to return raw data for compatibility with current code
+                                    Some(raw_data)
                                 } else {
                                     // For real device, we'll get data after dropping the lock
                                     None
                                 };
                                 
-                                (is_sim, data)
+                                (is_sim, data, Arc::clone(&conn_clone))
                             },
                             Err(_) => {
                                 error!("Failed to lock connection");
@@ -545,8 +554,8 @@ impl Application for USBflyApp {
                     // Now we can perform async operations without holding a lock
                     Command::perform(
                         async move {
-                            // Generate a timestamp for the capture (used for logging)
-                            let _timestamp = std::time::SystemTime::now()
+                            // Generate a timestamp for the capture
+                            let timestamp = std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
                                 .unwrap_or_default()
                                 .as_secs_f64();
@@ -554,7 +563,20 @@ impl Application for USBflyApp {
                             // If we have simulated data from the simulation mode, use it
                             if let Some(data) = maybe_data {
                                 if !data.is_empty() {
-                                    info!("Received {} bytes of simulated MitM USB traffic", data.len());
+                                    info!("Received {} bytes of MitM USB traffic", data.len());
+                                    
+                                    // Process the data using our new method (if we can get a lock)
+                                    if let Ok(conn) = connection_ref.lock() {
+                                        let transactions = conn.process_mitm_traffic(&data);
+                                        info!("Processed into {} USB transactions", transactions.len());
+                                        
+                                        // Log details of the first few transactions for debugging
+                                        for (i, tx) in transactions.iter().take(3).enumerate() {
+                                            info!("Transaction {}: Type={:?}, Endpoint={}, Addr={}", 
+                                                i, tx.transfer_type, tx.endpoint, tx.device_address);
+                                        }
+                                    }
+                                    
                                     return Message::USBDataReceived(data);
                                 }
                             }
@@ -564,15 +586,15 @@ impl Application for USBflyApp {
                             tokio::time::sleep(std::time::Duration::from_millis(150)).await;
                             
                             if is_simulation {
-                                // Create fallback simulated MitM traffic
-                                let sim_data = vec![
-                                    // Control Transfer - Get Status
-                                    0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
-                                    // Status response (2 bytes)
-                                    0x01, 0x00
-                                ];
+                                // Use our enhanced simulation module for more realistic data
+                                let sim_data = if let Ok(conn) = connection_ref.lock() {
+                                    conn.get_simulated_mitm_traffic()
+                                } else {
+                                    // Fallback if we couldn't get a lock for some reason
+                                    crate::usb::generate_simulated_mitm_traffic()
+                                };
                                 
-                                info!("Received {} bytes of fallback MitM USB traffic", sim_data.len());
+                                info!("Generated {} bytes of MitM USB traffic", sim_data.len());
                                 return Message::USBDataReceived(sim_data);
                             } else {
                                 // For real device, we would attempt to get actual data here

@@ -629,161 +629,9 @@ impl CynthionConnection {
         let next_counter = counter.wrapping_add(1);
         std::env::set_var("USBFLY_SIM_COUNTER", next_counter.to_string());
         
-        // Generate different types of transactions based on the counter
-        // This way we simulate a real capture session with different packet types
-        match counter % 12 {
-            0 => {
-                // Device Descriptor Request (Setup packet + Data stage)
-                debug!("Simulating Device Descriptor Request");
-                vec![
-                    // Setup packet (8 bytes): standard request for device descriptor
-                    0x80, 0x06, 0x00, 0x01, 0x00, 0x00, 0x12, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x00, 0x01, 0x00,
-                    
-                    // Device descriptor response (18 bytes)
-                    0x12, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x40, 
-                    0x50, 0x1d, 0x5c, 0x61, 0x00, 0x01, 0x01, 0x02, 
-                    0x03, 0x01
-                ]
-            },
-            1 => {
-                // Configuration Descriptor Request 
-                debug!("Simulating Configuration Descriptor Request");
-                vec![
-                    // Setup packet (8 bytes): standard request for config descriptor
-                    0x80, 0x06, 0x00, 0x02, 0x00, 0x00, 0x09, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x00, 0x02, 0x00,
-                    
-                    // Configuration descriptor (9 bytes)
-                    0x09, 0x02, 0x29, 0x00, 0x01, 0x01, 0x00, 0xC0, 0x32
-                ]
-            },
-            2 => {
-                // Interface Descriptor Request
-                debug!("Simulating Interface Descriptor");
-                vec![
-                    // Setup packet (8 bytes)
-                    0x80, 0x06, 0x00, 0x04, 0x00, 0x00, 0x09, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x00, 0x03, 0x00,
-                    
-                    // Interface descriptor (9 bytes)
-                    0x09, 0x04, 0x00, 0x00, 0x02, 0xFF, 0x42, 0x01, 0x04
-                ]
-            },
-            3 => {
-                // Bulk Transfer OUT (host to device)
-                debug!("Simulating Bulk Transfer OUT");
-                vec![
-                    // Endpoint OUT with 2 bytes: command code and parameter
-                    0x01, 0x02, 0x10, 0x01,
-                    
-                    // Transaction header
-                    0x00, 0x02, 0x04, 0x00,
-                ]
-            },
-            4 => {
-                // Bulk Transfer IN (device to host)
-                debug!("Simulating Bulk Transfer IN");
-                vec![
-                    // Endpoint IN with 4 bytes response
-                    0x81, 0x04, 0xAA, 0xBB, 0xCC, 0xDD,
-                    
-                    // Transaction header
-                    0x00, 0x02, 0x05, 0x00,
-                ]
-            },
-            5 => {
-                // Interrupt Transfer
-                debug!("Simulating Interrupt Transfer");
-                vec![
-                    // Interrupt endpoint with status data
-                    0x83, 0x02, 0x01, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x03, 0x06, 0x00,
-                ]
-            },
-            6 => {
-                // Control Transfer - Set Configuration
-                debug!("Simulating Control Transfer - Set Configuration");
-                vec![
-                    // Setup packet
-                    0x00, 0x09, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x00, 0x07, 0x00,
-                ]
-            },
-            7 => {
-                // Control Transfer - Get Status
-                debug!("Simulating Control Transfer - Get Status");
-                vec![
-                    // Setup packet
-                    0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x00, 0x08, 0x00,
-                    
-                    // Status response (2 bytes)
-                    0x01, 0x00
-                ]
-            },
-            8 => {
-                // Control Transfer - Set Address
-                debug!("Simulating Control Transfer - Set Address");
-                vec![
-                    // Setup packet
-                    0x00, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x00, 0x09, 0x00,
-                ]
-            },
-            9 => {
-                // Vendor-specific Request
-                debug!("Simulating Vendor-specific Request");
-                vec![
-                    // Setup packet with vendor-specific request code
-                    0xC0, 0x42, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x00, 0x0A, 0x00,
-                    
-                    // Vendor-specific response data
-                    0xDE, 0xAD, 0xBE, 0xEF
-                ]
-            },
-            10 => {
-                // Isochronous Transfer
-                debug!("Simulating Isochronous Transfer");
-                vec![
-                    // Isochronous IN endpoint with data
-                    0x82, 0x10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
-                    0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
-                    0x0E, 0x0F,
-                    
-                    // Transaction header
-                    0x00, 0x01, 0x0B, 0x00,
-                ]
-            },
-            _ => {
-                // Class-specific Request
-                debug!("Simulating Class-specific Request");
-                vec![
-                    // Setup packet with class-specific request
-                    0x21, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    
-                    // Transaction header
-                    0x00, 0x00, 0x0C, 0x00,
-                ]
-            }
-        }
+        // Use our specialized MitM traffic simulation from the new module
+        debug!("Using enhanced MitM traffic simulation");
+        crate::usb::generate_simulated_mitm_traffic()
     }
     
     #[allow(dead_code)]
@@ -1053,6 +901,46 @@ impl CynthionConnection {
             warn!("Disabling simulation mode - this may cause stability issues");
             self.simulation_mode = false;
         }
+    }
+    
+    // Process MitM traffic and decode USB transactions
+    pub fn process_mitm_traffic(&self, raw_data: &[u8]) -> Vec<crate::usb::UsbTransaction> {
+        let mut transactions = Vec::new();
+        let mut counter: u64 = 0;
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs_f64();
+            
+        // Process data in chunks - we'll use a simple approach for now
+        // In a real implementation, we'd need to handle partial packets and reassembly
+        
+        // Check if we have at least some minimum data
+        if raw_data.len() < 2 {
+            return transactions;
+        }
+        
+        // Based on the first byte, determine if this is a control, bulk, interrupt packet
+        match raw_data[0] {
+            // Control transfer setup
+            0x80 => {
+                if let Some(transaction) = crate::usb::decode_mitm_packet(raw_data, timestamp, counter) {
+                    transactions.push(transaction);
+                    counter += 1;
+                }
+            },
+            
+            // A sequence of different packets - try to parse them all
+            _ => {
+                // Simple parsing approach - this would be enhanced in production with proper state tracking
+                // For now, we'll try to process the entire buffer as a single transaction
+                if let Some(transaction) = crate::usb::decode_mitm_packet(raw_data, timestamp, counter) {
+                    transactions.push(transaction);
+                }
+            }
+        }
+        
+        transactions
     }
 
 }
