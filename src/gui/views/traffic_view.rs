@@ -7,6 +7,7 @@ use crate::gui::styles::color;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::marker::PhantomData;
+use crate::usb::mitm_traffic::{UsbTransaction, UsbTransferType, UsbDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrafficItem {
@@ -347,9 +348,167 @@ impl TrafficView {
         }
     }
     
+    /// Add a high-level USB transaction to the traffic view
+    pub fn add_transaction(&mut self, transaction: UsbTransaction) {
+        // Create a root node for the transaction
+        let transaction_id = format!("tx_{}", transaction.id);
+        let transaction_node_id = TreeNodeId::new(transaction_id.clone());
+        
+        // Determine the transaction type for icon/styling
+        let item_type = match transaction.transfer_type {
+            UsbTransferType::Control => TreeNodeType::Transaction,
+            UsbTransferType::Bulk => TreeNodeType::BulkTransfer,
+            UsbTransferType::Interrupt => TreeNodeType::InterruptTransfer,
+            UsbTransferType::Isochronous => TreeNodeType::IsochronousTransfer,
+            _ => TreeNodeType::Unknown,
+        };
+        
+        // Create a summary for the transaction
+        let summary = transaction.get_summary();
+        let formatted_time = format!("{:.6}", transaction.timestamp);
+        
+        // Format the transaction with timestamp
+        let data = format!("[{}] {}", formatted_time, summary);
+        
+        // Create the transaction node
+        let mut transaction_node = TreeNode {
+            id: transaction_node_id.clone(),
+            children: Vec::new(),
+            expanded: true,  // Start expanded to show details
+            data,
+            item_type,
+        };
+        
+        // Add child nodes for each component of the transaction
+        let mut child_nodes = Vec::new();
+        
+        // Setup packet if present
+        if let Some(setup) = &transaction.setup_packet {
+            let setup_id = format!("{}_setup", transaction_id);
+            let setup_node_id = TreeNodeId::new(setup_id);
+            
+            let mut request_info = format!("bmRequestType: 0x{:02X}, bRequest: 0x{:02X}",
+                setup.bmRequestType, setup.bRequest);
+                
+            if setup.wValue != 0 || setup.wIndex != 0 || setup.wLength != 0 {
+                request_info.push_str(&format!(", wValue: 0x{:04X}, wIndex: 0x{:04X}, wLength: {}", 
+                    setup.wValue, setup.wIndex, setup.wLength));
+            }
+            
+            let setup_node = TreeNode {
+                id: setup_node_id.clone(),
+                children: Vec::new(),
+                expanded: false,
+                data: format!("Setup: {}", setup.request_description),
+                item_type: TreeNodeType::Setup,
+            };
+            
+            self.tree_nodes.insert(setup_node_id.clone(), setup_node);
+            child_nodes.push(setup_node_id);
+            
+            // Add details as fields in a separate node if needed
+            // This would go here
+        }
+        
+        // Data packet if present
+        if let Some(data_packet) = &transaction.data_packet {
+            let data_id = format!("{}_data", transaction_id);
+            let data_node_id = TreeNodeId::new(data_id);
+            
+            let direction = match data_packet.direction {
+                UsbDirection::HostToDevice => "Host → Device",
+                UsbDirection::DeviceToHost => "Device → Host",
+                _ => "Unknown Direction",
+            };
+            
+            let data_node = TreeNode {
+                id: data_node_id.clone(),
+                children: Vec::new(),
+                expanded: false,
+                data: format!("Data: {} [{}]", data_packet.data_summary, direction),
+                item_type: TreeNodeType::Data,
+            };
+            
+            self.tree_nodes.insert(data_node_id.clone(), data_node);
+            child_nodes.push(data_node_id);
+        }
+        
+        // Status packet if present
+        if let Some(status) = &transaction.status_packet {
+            let status_id = format!("{}_status", transaction_id);
+            let status_node_id = TreeNodeId::new(status_id);
+            
+            let status_node = TreeNode {
+                id: status_node_id.clone(),
+                children: Vec::new(),
+                expanded: false,
+                data: format!("Status: {}", status.status),
+                item_type: TreeNodeType::Status,
+            };
+            
+            self.tree_nodes.insert(status_node_id.clone(), status_node);
+            child_nodes.push(status_node_id);
+        }
+        
+        // Add any extra fields as nodes
+        if !transaction.fields.is_empty() {
+            let fields_id = format!("{}_fields", transaction_id);
+            let fields_node_id = TreeNodeId::new(fields_id);
+            
+            let field_details: Vec<String> = transaction.fields.iter()
+                .map(|(key, value)| format!("{}: {}", key, value))
+                .collect();
+                
+            let fields_node = TreeNode {
+                id: fields_node_id.clone(),
+                children: Vec::new(),
+                expanded: false,
+                data: format!("Fields: {}", field_details.join(", ")),
+                item_type: TreeNodeType::Other,
+            };
+            
+            self.tree_nodes.insert(fields_node_id.clone(), fields_node);
+            child_nodes.push(fields_node_id);
+        }
+        
+        // Add children to transaction node
+        transaction_node.children = child_nodes;
+        
+        // Add transaction node to tree
+        self.tree_nodes.insert(transaction_node_id.clone(), transaction_node);
+        
+        // Add to root nodes
+        self.root_nodes.push(transaction_node_id);
+        
+        // Update selection if auto-scroll is enabled
+        if self.auto_scroll {
+            // This would select the newest transaction in the tree view
+            // Implementation depends on how selection is tracked
+        }
+    }
+    
     pub fn clear(&mut self) {
         self.traffic_data.clear();
         self.selected_item = None;
+        self.clear_tree_view();
+    }
+    
+    // Clear the tree view representation of traffic
+    pub fn clear_tree_view(&mut self) {
+        self.tree_nodes.clear();
+        self.root_nodes.clear();
+        
+        // Recreate just the root node for the tree
+        let root_id = TreeNodeId::new("root");
+        let root_node = TreeNode {
+            id: root_id.clone(),
+            children: Vec::new(),
+            expanded: true,
+            data: "USB Traffic".to_string(),
+            item_type: TreeNodeType::Root,
+        };
+        
+        self.tree_nodes.insert(root_id, root_node);
     }
     
     pub fn get_traffic_data(&self) -> Option<Vec<TrafficItem>> {

@@ -162,10 +162,17 @@ impl fmt::Display for UsbStandardRequest {
 // USB Setup packet structure (8 bytes)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UsbSetupPacket {
+    // Note: These field names follow the USB spec naming convention which uses camelCase.
+    // We're keeping the USB standard names despite Rust's convention for field naming.
+    #[allow(non_snake_case)]
     pub bmRequestType: u8,
+    #[allow(non_snake_case)]
     pub bRequest: u8,
+    #[allow(non_snake_case)]
     pub wValue: u16,
+    #[allow(non_snake_case)]
     pub wIndex: u16,
+    #[allow(non_snake_case)]
     pub wLength: u16,
     
     // Decoded request information
@@ -182,10 +189,15 @@ impl UsbSetupPacket {
             return None;
         }
         
+        #[allow(non_snake_case)]
         let bmRequestType = data[0];
+        #[allow(non_snake_case)]
         let bRequest = data[1];
+        #[allow(non_snake_case)]
         let wValue = u16::from_le_bytes([data[2], data[3]]);
+        #[allow(non_snake_case)]
         let wIndex = u16::from_le_bytes([data[4], data[5]]);
+        #[allow(non_snake_case)]
         let wLength = u16::from_le_bytes([data[6], data[7]]);
         
         // Decode direction
@@ -240,14 +252,14 @@ impl UsbSetupPacket {
     }
     
     fn create_request_description(
-        direction: UsbDirection,
+        _direction: UsbDirection,
         request_type: UsbControlRequestType,
         recipient: UsbControlRecipient,
         b_request: u8,
         standard_request: Option<UsbStandardRequest>,
         w_value: u16,
         w_index: u16,
-        w_length: u16
+        _w_length: u16
     ) -> String {
         // For standard requests, we can give detailed information
         if let Some(std_request) = standard_request {

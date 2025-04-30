@@ -5,7 +5,7 @@ use iced::widget::{button, column, container, row, text};
 use iced::{executor, Application, Background, Color, Command, Element, Length, Subscription, Theme};
 use std::sync::{Arc, Mutex};
 // Use the log macros for consistent error handling
-use log::{info, error};
+use log::{info, error, debug};
 
 // Custom tab styles
 struct ActiveTabStyle;
@@ -229,7 +229,27 @@ impl Application for USBflyApp {
             Message::USBDataReceived(data) => {
                 // Process received USB data
                 if let Some(decoded) = self.usb_decoder.decode(&data) {
+                    // First add the raw packet for traditional view
                     self.traffic_view.add_packet(data.clone(), decoded.clone());
+                    
+                    // Now also process the data with our enhanced MitM module
+                    if let Some(connection) = &self.connection {
+                        if let Ok(conn) = connection.lock() {
+                            // Process the raw data into USB transactions
+                            let transactions = conn.process_mitm_traffic(&data);
+                            
+                            if !transactions.is_empty() {
+                                debug!("Adding {} transactions to traffic view", transactions.len());
+                                
+                                // Add each transaction to the traffic view
+                                for transaction in transactions {
+                                    self.traffic_view.add_transaction(transaction);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Continue with descriptor view update
                     self.descriptor_view.update_descriptors(decoded);
                 }
                 Command::none()
@@ -555,10 +575,10 @@ impl Application for USBflyApp {
                     Command::perform(
                         async move {
                             // Generate a timestamp for the capture
-                            let timestamp = std::time::SystemTime::now()
+                            let _timestamp = std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
                                 .unwrap_or_default()
-                                .as_secs_f64();
+                                .as_secs_f64(); // Using _timestamp to indicate it may be used in future
                             
                             // If we have simulated data from the simulation mode, use it
                             if let Some(data) = maybe_data {

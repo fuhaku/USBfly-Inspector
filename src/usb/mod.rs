@@ -27,7 +27,5 @@ pub use self::decoder::{DecodedUSBData, UsbDecoder};
 
 // Re-export the essential MitM traffic types
 pub use self::mitm_traffic::{
-    generate_simulated_mitm_traffic,
-    decode_mitm_packet,
-    UsbTransaction
+    generate_simulated_mitm_traffic
 };

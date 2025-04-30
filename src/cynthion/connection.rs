@@ -904,7 +904,7 @@ impl CynthionConnection {
     }
     
     // Process MitM traffic and decode USB transactions
-    pub fn process_mitm_traffic(&self, raw_data: &[u8]) -> Vec<crate::usb::UsbTransaction> {
+    pub fn process_mitm_traffic(&self, raw_data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
         let mut transactions = Vec::new();
         let mut counter: u64 = 0;
         let timestamp = std::time::SystemTime::now()
@@ -924,9 +924,9 @@ impl CynthionConnection {
         match raw_data[0] {
             // Control transfer setup
             0x80 => {
-                if let Some(transaction) = crate::usb::decode_mitm_packet(raw_data, timestamp, counter) {
+                if let Some(transaction) = crate::usb::mitm_traffic::decode_mitm_packet(raw_data, timestamp, counter) {
                     transactions.push(transaction);
-                    counter += 1;
+                    // Counter is only used for transaction ID, no need to increment
                 }
             },
             
@@ -934,7 +934,7 @@ impl CynthionConnection {
             _ => {
                 // Simple parsing approach - this would be enhanced in production with proper state tracking
                 // For now, we'll try to process the entire buffer as a single transaction
-                if let Some(transaction) = crate::usb::decode_mitm_packet(raw_data, timestamp, counter) {
+                if let Some(transaction) = crate::usb::mitm_traffic::decode_mitm_packet(raw_data, timestamp, counter) {
                     transactions.push(transaction);
                 }
             }
