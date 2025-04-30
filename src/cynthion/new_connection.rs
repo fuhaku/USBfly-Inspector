@@ -13,6 +13,7 @@ use nusb::{
         Control,
         ControlType,
         Recipient,
+        EndpointIn,
     },
     DeviceInfo,
     Interface,
@@ -94,6 +95,14 @@ impl CynthionDevice {
 
     // Find all compatible devices on the system
     pub fn find_all() -> Result<Vec<CynthionDevice>> {
+        // Check if we're in forced hardware mode
+        let force_hardware = std::env::var("USBFLY_FORCE_HARDWARE")
+            .unwrap_or_else(|_| "0".to_string()) == "1";
+            
+        if force_hardware {
+            info!("Listing devices in FORCE HARDWARE mode");
+        }
+        
         let devices = nusb::list_devices()?;
         
         let mut result = Vec::new();
@@ -106,6 +115,14 @@ impl CynthionDevice {
         }
         
         Ok(result)
+    }
+    
+    // Find all devices with force hardware mode enabled
+    pub fn find_all_force_hardware() -> Result<Vec<CynthionDevice>> {
+        // Set environment variable to indicate force hardware mode
+        std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
+        // Call regular find_all
+        Self::find_all()
     }
     
     // Create from device info if compatible
@@ -160,6 +177,21 @@ impl CynthionDevice {
     
     pub fn product_id(&self) -> u16 {
         self.device_info.product_id()
+    }
+
+    pub fn manufacturer(&self) -> &str {
+        self.device_info.manufacturer_string()
+            .unwrap_or("Unknown Manufacturer")
+    }
+    
+    pub fn product(&self) -> &str {
+        self.device_info.product_string()
+            .unwrap_or("Unknown Device")
+    }
+    
+    pub fn serial_number(&self) -> &str {
+        self.device_info.serial_number()
+            .unwrap_or("N/A")
     }
     
     pub fn get_description(&self) -> String {
@@ -273,6 +305,72 @@ impl CynthionHandle {
     
     pub fn product_id(&self) -> u16 {
         self.device_info.product_id()
+    }
+    
+    pub fn manufacturer(&self) -> &str {
+        self.device_info.manufacturer_string()
+            .unwrap_or("Unknown Manufacturer")
+    }
+    
+    pub fn product(&self) -> &str {
+        self.device_info.product_string()
+            .unwrap_or("Unknown Device")
+    }
+    
+    pub fn serial_number(&self) -> &str {
+        self.device_info.serial_number()
+            .unwrap_or("N/A")
+    }
+    
+    // Read traffic data from device with cloning for thread safety
+    pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
+        // Create buffer for data
+        let mut buffer = vec![0; 4096];
+        
+        // Read from interface
+        let endpoint = EndpointIn::new(self.interface.interface_number(), 0x81); // MitM data endpoint
+        let timeout = Duration::from_millis(100);
+        
+        match self.interface.bulk_in_blocking(endpoint, &mut buffer, timeout) {
+            Ok(size) => {
+                if size > 0 {
+                    // Resize buffer to actual size
+                    buffer.truncate(size);
+                    Ok(buffer)
+                } else {
+                    // No data available
+                    Err(anyhow::anyhow!("No data available"))
+                }
+            },
+            Err(e) => {
+                Err(anyhow::anyhow!("Failed to read data: {}", e))
+            }
+        }
+    }
+    
+    // Set read timeout for bulk operations
+    pub fn set_read_timeout(&mut self, duration: Option<Duration>) -> Result<()> {
+        // nusb doesn't have a direct timeout setting, we'll just store it for future use
+        // This is a stub method to maintain API compatibility
+        Ok(())
+    }
+    
+    // Check if this is a simulation
+    pub fn is_simulation_mode(&self) -> bool {
+        // Check if we're simulating a device
+        std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "0".to_string()) == "1"
+    }
+    
+    // Check if device is connected
+    pub fn is_connected(&self) -> bool {
+        // For now, if we have an interface, we're considered connected
+        true
+    }
+    
+    // Clear capture buffer (simulation only)
+    pub fn clear_capture_buffer(&mut self) -> Result<()> {
+        // Real hardware doesn't need to clear buffer as it streams constantly
+        Ok(())
     }
 }
 

@@ -1,4 +1,5 @@
-use crate::cynthion::connection::CynthionConnection;
+// Import the new nusb-based connection types
+use crate::cynthion::{CynthionDevice, CynthionHandle, CynthionStream};
 use crate::gui::views::{DeviceView, TrafficView, DescriptorView};
 use crate::usb::UsbDecoder;
 use iced::widget::{button, column, container, row, text};
@@ -81,7 +82,9 @@ pub enum Tab {
 }
 
 pub struct USBflyApp {
-    connection: Option<Arc<Mutex<CynthionConnection>>>,
+    // New connections use CynthionHandle from our nusb implementation
+    cynthion_handle: Option<Arc<Mutex<CynthionHandle>>>,
+    available_devices: Vec<CynthionDevice>,
     usb_decoder: UsbDecoder,
     active_tab: Tab,
     device_view: DeviceView,
@@ -96,7 +99,8 @@ pub struct USBflyApp {
 pub enum Message {
     Connect,
     Disconnect,
-    ConnectionEstablished(Arc<Mutex<CynthionConnection>>),
+    DevicesFound(Vec<CynthionDevice>), // New message for device scan results
+    ConnectionEstablished(Arc<Mutex<CynthionHandle>>),
     ConnectionFailed(String),
     ConnectionPossiblyFailed,  // New message for persistent USB read failures
     TabSelected(Tab),
@@ -114,7 +118,7 @@ pub enum Message {
     FetchCaptureData,       // Fetch captured USB data from device
     ClearCaptureBuffer,     // Clear capture buffer on device
     CaptureStarted,         // Notification that capture has started successfully
-    ProcessingCapture(Arc<Mutex<CynthionConnection>>), // Process capture data from real device
+    ProcessingCapture(Arc<Mutex<CynthionHandle>>), // Process capture data from real device
     CaptureStopped,         // Notification that capture has stopped successfully
     CaptureError(String),   // Error message from capture operation
 }
@@ -130,7 +134,8 @@ impl Application for USBflyApp {
         let (device_view, device_command) = DeviceView::new().with_initial_scan();
         
         let app = Self {
-            connection: None,
+            cynthion_handle: None,
+            available_devices: Vec::new(),
             usb_decoder: UsbDecoder::new(),
             active_tab: Tab::Devices,
             device_view,
@@ -144,7 +149,31 @@ impl Application for USBflyApp {
         // Map the device command to our application's message type
         let init_command = device_command.map(Message::DeviceViewMessage);
 
-        (app, init_command)
+        // Also initiate a scan for Cynthion devices right away using our new connection method
+        let scan_command = Command::perform(
+            async {
+                // Find all Cynthion devices using our new implementation
+                match CynthionDevice::find_all() {
+                    Ok(devices) => {
+                        info!("Found {} Cynthion-compatible devices", devices.len());
+                        Message::DevicesFound(devices)
+                    },
+                    Err(e) => {
+                        error!("Error scanning for devices: {}", e);
+                        Message::DevicesFound(Vec::new())
+                    }
+                }
+            },
+            |msg| msg
+        );
+
+        // Combine the initial commands
+        let combined_command = Command::batch(vec![
+            init_command,
+            scan_command
+        ]);
+
+        (app, combined_command)
     }
 
     fn title(&self) -> String {
@@ -153,92 +182,73 @@ impl Application for USBflyApp {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::DevicesFound(devices) => {
+                info!("Device scan found {} Cynthion-compatible devices", devices.len());
+                self.available_devices = devices;
+                Command::none()
+            },
             Message::Connect => {
-                // Attempt to connect to Cynthion device
-                Command::perform(
-                    async {
-                        // Connect to device and handle result directly
-                        match CynthionConnection::connect().await {
-                            Ok(mut conn) => {
-                                // Extra safety check - verify connection is actually valid
-                                if conn.is_connected() {
-                                    // Check if hardware mode is forced via environment variable
-                                    let force_hardware = std::env::var("USBFLY_FORCE_HARDWARE")
-                                        .map(|val| val == "1")
-                                        .unwrap_or(false);
-                                    
-                                    // Check if we have a real Cynthion device
-                                    let is_real_device = conn.is_real_hardware_device();
-                                    
-                                    // Determine when to use simulation vs hardware mode
-                                    let (use_simulation, reason) = if force_hardware {
-                                        // If hardware mode is forced, always use real device
-                                        (false, "Hardware mode forced via USBFLY_FORCE_HARDWARE".to_string())
-                                    } else if is_real_device {
-                                        // Real device detected, check features
-                                        if cfg!(target_os = "macos") {
-                                            // On macOS, we may need additional checks
-                                            match conn.test_capture_capability() {
-                                                Ok(true) => (false, "Device supports direct hardware capture".to_string()),
-                                                // CRITICAL CHANGE: Don't fall back to simulation if a real device was found
-                                                // Even with timeout issues, we should use the real device for all other operations
-                                                Ok(false) => (false, "Using real device with limited MitM capture".to_string()),
-                                                Err(e) => {
-                                                    warn!("MitM test error, but using real device anyway: {}", e);
-                                                    (false, "Using real device despite testing error".to_string())
-                                                }
-                                            }
-                                        } else {
-                                            // For non-macOS, use hardware by default when a real device is detected
-                                            (false, "Real device detected".to_string())
-                                        }
-                                    } else {
-                                        // No real device found, use simulation
-                                        (true, "No real device detected".to_string())
-                                    };
-                                    
-                                    if use_simulation {
-                                        info!("Using simulation mode: {}", reason);
-                                        
-                                        // Mark as simulation mode but keep handle for device info
-                                        let mut safe_conn = conn;
-                                        safe_conn.set_simulation_mode(true);
-                                        
-                                        let connection = Arc::new(Mutex::new(safe_conn));
-                                        Message::ConnectionEstablished(connection)
-                                    } else {
-                                        info!("Using real hardware mode: {}", reason);
-                                        
-                                        // Ensure simulation mode is explicitly disabled
-                                        conn.set_simulation_mode(false);
-                                        
-                                        // Continue with normal operation for hardware access
-                                        let connection = Arc::new(Mutex::new(conn));
-                                        Message::ConnectionEstablished(connection)
-                                    }
-                                } else {
-                                    Message::ConnectionFailed("Connection state invalid".to_string())
+                // Check if we have any devices to connect to
+                if self.available_devices.is_empty() {
+                    // No devices available, trigger a scan first
+                    info!("No devices available, scanning for Cynthion devices...");
+                    Command::perform(
+                        async {
+                            match CynthionDevice::find_all() {
+                                Ok(devices) => {
+                                    info!("Found {} Cynthion-compatible devices", devices.len());
+                                    Message::DevicesFound(devices)
+                                },
+                                Err(e) => {
+                                    error!("Error scanning for devices: {}", e);
+                                    Message::ConnectionFailed(format!("Device scan failed: {}", e))
                                 }
                             }
-                            Err(e) => {
-                                error!("Connection error: {}", e);
-                                Message::ConnectionFailed(e.to_string())
+                        },
+                        |msg| msg
+                    )
+                } else {
+                    // We have devices, select the first one
+                    let device = &self.available_devices[0];
+                    info!("Connecting to Cynthion device: {}", device.get_description());
+                    
+                    // Attempt to connect using the new implementation
+                    Command::perform(
+                        {
+                            // Clone the device since we need to move it into the async block
+                            let device = device.clone();
+                            
+                            async move {
+                                // Open the device
+                                match device.open() {
+                                    Ok(handle) => {
+                                        info!("Successfully opened Cynthion device");
+                                        let handle = Arc::new(Mutex::new(handle));
+                                        Message::ConnectionEstablished(handle)
+                                    },
+                                    Err(e) => {
+                                        error!("Failed to open device: {}", e);
+                                        Message::ConnectionFailed(e.to_string())
+                                    }
+                                }
                             }
-                        }
-                    },
-                    |msg| msg,
-                )
+                        },
+                        |msg| msg
+                    )
+                }
             }
             Message::Disconnect => {
-                if let Some(connection) = &self.connection {
-                    let _ = connection.lock().unwrap().disconnect();
+                if let Some(handle) = &self.cynthion_handle {
+                    // With the new implementation, we don't need to explicitly disconnect
+                    // Just release the handle to close the device
+                    info!("Disconnecting from Cynthion device");
                 }
-                self.connection = None;
+                self.cynthion_handle = None;
                 self.connected = false;
                 Command::none()
             }
-            Message::ConnectionEstablished(connection) => {
-                self.connection = Some(connection);
+            Message::ConnectionEstablished(handle) => {
+                self.cynthion_handle = Some(handle);
                 self.connected = true;
                 self.error_message = None;
                 Command::none()
@@ -251,25 +261,18 @@ impl Application for USBflyApp {
                 // After too many consecutive errors, we attempt automatic recovery
                 log::warn!("Detected possible connection failure from persistent USB read errors");
                 
-                // First try to validate if the connection is still active
-                let is_connected = self.connection.as_ref().map_or(false, |conn| {
-                    if let Ok(connection) = conn.try_lock() {
-                        connection.is_connected()
-                    } else {
-                        // If we can't get a lock, assume it's still connected but busy
-                        true
-                    }
-                });
+                // With nusb, a hanging handle will just mean a delay, we can assume
+                // the device is still connected if we have a handle
+                let is_connected = self.cynthion_handle.is_some();
                 
                 if !is_connected {
-                    // If the connection is definitely broken, disconnect and show an error
-                    log::error!("Connection validation failed, performing automatic disconnect");
-                    self.connection = None;
+                    // If we don't have a handle, show an error
+                    log::error!("No device handle available, please reconnect");
                     self.connected = false;
-                    self.error_message = Some("Connection lost due to persistent errors. Please reconnect.".to_string());
+                    self.error_message = Some("Connection lost. Please reconnect.".to_string());
                 } else {
-                    // Connection appears valid, but we should show a warning
-                    log::info!("Connection appears valid despite USB read errors, continuing with caution");
+                    // We have a handle, but we've encountered errors
+                    log::info!("Device handle still available despite USB read errors");
                     self.error_message = Some("USB read errors detected, but connection still active.".to_string());
                 }
                 
@@ -308,12 +311,14 @@ impl Application for USBflyApp {
                     // First add the raw packet for traditional view
                     self.traffic_view.add_packet(data.clone(), decoded.clone());
                     
-                    // Now also process the data with our enhanced MitM module
-                    if let Some(connection) = &self.connection {
-                        if let Ok(conn) = connection.lock() {
+                    // Process the data with our enhanced decoder using the new handle
+                    if let Some(handle) = &self.cynthion_handle {
+                        if let Ok(mut cynthion_handle) = handle.lock() {
                             // Process the raw data into USB transactions
-                            debug!("Processing data through MitM decoder...");
-                            let transactions = conn.process_mitm_traffic(&data);
+                            debug!("Processing data through MitM decoder with new nusb implementation...");
+                            
+                            // Get the transactions from the new implementation
+                            let transactions = cynthion_handle.process_transactions(&data);
                             
                             if !transactions.is_empty() {
                                 info!("Successfully decoded {} USB transactions", transactions.len());
@@ -330,10 +335,10 @@ impl Application for USBflyApp {
                                 debug!("No transactions decoded from packet");
                             }
                         } else {
-                            debug!("Could not acquire connection lock for MitM processing");
+                            debug!("Could not acquire handle lock for MitM processing");
                         }
                     } else {
-                        trace!("No connection available for MitM processing");
+                        trace!("No device handle available for MitM processing");
                     }
                     
                     // Continue with descriptor view update
@@ -415,24 +420,24 @@ impl Application for USBflyApp {
                 Command::batch(commands)
             }
             Message::StartCapture => {
-                if let Some(connection) = &self.connection {
-                    let conn_clone = Arc::clone(connection);
+                if let Some(handle) = &self.cynthion_handle {
+                    let handle_clone = Arc::clone(handle);
                     
-                    info!("Starting USB traffic capture...");
+                    info!("Starting USB traffic capture with new nusb implementation...");
                     
                     // Update UI state to show capture is active
                     self.traffic_view.set_capture_active(true);
                     
                     // First get the info we need under a short-lived lock
                     let (is_simulation, start_result) = {
-                        match conn_clone.lock() {
-                            Ok(mut conn) => {
-                                let is_sim = conn.is_simulation_mode();
+                        match handle_clone.lock() {
+                            Ok(mut cynthion_handle) => {
+                                let is_sim = cynthion_handle.is_simulation_mode();
                                 
                                 // Try to start capture while we have the lock
                                 let result = if !is_sim {
                                     // Only try to actually start capture for real devices
-                                    conn.start_capture()
+                                    cynthion_handle.start_capture()
                                 } else {
                                     // For simulation mode, just pretend it succeeded
                                     Ok(())
@@ -443,7 +448,7 @@ impl Application for USBflyApp {
                             },
                             Err(_) => {
                                 // Lock failed
-                                error!("Failed to lock connection");
+                                error!("Failed to lock device handle");
                                 self.error_message = Some("Failed to access USB device".to_string());
                                 return Command::none();
                             }
@@ -464,7 +469,7 @@ impl Application for USBflyApp {
                                 // In real device mode, check the result of start_capture
                                 match start_result {
                                     Ok(_) => {
-                                        info!("USB traffic capture started successfully");
+                                        info!("USB traffic capture started successfully with nusb implementation");
                                         Message::CaptureStarted
                                     },
                                     Err(e) => {
@@ -482,8 +487,8 @@ impl Application for USBflyApp {
                 }
             }
             Message::StopCapture => {
-                if let Some(connection) = &self.connection {
-                    let conn_clone = Arc::clone(connection);
+                if let Some(connection) = &self.connected {
+                    let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
                     info!("Stopping USB traffic capture...");
                     
@@ -549,8 +554,8 @@ impl Application for USBflyApp {
                 }
             }
             Message::ClearCaptureBuffer => {
-                if let Some(connection) = &self.connection {
-                    let conn_clone = Arc::clone(connection);
+                if let Some(connection) = &self.connected {
+                    let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
                     info!("Clearing capture buffer...");
                     
@@ -664,8 +669,8 @@ impl Application for USBflyApp {
                 )
             }
             Message::FetchCaptureData => {
-                if let Some(connection) = &self.connection {
-                    let conn_clone = Arc::clone(connection);
+                if let Some(connection) = &self.connected {
+                    let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
                     // Use a simulated capture data approach for safety
                     // This avoids the Send/Sync issues with MutexGuard across await points
@@ -773,12 +778,12 @@ impl Application for USBflyApp {
         let mut subscriptions = Vec::new();
         
         // Subscribe to USB data from connection if connected
-        if let Some(connection) = &self.connection {
+        if let Some(connection) = &self.connected {
             // Only setup the USB data subscription if we're connected and the UI indicates we're connected
             // This prevents race conditions where we're in the process of connecting/disconnecting
             if self.connected {
                 // Create a thread-safe clone of the connection for the subscription
-                let conn = Arc::clone(connection);
+                let conn: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                 
                 // Add a robust subscription with improved error handling
                 subscriptions.push(

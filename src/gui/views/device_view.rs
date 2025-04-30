@@ -1,6 +1,7 @@
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Command, Element, Length, Color, Background};
-use crate::cynthion::connection::{CynthionConnection, USBDeviceInfo};
+// Import the new device type instead of deprecated connection types
+use crate::cynthion::CynthionDevice;
 use log::{debug, info};
 
 // Constants for compatible USB device VIDs and PIDs
@@ -19,8 +20,8 @@ const GADGETCAP_VID: u16 = 0x1d50;
 const GADGETCAP_PID: u16 = 0x6018;
 
 pub struct DeviceView {
-    connected_devices: Vec<USBDeviceInfo>,
-    selected_device: Option<USBDeviceInfo>,
+    connected_devices: Vec<CynthionDevice>,
+    selected_device: Option<CynthionDevice>,
     last_error: Option<String>,
     // Auto-refresh timer
     last_refresh_time: std::time::Instant,
@@ -63,8 +64,8 @@ impl iced::widget::container::StyleSheet for RegularDeviceStyle {
 pub enum Message {
     RefreshDevices,
     ForceRefreshDevices,
-    DeviceSelected(USBDeviceInfo),
-    DevicesLoaded(Result<Vec<USBDeviceInfo>, String>),
+    DeviceSelected(CynthionDevice),
+    DevicesLoaded(Result<Vec<CynthionDevice>, String>),
     CheckAutoRefresh,
     NoOp,
 }
@@ -86,8 +87,8 @@ impl DeviceView {
     pub fn with_initial_scan(self) -> (Self, Command<Message>) {
         let command = Command::perform(
             async {
-                // This will run in a separate thread
-                match CynthionConnection::list_devices() {
+                // This will run in a separate thread using our new implementation
+                match CynthionDevice::find_all() {
                     Ok(devices) => Ok(devices),
                     Err(e) => Err(format!("Failed to list USB devices: {}", e)),
                 }
@@ -107,8 +108,8 @@ impl DeviceView {
     
     // Helper function to determine if a device is compatible
     fn is_compatible_device(vid: u16, pid: u16) -> bool {
-        // Use the central compatibility check from CynthionConnection
-        CynthionConnection::is_supported_device(vid, pid)
+        // Use the compatibility check from CynthionDevice
+        CynthionDevice::is_supported(vid, pid)
     }
     
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -120,8 +121,8 @@ impl DeviceView {
                 // Query connected devices asynchronously
                 Command::perform(
                     async {
-                        // This will run in a separate thread
-                        match CynthionConnection::list_devices() {
+                        // This will run in a separate thread using our new implementation
+                        match CynthionDevice::find_all() {
                             Ok(devices) => Ok(devices),
                             Err(e) => Err(format!("Failed to list USB devices: {}", e)),
                         }
@@ -158,8 +159,8 @@ impl DeviceView {
                 // Query connected devices asynchronously
                 Command::perform(
                     async {
-                        // This will run in a separate thread and use the force refresh flag
-                        match CynthionConnection::list_devices() {
+                        // This will run in a separate thread, using force hardware mode
+                        match CynthionDevice::find_all_force_hardware() {
                             Ok(devices) => Ok(devices),
                             Err(e) => Err(format!("Failed to force refresh USB devices: {}", e)),
                         }
@@ -179,7 +180,7 @@ impl DeviceView {
                     // Perform the refresh asynchronously
                     Command::perform(
                         async {
-                            match CynthionConnection::list_devices() {
+                            match CynthionDevice::find_all() {
                                 Ok(devices) => Ok(devices),
                                 Err(e) => Err(format!("Failed to list USB devices: {}", e)),
                             }
@@ -192,7 +193,7 @@ impl DeviceView {
                 }
             },
             Message::DeviceSelected(device) => {
-                info!("Selected device: {:04x}:{:04x}", device.vendor_id, device.product_id);
+                info!("Selected device: {:04x}:{:04x}", device.vendor_id(), device.product_id());
                 self.selected_device = Some(device);
                 Command::none()
             },
@@ -205,7 +206,7 @@ impl DeviceView {
                         } else {
                             // Check if any device info has changed
                             self.connected_devices.iter().zip(devices.iter())
-                                .any(|(old, new)| old.vendor_id != new.vendor_id || old.product_id != new.product_id)
+                                .any(|(old, new)| old.vendor_id() != new.vendor_id() || old.product_id() != new.product_id())
                         };
                         
                         if has_changed {
@@ -218,9 +219,9 @@ impl DeviceView {
                         if let Some(selected) = &self.selected_device {
                             // If current selected device is not in the new list, clear selection
                             let still_connected = devices.iter().any(|dev| {
-                                dev.vendor_id == selected.vendor_id && 
-                                dev.product_id == selected.product_id &&
-                                dev.serial_number == selected.serial_number
+                                dev.vendor_id() == selected.vendor_id() && 
+                                dev.product_id() == selected.product_id() &&
+                                dev.serial_number() == selected.serial_number()
                             });
                             
                             if !still_connected {
@@ -233,20 +234,12 @@ impl DeviceView {
                         if let Some(selected) = &mut self.selected_device {
                             // The selected device may have more complete information in the new list
                             for dev in &devices {
-                                if dev.vendor_id == selected.vendor_id && 
-                                   dev.product_id == selected.product_id {
+                                if dev.vendor_id() == selected.vendor_id() && 
+                                   dev.product_id() == selected.product_id() {
                                    
-                                    // Update the selected device with more complete information
-                                    // Only if it's missing information and the new device has it
-                                    if selected.manufacturer.is_none() && dev.manufacturer.is_some() {
-                                        selected.manufacturer = dev.manufacturer.clone();
-                                    }
-                                    if selected.product.is_none() && dev.product.is_some() {
-                                        selected.product = dev.product.clone();
-                                    }
-                                    if selected.serial_number.is_none() && dev.serial_number.is_some() {
-                                        selected.serial_number = dev.serial_number.clone();
-                                    }
+                                    // With our new implementation, device info is already complete 
+                                    // just need to update the selected device with the new device
+                                    *selected = dev.clone();
                                     
                                     // Log the update
                                     debug!("Updated selected device information");
@@ -350,13 +343,13 @@ impl DeviceView {
             let devices: Vec<Element<_>> = self.connected_devices
                 .iter()
                 .map(|device| {
-                    let is_compatible = Self::is_compatible_device(device.vendor_id, device.product_id);
+                    let is_compatible = Self::is_compatible_device(device.vendor_id(), device.product_id());
                     
                     let device_row = column![
                         row![
                             text(format!("{} {}", 
-                                device.manufacturer.as_deref().unwrap_or("Unknown"), 
-                                device.product.as_deref().unwrap_or("Device")))
+                                device.manufacturer(), 
+                                device.product()))
                                 .width(Length::Fill)
                                 .size(16),
                             if is_compatible {
@@ -368,9 +361,9 @@ impl DeviceView {
                             }
                         ].spacing(10),
                         text(format!("VID:{:04x} PID:{:04x} SN:{}", 
-                            device.vendor_id, 
-                            device.product_id,
-                            device.serial_number.as_deref().unwrap_or("N/A")))
+                            device.vendor_id(), 
+                            device.product_id(),
+                            device.serial_number()))
                             .size(14)
                             .style(iced::theme::Text::Color(crate::gui::styles::color::TEXT_SECONDARY))
                     ]
@@ -407,7 +400,7 @@ impl DeviceView {
         
         // Selected device detail view
         let device_details = if let Some(device) = &self.selected_device {
-            let is_compatible = Self::is_compatible_device(device.vendor_id, device.product_id);
+            let is_compatible = Self::is_compatible_device(device.vendor_id(), device.product_id());
             
             column![
                 row![
@@ -429,7 +422,7 @@ impl DeviceView {
                             text("Vendor ID:")
                                 .width(Length::FillPortion(1))
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
-                            text(format!("0x{:04x}", device.vendor_id))
+                            text(format!("0x{:04x}", device.vendor_id()))
                                 .width(Length::FillPortion(2))
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::PRIMARY_LIGHT))
                         ].padding(5).spacing(10),
@@ -437,7 +430,7 @@ impl DeviceView {
                             text("Product ID:")
                                 .width(Length::FillPortion(1))
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
-                            text(format!("0x{:04x}", device.product_id))
+                            text(format!("0x{:04x}", device.product_id()))
                                 .width(Length::FillPortion(2))
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::PRIMARY_LIGHT))
                         ].padding(5).spacing(10),
@@ -445,21 +438,21 @@ impl DeviceView {
                             text("Manufacturer:")
                                 .width(Length::FillPortion(1))
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
-                            text(device.manufacturer.as_deref().unwrap_or("Unknown"))
+                            text(device.manufacturer())
                                 .width(Length::FillPortion(2))
                         ].padding(5).spacing(10),
                         row![
                             text("Product:")
                                 .width(Length::FillPortion(1))
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
-                            text(device.product.as_deref().unwrap_or("Unknown"))
+                            text(device.product())
                                 .width(Length::FillPortion(2))
                         ].padding(5).spacing(10),
                         row![
                             text("Serial Number:")
                                 .width(Length::FillPortion(1))
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
-                            text(device.serial_number.as_deref().unwrap_or("N/A"))
+                            text(device.serial_number())
                                 .width(Length::FillPortion(2))
                         ].padding(5).spacing(10),
                     ]
