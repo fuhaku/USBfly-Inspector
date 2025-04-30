@@ -246,6 +246,73 @@ impl CynthionConnection {
         self.simulation_mode
     }
     
+    pub fn test_capture_capability(&mut self) -> anyhow::Result<bool> {
+        use log::debug;
+        debug!("Testing device capture capability");
+        
+        // If we don't have a handle, can't perform capture
+        if self.handle.is_none() {
+            return Ok(false);
+        }
+        
+        // For safety, wrap this in a try/catch style operation
+        // First create a clone of the handle to avoid borrowing issues
+        let handle_clone = match &self.handle {
+            Some(h) => h.clone(),
+            None => return Ok(false)
+        };
+        
+        // First, check if we can send a control transfer to test the device
+        let result = match handle_clone.claim_interface(CYNTHION_INTERFACE) {
+            Ok(_) => {
+                debug!("Successfully claimed interface {} for test", CYNTHION_INTERFACE);
+                
+                // Send a benign command to see if the device is responsive
+                let cmd_check = [0xC0]; // Simple status check command
+                // Use a separate send_command function to avoid borrowing self
+                match self.send_test_command(handle_clone, &cmd_check) {
+                    Ok(_) => {
+                        debug!("Successfully sent test command to device");
+                        
+                        // Now try to read from the device with a very short timeout
+                        let control_timeout = std::time::Duration::from_millis(50);
+                        let read_result = handle_clone.read_control(
+                            0xC0, // vendor request, device-to-host
+                            0x00, // simple status request
+                            0, 0, 
+                            &mut [0u8; 8], 
+                            control_timeout
+                        );
+                        
+                        match read_result {
+                            Ok(_) => {
+                                debug!("Successfully read from device");
+                                true // Device appears to support capture
+                            },
+                            Err(e) => {
+                                debug!("Error reading from device: {}", e);
+                                false // Read failed
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        debug!("Error sending test command: {}", e);
+                        false // Failed to send command
+                    }
+                }
+            },
+            Err(e) => {
+                debug!("Could not claim interface for test: {}", e);
+                false // Failed to claim interface
+            }
+        };
+        
+        // Release interface if we claimed it
+        let _ = handle_clone.release_interface(CYNTHION_INTERFACE);
+        
+        Ok(result)
+    }
+    
     // Set simulation mode explicitly
     pub fn set_simulation_mode(&mut self, enabled: bool) {
         if enabled && !self.simulation_mode {
@@ -978,6 +1045,37 @@ impl CynthionConnection {
     }
     
     // Helper function to analyze USB packet headers for debugging
+    // Non-mutable version of send_command for testing device capabilities
+    pub fn send_test_command(&self, handle: &rusb::DeviceHandle<rusb::GlobalContext>, command: &[u8]) -> Result<()> {
+        // Safety check for connection state
+        if !self.active {
+            return Err(anyhow!("Connection not active"));
+        }
+        
+        // When in simulation mode, just pretend we sent the command
+        if self.simulation_mode {
+            debug!("Simulating test command send: {:02X?}", command);
+            return Ok(());
+        }
+        
+        debug!("Sending test command: {:02X?}", command);
+        
+        // Define the necessary constants locally to avoid scope issues
+        const CONTROL_OUT: u8 = 0x40; // Control transfer, host to device
+        const VENDOR_CMD: u8 = 0x80;  // Vendor-specific command
+        
+        // Send the command via control transfer using the provided handle
+        handle.write_control(
+            CONTROL_OUT, 
+            VENDOR_CMD, 
+            0, 0, 
+            command, 
+            std::time::Duration::from_millis(1000)
+        )?;
+        
+        Ok(())
+    }
+    
     fn analyze_packet_headers(data: &[u8]) {
         if data.len() < 2 {
             debug!("MitM analysis: Data too short for packet analysis");

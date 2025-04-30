@@ -114,6 +114,7 @@ pub enum Message {
     FetchCaptureData,       // Fetch captured USB data from device
     ClearCaptureBuffer,     // Clear capture buffer on device
     CaptureStarted,         // Notification that capture has started successfully
+    ProcessingCapture(Arc<Mutex<CynthionConnection>>), // Process capture data from real device
     CaptureStopped,         // Notification that capture has stopped successfully
     CaptureError(String),   // Error message from capture operation
 }
@@ -158,22 +159,35 @@ impl Application for USBflyApp {
                     async {
                         // Connect to device and handle result directly
                         match CynthionConnection::connect().await {
-                            Ok(conn) => {
+                            Ok(mut conn) => {
                                 // Extra safety check - verify connection is actually valid
                                 if conn.is_connected() {
-                                    // Special handling for macOS to avoid crashes
-                                    if cfg!(target_os = "macos") {
-                                        info!("On macOS, using extra safety protection");
+                                    // Smart handling for platform-specific behaviors
+                                    let (use_simulation, reason) = if cfg!(target_os = "macos") {
+                                        // Check if we can do hardware MitM capture on macOS
+                                        match conn.test_capture_capability() {
+                                            Ok(true) => (false, "Device supports direct hardware capture".to_string()),
+                                            Ok(false) => (true, "Device doesn't support MitM capture".to_string()),
+                                            Err(e) => (true, format!("Error testing capture: {}", e))
+                                        }
+                                    } else {
+                                        // For non-macOS, assume we can use hardware by default
+                                        (false, "Non-macOS platform".to_string())
+                                    };
+                                    
+                                    if use_simulation {
+                                        info!("Using simulation mode: {}", reason);
                                         
                                         // Mark as simulation mode but keep handle for device info
-                                        // This ensures a safer experience on macOS
                                         let mut safe_conn = conn;
                                         safe_conn.set_simulation_mode(true);
                                         
                                         let connection = Arc::new(Mutex::new(safe_conn));
                                         Message::ConnectionEstablished(connection)
                                     } else {
-                                        // For other platforms, continue with normal operation
+                                        info!("Using real hardware mode: {}", reason);
+                                        
+                                        // Continue with normal operation for hardware access
                                         let connection = Arc::new(Mutex::new(conn));
                                         Message::ConnectionEstablished(connection)
                                     }
@@ -582,6 +596,48 @@ impl Application for USBflyApp {
                 self.traffic_view.set_capture_active(false);
                 Command::none()
             }
+            Message::ProcessingCapture(connection_ref) => {
+                // Process the MitM traffic capture in a thread-safe way
+                Command::perform(
+                    async move {
+                        // Use tokio's spawn_blocking to move the potentially blocking operation
+                        // to a separate thread to avoid blocking the event loop
+                        let traffic_data = tokio::task::spawn_blocking(move || {
+                            // Try to acquire the lock for the connection
+                            if let Ok(mut conn) = connection_ref.lock() {
+                                // Use the synchronous function to avoid Send issues with MutexGuard
+                                conn.read_mitm_traffic_clone()
+                            } else {
+                                Err(anyhow::anyhow!("Failed to acquire connection lock"))
+                            }
+                        }).await;
+                        
+                        // Process the result
+                        match traffic_data {
+                            Ok(Ok(data)) => {
+                                if !data.is_empty() {
+                                    info!("Received {} bytes of MitM traffic from device", data.len());
+                                    Message::USBDataReceived(data)
+                                } else {
+                                    debug!("Device returned empty MitM traffic data");
+                                    Message::TrafficViewMessage(
+                                        crate::gui::views::traffic_view::Message::NoOp
+                                    )
+                                }
+                            },
+                            Ok(Err(e)) => {
+                                error!("Failed to get MitM traffic: {}", e);
+                                Message::CaptureError(format!("Traffic capture error: {}", e))
+                            },
+                            Err(e) => {
+                                error!("Task error during MitM traffic capture: {}", e);
+                                Message::CaptureError(format!("Thread error: {}", e))
+                            }
+                        }
+                    },
+                    |msg| msg
+                )
+            }
             Message::FetchCaptureData => {
                 if let Some(connection) = &self.connection {
                     let conn_clone = Arc::clone(connection);
@@ -667,11 +723,15 @@ impl Application for USBflyApp {
                                 info!("Generated {} bytes of MitM USB traffic", sim_data.len());
                                 return Message::USBDataReceived(sim_data);
                             } else {
-                                // For real device, we would attempt to get actual data here
-                                // But since we need to implement proper async handling for real devices,
-                                // we'll return an empty result for now
-                                info!("No MitM traffic data received from device");
-                                return Message::TrafficViewMessage(crate::gui::views::traffic_view::Message::NoOp);
+                                // For real device, use the get_captured_traffic function
+                                info!("Attempting to get MitM traffic from real device");
+                                
+                                // Clone the connection reference to avoid Send issues with MutexGuard
+                                // and perform the capture outside the async block
+                                let connection_ref_clone = Arc::clone(&connection_ref);
+                                
+                                // Process the capture on the background thread
+                                return Message::ProcessingCapture(Arc::clone(&connection_ref_clone));
                             }
                         },
                         |msg| msg
