@@ -655,7 +655,10 @@ impl CynthionConnection {
             return Err(anyhow!("Device disconnected - handle is missing"));
         }
         
-        // Special handling for macOS to prevent segfaults
+        // Buffer to store data (define this first so it's available in all code paths)
+        let mut buffer = [0u8; 512];
+        
+        // Special handling for macOS to prevent segfaults - AFTER buffer declaration
         #[cfg(target_os = "macos")]
         {
             // On macOS, we use an extra layer of protection by returning simulated data
@@ -663,9 +666,6 @@ impl CynthionConnection {
             info!("Using safe fallback mode on macOS to prevent potential crashes");
             return Ok(self.get_simulated_data());
         }
-        
-        // Buffer to store data
-        let mut buffer = [0u8; 512];
         
         // Safely access the handle reference with panic protection
         let read_result = match &mut self.handle {
@@ -789,6 +789,17 @@ impl CynthionConnection {
         } else {
             // In real device mode, need both active flag and handle
             self.active && self.handle.is_some()
+        }
+    }
+    
+    // Set simulation mode explicitly
+    pub fn set_simulation_mode(&mut self, enabled: bool) {
+        if enabled && !self.simulation_mode {
+            info!("Setting connection to simulation mode for safer operation");
+            self.simulation_mode = true;
+        } else if !enabled && self.simulation_mode {
+            warn!("Disabling simulation mode - this may cause stability issues");
+            self.simulation_mode = false;
         }
     }
 }

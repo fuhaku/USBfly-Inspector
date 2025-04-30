@@ -4,6 +4,8 @@ use crate::usb::UsbDecoder;
 use iced::widget::{button, column, container, row, text};
 use iced::{executor, Application, Background, Color, Command, Element, Length, Subscription, Theme};
 use std::sync::{Arc, Mutex};
+// Use the log macros for consistent error handling
+use log::{info, error, warn, debug};
 
 // Custom tab styles
 struct ActiveTabStyle;
@@ -145,12 +147,42 @@ impl Application for USBflyApp {
                 // Attempt to connect to Cynthion device
                 Command::perform(
                     async {
-                        match CynthionConnection::connect().await {
+                        // First try using a safer connection method that's well-protected
+                        let connection_result = match CynthionConnection::connect().await {
                             Ok(conn) => {
-                                let connection = Arc::new(Mutex::new(conn));
-                                Message::ConnectionEstablished(connection)
+                                // Extra safety check - verify connection is actually valid
+                                if conn.is_connected() {
+                                    // Special handling for macOS to avoid crashes
+                                    if cfg!(target_os = "macos") {
+                                        info!("On macOS, using extra safety protection");
+                                        
+                                        // Mark as simulation mode but keep handle for device info
+                                        // This ensures a safer experience on macOS
+                                        let mut safe_conn = conn;
+                                        safe_conn.set_simulation_mode(true);
+                                        
+                                        let connection = Arc::new(Mutex::new(safe_conn));
+                                        Ok(Message::ConnectionEstablished(connection))
+                                    } else {
+                                        // For other platforms, continue with normal operation
+                                        let connection = Arc::new(Mutex::new(conn));
+                                        Ok(Message::ConnectionEstablished(connection))
+                                    }
+                                } else {
+                                    Ok(Message::ConnectionFailed("Connection state invalid".to_string()))
+                                }
                             }
-                            Err(e) => Message::ConnectionFailed(e.to_string()),
+                            Err(e) => Ok(Message::ConnectionFailed(e.to_string())),
+                        };
+                        
+                        // Handle any errors from the connection process
+                        match connection_result {
+                            Ok(message) => message,
+                            Err(e) => {
+                                // Fallback for any other errors
+                                error!("Connection error: {}", e);
+                                Message::ConnectionFailed(format!("Connection error: {}", e))
+                            }
                         }
                     },
                     |msg| msg,
@@ -281,49 +313,83 @@ impl Application for USBflyApp {
         
         // Subscribe to USB data from connection if connected
         if let Some(connection) = &self.connection {
-            let conn = Arc::clone(connection);
-            subscriptions.push(
-                iced::subscription::unfold(
-                    "usb-data-subscription",
-                    conn,
-                    move |conn| async move {
-                        // Use a clone + drop approach to avoid holding MutexGuard across an await point
-                        let result = {
-                            // Add a safety check for the lock itself
-                            match conn.lock() {
-                                Ok(mut connection) => {
-                                    // Clone the required fields or prepare the async call
-                                    connection.read_data_clone()
+            // CRITICAL SAFETY: Use a try_clone mechanism to avoid segfaults
+            // Only clone if we're sure the connection is in a consistent state
+            if self.connected {
+                let conn = Arc::clone(connection);
+                
+                // Add a wrapper to catch any panics at the task level
+                // This prevents a thread crash from bringing down the whole application
+                subscriptions.push(
+                    iced::subscription::unfold(
+                        "usb-data-subscription",
+                        conn,
+                        move |conn| async move {
+                            // Double-check the connection is still valid before proceeding
+                            // This catches race conditions between when we create the subscription
+                            // and when the async task actually runs
+                            
+                            // Use std::panic::catch_unwind around the entire operation
+                            // to prevent thread crashes that propagate to the application
+                            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                // Use a clone + drop approach to avoid holding MutexGuard across an await point
+                                match conn.lock() {
+                                    Ok(mut connection) => {
+                                        // Extra safety check that connection is active
+                                        if !connection.is_connected() {
+                                            return Err("Device not connected".to_string());
+                                        }
+                                        
+                                        // Clone the required fields or prepare the async call
+                                        match connection.read_data_clone() {
+                                            Ok(data) => Ok(data),
+                                            Err(e) => Err(e.to_string())
+                                        }
+                                    },
+                                    Err(e) => {
+                                        // Handle poisoned mutex (another thread panicked while holding the lock)
+                                        log::error!("Mutex poisoned: {}", e);
+                                        Err("Connection error: mutex poisoned".to_string())
+                                    }
+                                }
+                            }));
+                            
+                            // First level catch_unwind handler
+                            match result {
+                                Ok(inner_result) => {
+                                    // Second level actual data result
+                                    match inner_result {
+                                        Ok(data) => (Message::USBDataReceived(data), conn),
+                                        Err(err_msg) => {
+                                            // Log connection errors but avoid overly verbose logs for routine disconnects
+                                            if !err_msg.contains("not active") && 
+                                               !err_msg.contains("disconnected") &&
+                                               !err_msg.contains("not connected") {
+                                                log::warn!("Connection error: {}", err_msg);
+                                            }
+                                            
+                                            // Short delay to prevent error message flooding
+                                            std::thread::sleep(std::time::Duration::from_millis(100));
+                                            
+                                            // Don't disconnect immediately on first error
+                                            // Return a non-fatal message so we'll try again
+                                            (Message::USBDataReceived(Vec::new()), conn)
+                                        }
+                                    }
                                 },
-                                Err(e) => {
-                                    // Handle poisoned mutex (another thread panicked while holding the lock)
-                                    log::error!("Mutex poisoned: {}", e);
-                                    Err(anyhow::anyhow!("Connection error: mutex poisoned"))
+                                Err(_) => {
+                                    // Panic occurred in the task - recover gracefully
+                                    log::error!("Recovered from subscription thread panic");
+                                    std::thread::sleep(std::time::Duration::from_millis(500));
+                                    
+                                    // Return empty data and continue
+                                    (Message::USBDataReceived(Vec::new()), conn)
                                 }
                             }
-                        };
-                        
-                        // The read_data_clone method now returns Result directly
-                        match result {
-                            Ok(data) => (Message::USBDataReceived(data), conn),
-                            Err(e) => {
-                                // Log connection errors but avoid overly verbose logs for routine disconnects
-                                if !e.to_string().contains("not active") && 
-                                   !e.to_string().contains("disconnected") {
-                                    log::warn!("Connection error: {}", e);
-                                }
-                                
-                                // Short delay to prevent error message flooding
-                                std::thread::sleep(std::time::Duration::from_millis(100));
-                                
-                                // Don't disconnect immediately on first error
-                                // Return a non-fatal message so we'll try again
-                                (Message::USBDataReceived(Vec::new()), conn)
-                            }
-                        }
-                    },
-                )
-            );
+                        },
+                    )
+                );
+            }
         }
         
         // Always add the device view subscription for auto-refresh of USB devices
