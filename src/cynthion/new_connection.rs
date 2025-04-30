@@ -13,8 +13,6 @@ use nusb::{
         Control,
         ControlType,
         Recipient,
-        EndpointIn,
-        TransferError,
     },
     DeviceInfo,
     Interface,
@@ -232,9 +230,9 @@ impl std::fmt::Debug for CynthionHandle {
 
 impl CynthionHandle {
     // Get the supported speeds from the device
+    #[allow(dead_code)]
     fn speeds(&self) -> Result<Vec<crate::usb::Speed>> {
-        // Import our own Speed enum
-        use crate::usb::Speed;
+        // Import the Speed enum only within this method
         use crate::usb::Speed::*;
         
         let control = Control {
@@ -411,19 +409,25 @@ impl CynthionHandle {
         // Instead, we check if any data has been received from the transfers
         if let Some(queue) = &self.transfer_queue {
             // Check if there's data available in the transfer queue's channel
-            match queue.get_receiver().try_recv() {
-                Ok(data) => {
-                    // Successfully received data from the queue
-                    return Ok(data);
-                },
-                Err(mpsc::TryRecvError::Empty) => {
-                    // No data available yet, return empty vector
-                    return Ok(Vec::new());
-                },
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    // Channel is disconnected, something went wrong
-                    return Err(anyhow::anyhow!("Transfer queue channel disconnected"));
+            if let Some(receiver) = queue.get_receiver() {
+                match receiver.try_recv() {
+                    Ok(data) => {
+                        // Successfully received data from the queue
+                        return Ok(data);
+                    },
+                    Err(mpsc::TryRecvError::Empty) => {
+                        // No data available yet, return empty vector
+                        return Ok(Vec::new());
+                    },
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        // Channel is disconnected, something went wrong
+                        return Err(anyhow::anyhow!("Transfer queue channel disconnected"));
+                    }
                 }
+            } else {
+                // No receiver available (this should not happen for the original connection)
+                // but might happen for cloned connections
+                return Ok(Vec::new());
             }
         }
         
@@ -444,13 +448,11 @@ impl CynthionHandle {
         // Format: [packet_type, endpoint, device_addr, data_len, data...]
         
         // Generate random packet type (control, bulk, interrupt)
-        let mut packet_type = 0x00;
-        let rnd = rand::random::<u8>() % 3;
-        match rnd {
-            0 => packet_type = 0xD0, // SETUP token (control transfer)
-            1 => packet_type = 0x90, // IN token (bulk or interrupt IN)
-            _ => packet_type = 0x10, // OUT token (bulk or interrupt OUT)
-        }
+        let packet_type = match rand::random::<u8>() % 3 {
+            0 => 0xD0, // SETUP token (control transfer)
+            1 => 0x90, // IN token (bulk or interrupt IN)
+            _ => 0x10, // OUT token (bulk or interrupt OUT)
+        };
         
         // Generate random endpoint (1-15) with direction bit
         let mut endpoint = (rand::random::<u8>() % 15) + 1;
@@ -502,7 +504,7 @@ impl CynthionHandle {
     
     // Process MitM traffic into transactions
     pub fn process_mitm_traffic(&mut self, data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
-        use crate::usb::mitm_traffic::{UsbTransaction, TransferType, Direction};
+        use crate::usb::mitm_traffic::{UsbTransaction, UsbTransferType, UsbDirection};
         
         // If data is empty, return empty vector
         if data.is_empty() {
@@ -525,9 +527,9 @@ impl CynthionHandle {
             let packet_type = data[offset];
             let endpoint = data[offset + 1];
             let direction = if endpoint & 0x80 != 0 { 
-                Direction::In 
+                UsbDirection::DeviceToHost 
             } else { 
-                Direction::Out 
+                UsbDirection::HostToDevice 
             };
             
             // Extract device address
@@ -535,11 +537,11 @@ impl CynthionHandle {
             
             // Identify transfer type based on endpoint number (simplified)
             let transfer_type = match endpoint & 0x03 {
-                0 => TransferType::Control,
-                1 => TransferType::Isochronous,
-                2 => TransferType::Bulk,
-                3 => TransferType::Interrupt,
-                _ => TransferType::Control, // Default fallback
+                0 => UsbTransferType::Control,
+                1 => UsbTransferType::Isochronous,
+                2 => UsbTransferType::Bulk,
+                3 => UsbTransferType::Interrupt,
+                _ => UsbTransferType::Control, // Default fallback
             };
             
             // Calculate data length - this would be more complex in real parsing
@@ -595,26 +597,33 @@ impl CynthionHandle {
                     .as_secs_f64(),
                 device_address: device_addr,
                 endpoint: endpoint & 0x7F, // Remove direction bit
-                fields: std::collections::HashMap::new(),
+                fields: {
+                    let mut fields = std::collections::HashMap::new();
+                    fields.insert("speed".to_string(), "High".to_string());
+                    fields.insert("packet_type".to_string(), format!("0x{:02X}", packet_type));
+                    fields
+                },
             };
             
             // If this is a setup packet, create a setup packet structure
             if packet_type == 0xD0 {
                 // Add a basic setup packet - in a real implementation we'd parse the data
+                // Create a minimal setup packet with just the required fields
                 transaction.setup_packet = Some(crate::usb::mitm_traffic::UsbSetupPacket {
-                    request_type: 0, // Default
-                    request: 0,      // Default
-                    value: 0,        // Default
-                    index: 0,        // Default
-                    length: 0,       // Default
+                    bmRequestType: 0,  // Default
+                    bRequest: 0,       // Default
+                    wValue: 0,         // Default
+                    wIndex: 0,         // Default
+                    wLength: 0,        // Default
                     direction: direction,
+                    request_type: crate::usb::mitm_traffic::UsbControlRequestType::Standard,
+                    recipient: crate::usb::mitm_traffic::UsbControlRecipient::Device,
+                    standard_request: None,
                     request_description: "Unknown Request".to_string(),
                 });
             }
             
-            // Add some basic fields
-            transaction.fields.insert("speed".to_string(), "High".to_string());
-            transaction.fields.insert("packet_type".to_string(), format!("0x{:02X}", packet_type));
+            // Fields are already added during initialization
             
             transactions.push(transaction);
             

@@ -62,11 +62,18 @@ If you don't have a Cynthion device, you can use simulation mode:
 
 ## Development
 
+### Recent Updates
+
+- Migrated from rusb to nusb library for better Cynthion device support
+- Enhanced USB transaction handling with improved TransferQueue implementation
+- Fixed device connection issues and improved stability
+- Added comprehensive error handling throughout the application
+
 USBfly is built with:
 
 - Rust programming language
 - iced GUI library for native UI
-- rusb for USB communication
+- nusb for USB communication (replacing rusb for better Cynthion support)
 
 ### Project Structure
 

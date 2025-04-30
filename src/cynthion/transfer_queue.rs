@@ -11,13 +11,10 @@ use std::pin::Pin;
 use anyhow::Result;
 use log::{debug, error, info, warn};
 use nusb::{
-    self,
     transfer::{
-        self,
         TransferError,
         RequestBuffer,
         Completion,
-        TransferFuture
     },
     Interface,
 };
@@ -31,11 +28,11 @@ const TIMEOUT: Duration = Duration::from_millis(1000);
 type BulkTransfer = Completion<Vec<u8>>;
 
 /// A queue of USB bulk transfers to a device.
-#[derive(Clone)]
+// Can't derive Clone because Receiver doesn't implement Clone
 pub struct TransferQueue {
     interface: Interface,
     data_tx: mpsc::Sender<Vec<u8>>,
-    receiver: mpsc::Receiver<Vec<u8>>,  // Add receiver field
+    receiver: Option<mpsc::Receiver<Vec<u8>>>,  // Make Option type since Receiver doesn't implement Clone
     endpoint: u8,
     read_size: usize,
     #[allow(dead_code)]
@@ -43,6 +40,23 @@ pub struct TransferQueue {
     #[allow(dead_code)]
     done_transfers: VecDeque<(BulkTransfer, Vec<u8>)>,
     transfer_id: usize,
+}
+
+// Manual implementation of Clone for TransferQueue
+impl Clone for TransferQueue {
+    fn clone(&self) -> Self {
+        // Create a new transfer queue with the same properties but None for receiver
+        TransferQueue {
+            interface: self.interface.clone(),
+            data_tx: self.data_tx.clone(),
+            receiver: None,  // Can't clone the receiver
+            endpoint: self.endpoint,
+            read_size: self.read_size,
+            active_transfers: self.active_transfers.clone(),
+            done_transfers: self.done_transfers.clone(),
+            transfer_id: self.transfer_id,
+        }
+    }
 }
 
 // Manual implementation of Debug since BulkTransfer doesn't implement Debug
@@ -68,12 +82,12 @@ impl TransferQueue {
         read_size: usize,
     ) -> TransferQueue {
         // Create a channel for receiving data
-        let (tx, rx) = mpsc::channel();
+        let (_tx, rx) = mpsc::channel();
         
         let mut queue = TransferQueue {
             interface: interface.clone(),
             data_tx: data_tx.clone(),  // Use the provided transmitter
-            receiver: rx,
+            receiver: Some(rx),
             endpoint,
             read_size,
             active_transfers: VecDeque::with_capacity(num_transfers),
@@ -229,7 +243,7 @@ impl TransferQueue {
     }
     
     /// Get a reference to the receiver
-    pub fn get_receiver(&self) -> &mpsc::Receiver<Vec<u8>> {
-        &self.receiver
+    pub fn get_receiver(&self) -> Option<&mpsc::Receiver<Vec<u8>>> {
+        self.receiver.as_ref()
     }
 }

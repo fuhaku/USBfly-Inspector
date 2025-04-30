@@ -24,8 +24,7 @@ impl Speed {
     }
 }
 
-// Import our TransferQueue implementation 
-use crate::cynthion::transfer_queue::TransferQueue;
+// The TransferQueue implementation is now only used in new_connection.rs
 
 // Constants for Cynthion device (and compatible devices)
 // Copied from Packetry codebase

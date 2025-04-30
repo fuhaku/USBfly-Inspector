@@ -1,12 +1,12 @@
 // Import the new nusb-based connection types
-use crate::cynthion::{CynthionDevice, CynthionHandle, CynthionStream};
+use crate::cynthion::{CynthionDevice, CynthionHandle};
 use crate::gui::views::{DeviceView, TrafficView, DescriptorView};
 use crate::usb::UsbDecoder;
 use iced::widget::{button, column, container, row, text};
 use iced::{executor, Application, Background, Color, Command, Element, Length, Subscription, Theme};
 use std::sync::{Arc, Mutex};
 // Use the log macros for consistent error handling
-use log::{info, error, debug, warn};
+use log::{info, error, debug};
 
 // Custom tab styles
 struct ActiveTabStyle;
