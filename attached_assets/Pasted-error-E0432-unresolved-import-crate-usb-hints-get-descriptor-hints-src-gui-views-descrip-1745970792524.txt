@@ -1,0 +1,178 @@
+error[E0432]: unresolved import `crate::usb::hints::get_descriptor_hints`
+ --> src/gui/views/descriptor_view.rs:4:5
+  |
+4 | use crate::usb::hints::get_descriptor_hints;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `get_descriptor_hints` in `usb::hints`
+
+error[E0432]: unresolved import `crate::usb::decoder::USBDecoder`
+ --> src/app.rs:3:5
+  |
+3 | use crate::usb::decoder::USBDecoder;
+  |     ^^^^^^^^^^^^^^^^^^^^^----------
+  |     |                    |
+  |     |                    help: a similar name exists in the module: `UsbDecoder`
+  |     no `USBDecoder` in `usb::decoder`
+
+error[E0432]: unresolved import `crate::usb::descriptors::USBDescriptor`
+ --> src/gui/views/descriptor_view.rs:3:5
+  |
+3 | use crate::usb::descriptors::USBDescriptor;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `USBDescriptor` in `usb::descriptors`
+
+error[E0433]: failed to resolve: could not find `USBDescriptor` in `descriptors`
+   --> src/gui/views/traffic_view.rs:367:38
+    |
+367 |             crate::usb::descriptors::USBDescriptor::Device(dev) => {
+    |                                      ^^^^^^^^^^^^^ could not find `USBDescriptor` in `descriptors`
+
+error[E0433]: failed to resolve: could not find `USBDescriptor` in `descriptors`
+   --> src/gui/views/traffic_view.rs:408:38
+    |
+408 |             crate::usb::descriptors::USBDescriptor::Configuration(cfg) => {
+    |                                      ^^^^^^^^^^^^^ could not find `USBDescriptor` in `descriptors`
+
+error[E0433]: failed to resolve: could not find `USBDescriptor` in `descriptors`
+   --> src/gui/views/traffic_view.rs:438:38
+    |
+438 |             crate::usb::descriptors::USBDescriptor::Interface(iface) => {
+    |                                      ^^^^^^^^^^^^^ could not find `USBDescriptor` in `descriptors`
+
+error[E0433]: failed to resolve: could not find `USBDescriptor` in `descriptors`
+   --> src/gui/views/traffic_view.rs:467:38
+    |
+467 |             crate::usb::descriptors::USBDescriptor::Endpoint(ep) => {
+    |                                      ^^^^^^^^^^^^^ could not find `USBDescriptor` in `descriptors`
+
+error[E0433]: failed to resolve: could not find `USBDescriptor` in `descriptors`
+   --> src/gui/views/traffic_view.rs:506:38
+    |
+506 |             crate::usb::descriptors::USBDescriptor::String(str_desc) => {
+    |                                      ^^^^^^^^^^^^^ could not find `USBDescriptor` in `descriptors`
+
+error[E0433]: failed to resolve: could not find `USBDescriptor` in `descriptors`
+   --> src/gui/views/traffic_view.rs:527:38
+    |
+527 |             crate::usb::descriptors::USBDescriptor::HID(hid) => {
+    |                                      ^^^^^^^^^^^^^ could not find `USBDescriptor` in `descriptors`
+
+error[E0433]: failed to resolve: could not find `USBDescriptor` in `descriptors`
+   --> src/gui/views/traffic_view.rs:553:38
+    |
+553 |             crate::usb::descriptors::USBDescriptor::Unknown { descriptor_type, data } => {
+    |                                      ^^^^^^^^^^^^^ could not find `USBDescriptor` in `descriptors`
+
+error[E0412]: cannot find type `USBDescriptor` in module `crate::usb::descriptors`
+   --> src/gui/views/traffic_view.rs:362:66
+    |
+362 | ...sb::descriptors::USBDescriptor]) -> Vec<Element<Message>> {
+    |                     ^^^^^^^^^^^^^ not found in `crate::usb::descriptors`
+
+warning: unused imports: `error` and `warn`
+ --> src/usb/decoder.rs:2:18
+  |
+2 | use log::{debug, error, info, warn};
+  |                  ^^^^^        ^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `UsbIsoUsageType`
+ --> src/usb/hints.rs:2:73
+  |
+2 |     UsbDescriptorType, UsbDeviceClass, UsbEndpointType, UsbIsoSyncType, UsbIsoUsageType,
+  |                                                                         ^^^^^^^^^^^^^^^
+
+warning: unused import: `UsbEndpointDirection`
+  --> src/usb/mod.rs:11:5
+   |
+11 |     UsbEndpointDirection,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `DeviceQualifierDescriptor` and `StringDescriptor`
+  --> src/usb/mod.rs:21:5
+   |
+21 |     StringDescriptor,
+   |     ^^^^^^^^^^^^^^^^
+22 |     DeviceQualifierDescriptor,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0370]: enum discriminant overflowed
+   --> src/usb/descriptor_types.rs:153:5
+    |
+153 |     Unknown(u8),
+    |     ^^^^^^^ overflowed on value after 255
+    |
+    = note: explicitly set `Unknown = 0` if that is desired outcome
+
+error[E0081]: discriminant value `0` assigned more than once
+   --> src/usb/descriptor_types.rs:130:1
+    |
+130 | pub enum UsbDeviceClass {
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+131 |     UseInterfaceDescriptor = 0x00,
+    |                              ---- `0` assigned here
+...
+152 |     VendorSpecific = 0xFF,
+    |     -------------- discriminant for `Unknown` incremented from this startpoint (`VendorSpecific` + 1 variant later => `Unknown` = 0)
+153 |     Unknown(u8),
+    |     ------- `0` assigned here
+
+error[E0609]: no field `descriptors` on type `DecodedUSBData`
+   --> src/gui/views/traffic_view.rs:176:58
+    |
+176 |                     for descriptor in &item.decoded_data.descriptors {
+    |                                                          ^^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+176 -                     for descriptor in &item.decoded_data.descriptors {
+176 +                     for descriptor in &item.decoded_data.description {
+    |
+
+error[E0609]: no field `descriptors` on type `DecodedUSBData`
+   --> src/gui/views/traffic_view.rs:198:86
+    |
+198 | ...ome(first) = item.decoded_data.descriptors.first() {
+    |                                   ^^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+198 -                         let descriptor_type = if let Some(first) = item.decoded_data.descriptors.first() {
+198 +                         let descriptor_type = if let Some(first) = item.decoded_data.description.first() {
+    |
+
+error[E0609]: no field `descriptors` on type `DecodedUSBData`
+   --> src/gui/views/traffic_view.rs:264:62
+    |
+264 |                     build_descriptor_tree(&item.decoded_data.descriptors)
+    |                                                              ^^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+264 -                     build_descriptor_tree(&item.decoded_data.descriptors)
+264 +                     build_descriptor_tree(&item.decoded_data.description)
+    |
+
+error[E0609]: no field `descriptors` on type `DecodedUSBData`
+  --> src/gui/views/descriptor_view.rs:42:40
+   |
+42 |         for descriptor in decoded_data.descriptors {
+   |                                        ^^^^^^^^^^^ unknown field
+   |
+help: a field with a similar name exists
+   |
+42 -         for descriptor in decoded_data.descriptors {
+42 +         for descriptor in decoded_data.description {
+   |
+
+warning: unused variable: `handle`
+   --> src/cynthion/connection.rs:677:33
+    |
+677 |                     if let Some(handle) = self.handle.take() {
+    |                                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_handle`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+Some errors have detailed explanations: E0081, E0370, E0412, E0432, E0433, E0609.
+For more information about an error, try `rustc --explain E0081`.
+warning: `usbfly` (bin "usbfly") generated 5 warnings
+error: could not compile `usbfly` (bin "usbfly") due to 17 previous errors; 5 warnings emitted

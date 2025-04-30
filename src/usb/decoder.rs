@@ -14,6 +14,8 @@ pub struct DecodedUSBData {
     pub fields: HashMap<String, String>,
     // Optional additional info based on data_type
     pub details: Option<String>,
+    // USB descriptors parsed from the data
+    pub descriptors: Vec<crate::usb::descriptors::USBDescriptor>,
 }
 
 // The decoder module is responsible for decoding USB protocol data
@@ -215,6 +217,7 @@ impl UsbDecoder {
             description: "Raw USB Data".to_string(),
             fields: HashMap::new(),
             details: None,
+            descriptors: Vec::new(),
         };
         
         if data.is_empty() {

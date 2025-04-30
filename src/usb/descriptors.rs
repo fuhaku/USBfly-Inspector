@@ -1,8 +1,44 @@
 use std::fmt;
 use super::descriptor_types::*;
+use serde::{Deserialize, Serialize};
+
+// Main enum to represent different USB descriptor types for UI display
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum USBDescriptor {
+    Device(DeviceDescriptor),
+    Configuration(ConfigurationDescriptor),
+    Interface(InterfaceDescriptor),
+    Endpoint(EndpointDescriptor),
+    String(StringDescriptor),
+    HID(Vec<u8>), // Raw HID descriptor data
+    DeviceQualifier(DeviceQualifierDescriptor),
+    Unknown { 
+        descriptor_type: UsbDescriptorType,
+        data: Vec<u8>,
+    },
+}
+
+impl fmt::Display for USBDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            USBDescriptor::Device(desc) => write!(f, "{}", desc),
+            USBDescriptor::Configuration(desc) => write!(f, "{}", desc),
+            USBDescriptor::Interface(desc) => write!(f, "{}", desc),
+            USBDescriptor::Endpoint(desc) => write!(f, "{}", desc),
+            USBDescriptor::String(desc) => write!(f, "{}", desc),
+            USBDescriptor::HID(data) => write!(f, "HID Descriptor: {} bytes", data.len()),
+            USBDescriptor::DeviceQualifier(desc) => write!(f, "{}", desc),
+            USBDescriptor::Unknown { descriptor_type, data } => {
+                writeln!(f, "Unknown Descriptor:")?;
+                writeln!(f, "  Type: 0x{:02X} ({})", descriptor_type.get_value(), descriptor_type.name())?;
+                writeln!(f, "  Data: {} bytes", data.len())
+            }
+        }
+    }
+}
 
 // USB Standard Device Descriptor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceDescriptor {
     pub length: u8,                // Descriptor size in bytes (18)
     pub descriptor_type: UsbDescriptorType, // DEVICE descriptor type (1)
@@ -122,7 +158,7 @@ impl fmt::Display for DeviceDescriptor {
 }
 
 // USB Configuration Descriptor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigurationDescriptor {
     pub length: u8,                    // Descriptor size in bytes (9)
     pub descriptor_type: UsbDescriptorType, // CONFIGURATION descriptor type (2)
@@ -215,7 +251,7 @@ impl fmt::Display for ConfigurationDescriptor {
 }
 
 // USB Interface Descriptor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InterfaceDescriptor {
     pub length: u8,                    // Descriptor size in bytes (9)
     pub descriptor_type: UsbDescriptorType, // INTERFACE descriptor type (4)
@@ -308,7 +344,7 @@ impl fmt::Display for InterfaceDescriptor {
 }
 
 // USB Endpoint Descriptor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndpointDescriptor {
     pub length: u8,                    // Descriptor size in bytes (7)
     pub descriptor_type: UsbDescriptorType, // ENDPOINT descriptor type (5)
@@ -416,7 +452,7 @@ impl fmt::Display for EndpointDescriptor {
 }
 
 // USB String Descriptor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StringDescriptor {
     pub length: u8,                    // Descriptor size in bytes
     pub descriptor_type: UsbDescriptorType, // STRING descriptor type (3)
@@ -475,7 +511,7 @@ impl fmt::Display for StringDescriptor {
 }
 
 // USB Device Qualifier Descriptor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceQualifierDescriptor {
     pub length: u8,                // Descriptor size in bytes (10)
     pub descriptor_type: UsbDescriptorType, // DEVICE_QUALIFIER descriptor type (6)

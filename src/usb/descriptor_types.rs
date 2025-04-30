@@ -1,7 +1,9 @@
 // USB Descriptor Types
 // Based on USB 2.0 and 3.0 specifications
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use std::fmt;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum UsbDescriptorType {
     // Standard descriptor types (USB 2.0)
@@ -53,6 +55,13 @@ impl From<u8> for UsbDescriptorType {
             0x31 => UsbDescriptorType::SuperspeedPlusIsochronousEndpointCompanion,
             _ => UsbDescriptorType::Unknown(value),
         }
+    }
+}
+
+// Implement UpperHex trait for UsbDescriptorType
+impl fmt::UpperHex for UsbDescriptorType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:02X}", self.get_value())
     }
 }
 
@@ -125,7 +134,7 @@ impl UsbDescriptorType {
 }
 
 // USB Device Classes based on USB-IF specifications
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum UsbDeviceClass {
     UseInterfaceDescriptor = 0x00,
@@ -150,7 +159,7 @@ pub enum UsbDeviceClass {
     Miscellaneous = 0xEF,
     ApplicationSpecific = 0xFE,
     VendorSpecific = 0xFF,
-    Unknown(u8),
+    Unknown(u8) = 0x100, // Explicitly set to a value above u8 range
 }
 
 impl From<u8> for UsbDeviceClass {
@@ -270,14 +279,14 @@ impl UsbDeviceClass {
 }
 
 // USB Endpoint Types
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum UsbEndpointType {
     Control = 0,
     Isochronous = 1,
     Bulk = 2,
     Interrupt = 3,
-    Unknown(u8),
+    Unknown(u8) = 0x100, // Explicitly set to a value above u8 range
 }
 
 impl From<u8> for UsbEndpointType {
@@ -325,7 +334,7 @@ impl UsbEndpointType {
 }
 
 // USB Endpoint Directions
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum UsbEndpointDirection {
     Out = 0,  // Host to device
@@ -359,14 +368,14 @@ impl UsbEndpointDirection {
 }
 
 // USB Endpoint Synchronization Types (for Isochronous endpoints)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum UsbIsoSyncType {
     NoSync = 0,
     Asynchronous = 1,
     Adaptive = 2,
     Synchronous = 3,
-    Unknown(u8),
+    Unknown(u8) = 0x100, // Explicitly set to a value above u8 range
 }
 
 impl From<u8> for UsbIsoSyncType {
@@ -414,14 +423,14 @@ impl UsbIsoSyncType {
 }
 
 // USB Endpoint Usage Types (for Isochronous endpoints)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum UsbIsoUsageType {
     Data = 0,
     Feedback = 1,
     ImplicitFeedback = 2,
     Reserved = 3,
-    Unknown(u8),
+    Unknown(u8) = 0x100, // Explicitly set to a value above u8 range
 }
 
 impl From<u8> for UsbIsoUsageType {
