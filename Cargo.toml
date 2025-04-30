@@ -45,6 +45,7 @@ regex = "1.9"
 clap = { version = "4.3", features = ["derive"] }
 hex = "0.4"
 image = { version = "0.24", default-features = false, features = ["png"] }
+rand = "0.8"
 
 [build-dependencies]
 embed-resource = "2.3"

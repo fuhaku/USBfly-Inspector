@@ -14,12 +14,14 @@ use nusb::{
         ControlType,
         Recipient,
         EndpointIn,
+        TransferError,
     },
     DeviceInfo,
     Interface,
 };
 
-use crate::cynthion::connection::Speed;
+// Import the connection module's Speed enum
+use crate::cynthion::connection::Speed as ConnectionSpeed;
 
 // Bitfield structures for device control
 // We'll implement these manually since we're transitioning away from the bitfield crate
@@ -28,7 +30,7 @@ use crate::cynthion::connection::Speed;
 struct State(u8);
 
 impl State {
-    fn new(enable: bool, speed: Speed) -> State {
+    fn new(enable: bool, speed: ConnectionSpeed) -> State {
         let mut value = 0u8;
         // Set enable bit (bit 0)
         if enable {
@@ -44,7 +46,7 @@ impl State {
 struct TestConfig(u8);
 
 impl TestConfig {
-    fn new(speed: Option<Speed>) -> TestConfig {
+    fn new(speed: Option<ConnectionSpeed>) -> TestConfig {
         let mut value = 0u8;
         if let Some(speed) = speed {
             // Set connect bit (bit 0)
@@ -81,7 +83,7 @@ pub struct CynthionDevice {
     device_info: DeviceInfo,
     interface_number: u8,
     alt_setting_number: u8,
-    supported_speeds: Vec<Speed>,
+    supported_speeds: Vec<ConnectionSpeed>,
 }
 
 impl CynthionDevice {
@@ -167,6 +169,7 @@ impl CynthionDevice {
         Ok(CynthionHandle {
             interface,
             device_info: self.device_info.clone(),
+            transfer_queue: None,
         })
     }
     
@@ -211,12 +214,29 @@ impl CynthionDevice {
 pub struct CynthionHandle {
     interface: Interface,
     device_info: DeviceInfo,
+    transfer_queue: Option<TransferQueue>,
+}
+
+// Manual implementation of Debug since Interface doesn't implement Debug
+impl std::fmt::Debug for CynthionHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CynthionHandle")
+            .field("device_info", &format!("VID:{:04x} PID:{:04x}", 
+                    self.device_info.vendor_id(), 
+                    self.device_info.product_id()))
+            .field("interface_number", &self.interface.interface_number())
+            .field("transfer_queue", &self.transfer_queue)
+            .finish()
+    }
 }
 
 impl CynthionHandle {
     // Get the supported speeds from the device
-    fn speeds(&self) -> Result<Vec<Speed>> {
-        use Speed::*;
+    fn speeds(&self) -> Result<Vec<crate::usb::Speed>> {
+        // Import our own Speed enum
+        use crate::usb::Speed;
+        use crate::usb::Speed::*;
+        
         let control = Control {
             control_type: ControlType::Vendor,
             recipient: Recipient::Interface,
@@ -237,27 +257,29 @@ impl CynthionHandle {
         }
         
         let mut speeds = Vec::new();
-        for speed in [Auto, High, Full, Low] {
-            if buf[0] & speed.mask() != 0 {
-                speeds.push(speed);
-            }
-        }
+        // Each speed corresponds to a bit in the response
+        // Auto = bit 0, High = bit 1, Full = bit 2, Low = bit 3
+        if buf[0] & 0x01 != 0 { speeds.push(Auto); }
+        if buf[0] & 0x02 != 0 { speeds.push(High); }
+        if buf[0] & 0x04 != 0 { speeds.push(Full); }
+        if buf[0] & 0x08 != 0 { speeds.push(Low); }
         
         Ok(speeds)
     }
     
     // Start capturing USB traffic with specified speed
-    fn start_capture(&mut self, speed: Speed) -> Result<()> {
-        self.write_request(1, State::new(true, speed).0)
+    pub fn start_capture(&mut self) -> Result<()> {
+        // We'll use High speed by default for simplicity
+        self.write_request(1, State::new(true, ConnectionSpeed::High).0)
     }
     
     // Stop capturing USB traffic
-    fn stop_capture(&mut self) -> Result<()> {
-        self.write_request(1, State::new(false, Speed::High).0)
+    pub fn stop_capture(&mut self) -> Result<()> {
+        self.write_request(1, State::new(false, ConnectionSpeed::High).0)
     }
     
     // Configure the built-in test device (if available)
-    pub fn configure_test_device(&mut self, speed: Option<Speed>) -> Result<()> {
+    pub fn configure_test_device(&mut self, speed: Option<ConnectionSpeed>) -> Result<()> {
         let test_config = TestConfig::new(speed);
         self.write_request(3, test_config.0)
             .context("Failed to set test device configuration")
@@ -284,10 +306,10 @@ impl CynthionHandle {
     // Begin capture and return a queue for processing transfers
     pub fn begin_capture(
         &mut self,
-        speed: Speed,
         data_tx: mpsc::Sender<Vec<u8>>
     ) -> Result<TransferQueue> {
-        self.start_capture(speed)?;
+        // Default to High speed for now
+        self.start_capture()?;
         
         Ok(TransferQueue::new(&self.interface, data_tx,
             ENDPOINT, NUM_TRANSFERS, READ_LEN))
@@ -322,34 +344,15 @@ impl CynthionHandle {
             .unwrap_or("N/A")
     }
     
-    // Read traffic data from device with cloning for thread safety
-    pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
-        // Create buffer for data
-        let mut buffer = vec![0; 4096];
-        
-        // Read from interface
-        let endpoint = EndpointIn::new(self.interface.interface_number(), 0x81); // MitM data endpoint
-        let timeout = Duration::from_millis(100);
-        
-        match self.interface.bulk_in_blocking(endpoint, &mut buffer, timeout) {
-            Ok(size) => {
-                if size > 0 {
-                    // Resize buffer to actual size
-                    buffer.truncate(size);
-                    Ok(buffer)
-                } else {
-                    // No data available
-                    Err(anyhow::anyhow!("No data available"))
-                }
-            },
-            Err(e) => {
-                Err(anyhow::anyhow!("Failed to read data: {}", e))
-            }
-        }
+    // The old direct read implementation is replaced by the version below
+    // that uses TransferQueue for better performance and reliability
+    fn _deprecated_read_mitm_direct(&mut self) -> Result<Vec<u8>> {
+        // This is just a placeholder stub to avoid duplicate method definitions
+        Ok(Vec::new())
     }
     
     // Set read timeout for bulk operations
-    pub fn set_read_timeout(&mut self, duration: Option<Duration>) -> Result<()> {
+    pub fn set_read_timeout(&mut self, _duration: Option<Duration>) -> Result<()> {
         // nusb doesn't have a direct timeout setting, we'll just store it for future use
         // This is a stub method to maintain API compatibility
         Ok(())
@@ -371,6 +374,255 @@ impl CynthionHandle {
     pub fn clear_capture_buffer(&mut self) -> Result<()> {
         // Real hardware doesn't need to clear buffer as it streams constantly
         Ok(())
+    }
+    
+    // Read MitM traffic using a safe clone-based approach for thread safety
+    pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
+        // If we're in simulation mode, return simulated data
+        if self.is_simulation_mode() {
+            return Ok(self.get_simulated_mitm_traffic());
+        }
+        
+        // Check if we have an active transfer queue
+        if self.transfer_queue.is_none() {
+            // Create a channel for data transfer
+            let (tx, _rx) = mpsc::channel();
+            
+            // Create a new transfer queue with the transmitter
+            let transfer_queue = TransferQueue::new(&self.interface, tx,
+                ENDPOINT, NUM_TRANSFERS, READ_LEN);
+                
+            // Store the transfer queue
+            self.transfer_queue = Some(transfer_queue);
+            
+            // Start the capture
+            self.start_capture()?;
+            
+            // Return empty data for this first call
+            return Ok(Vec::new());
+        }
+        
+        // Process any completed transfers to keep the queue moving
+        if let Some(queue) = &mut self.transfer_queue {
+            queue.process_completed_transfers()?;
+        }
+        
+        // For nusb, we don't directly read from the device
+        // Instead, we check if any data has been received from the transfers
+        if let Some(queue) = &self.transfer_queue {
+            // Check if there's data available in the transfer queue's channel
+            match queue.get_receiver().try_recv() {
+                Ok(data) => {
+                    // Successfully received data from the queue
+                    return Ok(data);
+                },
+                Err(mpsc::TryRecvError::Empty) => {
+                    // No data available yet, return empty vector
+                    return Ok(Vec::new());
+                },
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    // Channel is disconnected, something went wrong
+                    return Err(anyhow::anyhow!("Transfer queue channel disconnected"));
+                }
+            }
+        }
+        
+        // Fallback if no queue is available
+        Ok(Vec::new())
+    }
+    
+    // Process raw data into USB transactions (for nusb implementation)
+    pub fn process_transactions(&mut self, _data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
+        // For now, return an empty vector
+        // This will be implemented to parse the raw data into USB transactions
+        Vec::new()
+    }
+    
+    // Get simulated MitM traffic for testing
+    pub fn get_simulated_mitm_traffic(&mut self) -> Vec<u8> {
+        // Create a realistic simulated USB packet
+        // Format: [packet_type, endpoint, device_addr, data_len, data...]
+        
+        // Generate random packet type (control, bulk, interrupt)
+        let mut packet_type = 0x00;
+        let rnd = rand::random::<u8>() % 3;
+        match rnd {
+            0 => packet_type = 0xD0, // SETUP token (control transfer)
+            1 => packet_type = 0x90, // IN token (bulk or interrupt IN)
+            _ => packet_type = 0x10, // OUT token (bulk or interrupt OUT)
+        }
+        
+        // Generate random endpoint (1-15) with direction bit
+        let mut endpoint = (rand::random::<u8>() % 15) + 1;
+        if packet_type == 0x90 {
+            endpoint |= 0x80; // Set direction bit for IN transfers
+        }
+        
+        // Use device address 1 or 2 for simulated devices
+        let device_addr = (rand::random::<u8>() % 2) + 1;
+        
+        // Randomize data size (4-64 bytes)
+        let data_len = (rand::random::<u8>() % 60) + 4;
+        
+        // Create data buffer
+        let mut data = Vec::with_capacity(data_len as usize + 4);
+        
+        // Add header
+        data.push(packet_type);
+        data.push(endpoint);
+        data.push(device_addr);
+        data.push(data_len);
+        
+        // Add simulated USB data
+        if packet_type == 0xD0 {
+            // For SETUP packets, use standard device request format
+            // bmRequestType
+            data.push(0x80); // Device-to-host
+            // bRequest
+            data.push(0x06); // GET_DESCRIPTOR
+            // wValue
+            data.push(0x01); // Descriptor index
+            data.push(0x00); // Descriptor type (device)
+            // wIndex
+            data.push(0x00);
+            data.push(0x00);
+            // wLength
+            data.push(0x12); // 18 bytes (standard device descriptor length)
+            data.push(0x00);
+        } else {
+            // For other packets, generate random data
+            for _ in 0..(data_len as usize) {
+                data.push(rand::random::<u8>());
+            }
+        }
+        
+        // Return the packet
+        data
+    }
+    
+    // Process MitM traffic into transactions
+    pub fn process_mitm_traffic(&mut self, data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
+        use crate::usb::mitm_traffic::{UsbTransaction, TransferType, Direction};
+        
+        // If data is empty, return empty vector
+        if data.is_empty() {
+            return Vec::new();
+        }
+        
+        // For our nusb implementation, properly process the data
+        let mut transactions = Vec::new();
+        
+        // Ensure we have enough data for at least one transaction (minimum 8 bytes)
+        // Real implementation would use a more robust parsing approach
+        if data.len() < 8 {
+            return Vec::new();
+        }
+        
+        // Process data into packets first
+        let mut offset = 0;
+        while offset + 8 <= data.len() {
+            // Read packet header (simplified for this implementation)
+            let packet_type = data[offset];
+            let endpoint = data[offset + 1];
+            let direction = if endpoint & 0x80 != 0 { 
+                Direction::In 
+            } else { 
+                Direction::Out 
+            };
+            
+            // Extract device address
+            let device_addr = data[offset + 2];
+            
+            // Identify transfer type based on endpoint number (simplified)
+            let transfer_type = match endpoint & 0x03 {
+                0 => TransferType::Control,
+                1 => TransferType::Isochronous,
+                2 => TransferType::Bulk,
+                3 => TransferType::Interrupt,
+                _ => TransferType::Control, // Default fallback
+            };
+            
+            // Calculate data length - this would be more complex in real parsing
+            let mut data_len = 4; // Default to a minimum length
+            if offset + 3 < data.len() {
+                data_len = data[offset + 3] as usize;
+                // Ensure we don't exceed buffer boundaries
+                if offset + 4 + data_len > data.len() {
+                    data_len = data.len() - offset - 4;
+                }
+            }
+            
+            // Extract data payload
+            let payload = if offset + 4 + data_len <= data.len() {
+                data[offset+4..offset+4+data_len].to_vec()
+            } else {
+                Vec::new()
+            };
+            
+            // Generate a unique ID for this transaction
+            // In a real implementation, this would come from the device
+            let id = transactions.len() as u32 + 1;
+            
+            // Create a data packet for this transaction
+            let data_packet = crate::usb::mitm_traffic::UsbDataPacket::new(
+                payload, 
+                direction,
+                endpoint & 0x7F // Remove direction bit
+            );
+            
+            // Create a status packet (assume success)
+            let status_packet = crate::usb::mitm_traffic::UsbStatusPacket {
+                status: crate::usb::mitm_traffic::UsbTransferStatus::ACK,
+                endpoint: endpoint & 0x7F,
+            };
+            
+            // Create the transaction
+            let transaction = UsbTransaction::new(id.into(), std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs_f64());
+                
+            // Update the transaction with our data
+            let mut transaction = UsbTransaction {
+                id: id.into(), // Convert to u64
+                transfer_type,
+                setup_packet: None, // We'd parse this from the data for control transfers
+                data_packet: Some(data_packet),
+                status_packet: Some(status_packet),
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs_f64(),
+                device_address: device_addr,
+                endpoint: endpoint & 0x7F, // Remove direction bit
+                fields: std::collections::HashMap::new(),
+            };
+            
+            // If this is a setup packet, create a setup packet structure
+            if packet_type == 0xD0 {
+                // Add a basic setup packet - in a real implementation we'd parse the data
+                transaction.setup_packet = Some(crate::usb::mitm_traffic::UsbSetupPacket {
+                    request_type: 0, // Default
+                    request: 0,      // Default
+                    value: 0,        // Default
+                    index: 0,        // Default
+                    length: 0,       // Default
+                    direction: direction,
+                    request_description: "Unknown Request".to_string(),
+                });
+            }
+            
+            // Add some basic fields
+            transaction.fields.insert("speed".to_string(), "High".to_string());
+            transaction.fields.insert("packet_type".to_string(), format!("0x{:02X}", packet_type));
+            
+            transactions.push(transaction);
+            
+            // Move to next packet
+            offset += 4 + data_len;
+        }
+        
+        transactions
     }
 }
 

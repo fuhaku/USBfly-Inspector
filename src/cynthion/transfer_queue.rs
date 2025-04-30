@@ -31,14 +31,31 @@ const TIMEOUT: Duration = Duration::from_millis(1000);
 type BulkTransfer = Completion<Vec<u8>>;
 
 /// A queue of USB bulk transfers to a device.
+#[derive(Clone)]
 pub struct TransferQueue {
     interface: Interface,
     data_tx: mpsc::Sender<Vec<u8>>,
+    receiver: mpsc::Receiver<Vec<u8>>,  // Add receiver field
     endpoint: u8,
     read_size: usize,
+    #[allow(dead_code)]
     active_transfers: VecDeque<(BulkTransfer, Vec<u8>)>,
+    #[allow(dead_code)]
     done_transfers: VecDeque<(BulkTransfer, Vec<u8>)>,
     transfer_id: usize,
+}
+
+// Manual implementation of Debug since BulkTransfer doesn't implement Debug
+impl std::fmt::Debug for TransferQueue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TransferQueue")
+            .field("endpoint", &self.endpoint)
+            .field("read_size", &self.read_size)
+            .field("active_transfers_count", &self.active_transfers.len())
+            .field("done_transfers_count", &self.done_transfers.len())
+            .field("transfer_id", &self.transfer_id)
+            .finish()
+    }
 }
 
 impl TransferQueue {
@@ -50,15 +67,22 @@ impl TransferQueue {
         num_transfers: usize,
         read_size: usize,
     ) -> TransferQueue {
+        // Create a channel for receiving data
+        let (tx, rx) = mpsc::channel();
+        
         let mut queue = TransferQueue {
             interface: interface.clone(),
-            data_tx,
+            data_tx: data_tx.clone(),  // Use the provided transmitter
+            receiver: rx,
             endpoint,
             read_size,
             active_transfers: VecDeque::with_capacity(num_transfers),
             done_transfers: VecDeque::with_capacity(MAX_DONE_TRANSFERS),
             transfer_id: 0,
         };
+        
+        // Set up data_tx to be used directly
+        // Since mpsc::Sender doesn't have a subscribe method, we'll use the provided one directly
 
         // Initialize the transfer queue by submitting initial transfers
         queue.initialize_transfers(num_transfers);
@@ -128,7 +152,7 @@ impl TransferQueue {
         let mut processed_count = 0;
         
         // Check all active transfers for completion
-        while let Some((transfer, mut buffer)) = self.active_transfers.pop_front() {
+        while let Some((transfer, buffer)) = self.active_transfers.pop_front() {
             // In nusb, we need to check the completion status in a different way
             // The Completion struct has a status field that contains the Result
             if transfer.status.is_ok() {
@@ -202,5 +226,10 @@ impl TransferQueue {
         // Just clear out both queues
         self.active_transfers.clear();
         self.done_transfers.clear();
+    }
+    
+    /// Get a reference to the receiver
+    pub fn get_receiver(&self) -> &mpsc::Receiver<Vec<u8>> {
+        &self.receiver
     }
 }

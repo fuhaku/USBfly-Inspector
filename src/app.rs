@@ -84,13 +84,14 @@ pub enum Tab {
 pub struct USBflyApp {
     // New connections use CynthionHandle from our nusb implementation
     cynthion_handle: Option<Arc<Mutex<CynthionHandle>>>,
+    connection: Option<Arc<Mutex<CynthionHandle>>>, // Active connection instance
     available_devices: Vec<CynthionDevice>,
     usb_decoder: UsbDecoder,
     active_tab: Tab,
     device_view: DeviceView,
     traffic_view: TrafficView,
     descriptor_view: DescriptorView,
-    connected: bool,
+    connected: bool, // Flag to track connection state
     error_message: Option<String>,
     dark_mode: bool,
 }
@@ -135,6 +136,7 @@ impl Application for USBflyApp {
         
         let app = Self {
             cynthion_handle: None,
+            connection: None,
             available_devices: Vec::new(),
             usb_decoder: UsbDecoder::new(),
             active_tab: Tab::Devices,
@@ -238,17 +240,19 @@ impl Application for USBflyApp {
                 }
             }
             Message::Disconnect => {
-                if let Some(handle) = &self.cynthion_handle {
+                if let Some(_handle) = &self.cynthion_handle {
                     // With the new implementation, we don't need to explicitly disconnect
                     // Just release the handle to close the device
                     info!("Disconnecting from Cynthion device");
                 }
                 self.cynthion_handle = None;
+                self.connection = None;
                 self.connected = false;
                 Command::none()
             }
             Message::ConnectionEstablished(handle) => {
-                self.cynthion_handle = Some(handle);
+                self.cynthion_handle = Some(handle.clone());
+                self.connection = Some(handle);
                 self.connected = true;
                 self.error_message = None;
                 Command::none()
@@ -487,7 +491,7 @@ impl Application for USBflyApp {
                 }
             }
             Message::StopCapture => {
-                if let Some(connection) = &self.connected {
+                if let Some(connection) = &self.connection {
                     let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
                     info!("Stopping USB traffic capture...");
@@ -554,7 +558,7 @@ impl Application for USBflyApp {
                 }
             }
             Message::ClearCaptureBuffer => {
-                if let Some(connection) = &self.connected {
+                if let Some(connection) = &self.connection {
                     let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
                     info!("Clearing capture buffer...");
@@ -669,7 +673,7 @@ impl Application for USBflyApp {
                 )
             }
             Message::FetchCaptureData => {
-                if let Some(connection) = &self.connected {
+                if let Some(connection) = &self.connection {
                     let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
                     // Use a simulated capture data approach for safety
@@ -677,7 +681,7 @@ impl Application for USBflyApp {
                     // First get the info we need under a short-lived lock
                     let (is_simulation, maybe_data, connection_ref) = {
                         match conn_clone.lock() {
-                            Ok(conn) => {
+                            Ok(mut conn) => {
                                 let is_sim = conn.is_simulation_mode();
                                 
                                 // Get simulated data while we have the lock if in simulation mode
@@ -722,7 +726,7 @@ impl Application for USBflyApp {
                                     info!("Received {} bytes of MitM USB traffic", data.len());
                                     
                                     // Process the data using our new method (if we can get a lock)
-                                    if let Ok(conn) = connection_ref.lock() {
+                                    if let Ok(mut conn) = connection_ref.lock() {
                                         let transactions = conn.process_mitm_traffic(&data);
                                         info!("Processed into {} USB transactions", transactions.len());
                                         
@@ -743,7 +747,7 @@ impl Application for USBflyApp {
                             
                             if is_simulation {
                                 // Use our enhanced simulation module for more realistic data
-                                let sim_data = if let Ok(conn) = connection_ref.lock() {
+                                let sim_data = if let Ok(mut conn) = connection_ref.lock() {
                                     conn.get_simulated_mitm_traffic()
                                 } else {
                                     // Fallback if we couldn't get a lock for some reason
@@ -778,7 +782,7 @@ impl Application for USBflyApp {
         let mut subscriptions = Vec::new();
         
         // Subscribe to USB data from connection if connected
-        if let Some(connection) = &self.connected {
+        if let Some(connection) = &self.connection {
             // Only setup the USB data subscription if we're connected and the UI indicates we're connected
             // This prevents race conditions where we're in the process of connecting/disconnecting
             if self.connected {
