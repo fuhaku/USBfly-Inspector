@@ -144,7 +144,7 @@ impl TrafficView {
     
     // Add a USB transaction to the traffic view (for MitM traffic)
     pub fn add_transaction(&mut self, transaction: UsbTransaction) {
-        use log::{debug, info};
+        use log::debug;
         
         debug!("Adding transaction ID {} of type {:?}", transaction.id, transaction.transfer_type);
         
@@ -525,13 +525,42 @@ impl TrafficView {
             // Define indentation based on level
             let indent_width = 20.0 * level as f32;
             
-            // Create toggle button for expand/collapse
+            // Create toggle button for expand/collapse with enhanced styling
             let toggle_icon = if node.children.is_empty() {
                 "   " // No toggle for leaf nodes
             } else if node.expanded {
                 "▼ " // Down triangle for expanded
             } else {
                 "▶ " // Right triangle for collapsed
+            };
+            
+            // Determine icon color based on node type for better visual hierarchy
+            let icon_color = if self.dark_mode {
+                match node.item_type {
+                    TreeNodeType::Root => color::dark::PRIMARY_LIGHT,
+                    TreeNodeType::Device => color::dark::USB_CYAN, 
+                    TreeNodeType::Configuration |
+                    TreeNodeType::Interface |
+                    TreeNodeType::Endpoint => color::dark::USB_GREEN,
+                    TreeNodeType::Transaction |
+                    TreeNodeType::BulkTransfer |
+                    TreeNodeType::InterruptTransfer |
+                    TreeNodeType::IsochronousTransfer => color::dark::USB_YELLOW,
+                    _ => color::dark::TEXT_SECONDARY,
+                }
+            } else {
+                match node.item_type {
+                    TreeNodeType::Root => color::PRIMARY_LIGHT,
+                    TreeNodeType::Device => color::USB_CYAN, 
+                    TreeNodeType::Configuration |
+                    TreeNodeType::Interface |
+                    TreeNodeType::Endpoint => color::USB_GREEN,
+                    TreeNodeType::Transaction |
+                    TreeNodeType::BulkTransfer |
+                    TreeNodeType::InterruptTransfer |
+                    TreeNodeType::IsochronousTransfer => color::USB_YELLOW,
+                    _ => color::TEXT_SECONDARY,
+                }
             };
             
             // Pick appropriate text color based on node type
@@ -575,11 +604,12 @@ impl TrafficView {
                 }
             };
             
-            // Add connection line symbol based on level and position
-            let connector_symbol = match (level, node.children.is_empty()) {
-                (0, _) => "", // root level, no connector
-                (_, true) => "├──►", // non-root leaf node
-                (_, false) => "├──┬", // non-root internal node with children
+            // Add connection line symbol based on level, position, and expansion state
+            let connector_symbol = match (level, node.children.is_empty(), node.expanded) {
+                (0, _, _) => "", // root level, no connector
+                (_, true, _) => "├──►", // non-root leaf node
+                (_, false, true) => "├──┬", // non-root expanded node with children
+                (_, false, false) => "├──►", // non-root collapsed node with children
             };
             
             // Build the row with toggle button and node content
@@ -600,22 +630,26 @@ impl TrafficView {
                     text("")
                 },
                 
-                // Toggle button
+                // Toggle button with enhanced styling and color
                 if !node.children.is_empty() {
-                    let btn: Element<Message> = button(text(toggle_icon))
-                        .on_press(Message::ToggleTreeNode(node_id.clone()))
-                        .style(if self.dark_mode {
-                            iced::theme::Button::Custom(Box::new(styles::DarkModeTreeNodeButton))
-                        } else {
-                            iced::theme::Button::Custom(Box::new(styles::TreeNodeButton))
-                        })
-                        .width(Length::Fixed(30.0))
-                        .into();
+                    let btn: Element<Message> = button(
+                        text(toggle_icon).style(iced::theme::Text::Color(icon_color))
+                    )
+                    .on_press(Message::ToggleTreeNode(node_id.clone()))
+                    .style(if self.dark_mode {
+                        iced::theme::Button::Custom(Box::new(styles::DarkModeTreeNodeButton))
+                    } else {
+                        iced::theme::Button::Custom(Box::new(styles::TreeNodeButton))
+                    })
+                    .width(Length::Fixed(30.0))
+                    .into();
                     btn
                 } else {
-                    container(text(toggle_icon))
-                        .width(Length::Fixed(30.0))
-                        .into()
+                    container(
+                        text(toggle_icon).style(iced::theme::Text::Color(icon_color))
+                    )
+                    .width(Length::Fixed(30.0))
+                    .into()
                 },
                 
                 // Node content
@@ -625,15 +659,60 @@ impl TrafficView {
             .spacing(5)
             .width(Length::Fill);
             
-            // Create a container for the node
+            // Choose the appropriate style based on node type
+            let style = match node.item_type {
+                TreeNodeType::Root => {
+                    if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModeHeaderContainer))
+                    } else {
+                        iced::theme::Container::Box
+                    }
+                },
+                TreeNodeType::Device | 
+                TreeNodeType::BulkTransfer | 
+                TreeNodeType::InterruptTransfer |
+                TreeNodeType::IsochronousTransfer => {
+                    if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModePrimaryNodeContainer))
+                    } else {
+                        iced::theme::Container::Box
+                    }
+                },
+                TreeNodeType::Setup | 
+                TreeNodeType::Status |
+                TreeNodeType::Data => {
+                    if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModeSecondaryNodeContainer))
+                    } else {
+                        iced::theme::Container::Box
+                    }
+                },
+                _ => {
+                    if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModeTreeNodeContainer))
+                    } else {
+                        iced::theme::Container::Box
+                    }
+                }
+            };
+            
+            // Create a container for the node with the chosen style and better spacing
+            let vertical_padding = if node.item_type == TreeNodeType::Root {
+                5 // More padding for root nodes
+            } else if matches!(node.item_type, 
+                TreeNodeType::Device | 
+                TreeNodeType::Configuration | 
+                TreeNodeType::Interface | 
+                TreeNodeType::Endpoint) {
+                4 // Medium padding for major structural nodes
+            } else {
+                3 // Standard padding for detail nodes
+            };
+            
             let node_container = container(node_row)
-                .style(if self.dark_mode {
-                    iced::theme::Container::Custom(Box::new(styles::DarkModeTreeNodeContainer))
-                } else {
-                    iced::theme::Container::Box
-                })
+                .style(style)
                 .width(Length::Fill)
-                .padding(3);
+                .padding([vertical_padding, 5, vertical_padding, 5]); // [top, right, bottom, left]
             
             // If node is expanded, add children
             if node.expanded && !node.children.is_empty() {
@@ -718,35 +797,86 @@ impl TrafficView {
             .on_press(Message::ClearTraffic)
             .style(iced::theme::Button::Destructive);
             
-        let header = row![
-            title,
+        // Group buttons together
+        let action_buttons = row![
+            auto_scroll_button,
+            clear_button,
+        ]
+        .spacing(10)
+        .align_items(iced::Alignment::Center);
+        
+        // Group filter controls together
+        let filter_controls = container(
             row![
                 filter_label,
                 filter_input,
-                dark_mode_button,
-                auto_scroll_button,
-                clear_button
             ]
             .spacing(10)
             .align_items(iced::Alignment::Center)
+        )
+        .style(if self.dark_mode {
+            iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+        } else {
+            iced::theme::Container::Custom(Box::new(styles::LightModeContainer))
+        })
+        .padding(5);
+        
+        // Build the header with better organization and visual hierarchy
+        let header = column![
+            row![
+                title,
+                dark_mode_button,
+            ]
+            .spacing(20)
+            .align_items(iced::Alignment::Center)
+            .width(Length::Fill),
+            
+            row![
+                filter_controls.width(Length::FillPortion(3)),
+                action_buttons.width(Length::FillPortion(2)),
+            ]
+            .spacing(15)
+            .align_items(iced::Alignment::Center)
+            .width(Length::Fill)
         ]
-        .spacing(20)
-        .align_items(iced::Alignment::Center)
+        .spacing(10)
         .width(Length::Fill);
         
         // Define traffic_list as Element to handle different return types
         let traffic_list: Element<Message> = if self.traffic_data.is_empty() {
-            // Empty state
+            // Empty state with capture status
+            let capture_message = if self.capture_active {
+                "Capturing traffic... Waiting for USB activity."
+            } else {
+                "No traffic captured yet. Select a device to start capture."
+            };
+            
             container(
-                text("No traffic captured yet")
-                    .width(Length::Fill)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center)
-                    .vertical_alignment(iced::alignment::Vertical::Center)
-                    .style(if self.dark_mode {
-                        iced::theme::Text::Color(color::dark::TEXT)
-                    } else {
-                        iced::theme::Text::Default
-                    })
+                column![
+                    text(capture_message)
+                        .width(Length::Fill)
+                        .size(16)
+                        .horizontal_alignment(iced::alignment::Horizontal::Center)
+                        .style(if self.dark_mode {
+                            iced::theme::Text::Color(color::dark::TEXT)
+                        } else {
+                            iced::theme::Text::Default
+                        }),
+                    
+                    // Add a visual capture status indicator
+                    container(
+                        text(if self.capture_active { "● Active" } else { "○ Inactive" })
+                            .size(14)
+                            .style(if self.capture_active {
+                                iced::theme::Text::Color(color::dark::SUCCESS)
+                            } else {
+                                iced::theme::Text::Color(color::dark::TEXT_SECONDARY)
+                            })
+                    )
+                    .padding(10)
+                ]
+                .spacing(10)
+                .align_items(iced::Alignment::Center)
             )
             .width(Length::Fill)
             .height(Length::Fill)

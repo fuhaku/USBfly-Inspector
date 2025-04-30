@@ -34,11 +34,11 @@ impl iced::widget::container::StyleSheet for CompatibleDeviceStyle {
     
     fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
         iced::widget::container::Appearance {
-            text_color: Some(crate::gui::styles::color::TEXT),
-            background: Some(Background::Color(crate::gui::styles::color::SECONDARY_LIGHT)),
+            text_color: Some(Color::from_rgb(0.1, 0.1, 0.1)),
+            background: Some(Background::Color(Color::from_rgba(0.0, 0.7, 0.4, 0.2))),
             border_radius: crate::gui::styles::BORDER_RADIUS.into(),
             border_width: 1.0,
-            border_color: crate::gui::styles::color::SECONDARY,
+            border_color: Color::from_rgba(0.0, 0.7, 0.4, 0.5),
         }
     }
 }
@@ -50,11 +50,11 @@ impl iced::widget::container::StyleSheet for RegularDeviceStyle {
     
     fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
         iced::widget::container::Appearance {
-            text_color: Some(crate::gui::styles::color::TEXT),
-            background: Some(Background::Color(crate::gui::styles::color::BACKGROUND)),
+            text_color: Some(crate::gui::styles::color::dark::TEXT),
+            background: Some(Background::Color(Color::from_rgba(0.2, 0.2, 0.3, 0.1))),
             border_radius: crate::gui::styles::BORDER_RADIUS.into(),
             border_width: 1.0,
-            border_color: Color::from_rgb(0.8, 0.8, 0.8),
+            border_color: Color::from_rgba(0.4, 0.4, 0.5, 0.3),
         }
     }
 }
@@ -342,7 +342,7 @@ impl DeviceView {
                     container(
                         button(device_row)
                             .width(Length::Fill)
-                            .style(iced::theme::Button::Text)
+                            .style(iced::theme::Button::Custom(Box::new(crate::gui::styles::DeviceButtonStyle)))
                             .on_press(Message::DeviceSelected(device_clone))
                     )
                     .width(Length::Fill)
@@ -370,42 +370,67 @@ impl DeviceView {
             let is_compatible = Self::is_compatible_device(device.vendor_id, device.product_id);
             
             column![
-                text("Selected Device Details")
-                    .size(18)
-                    .style(iced::theme::Text::Color(crate::gui::styles::color::PRIMARY_DARK)),
-                column![
-                    row![
-                        text("Vendor ID:").width(Length::FillPortion(1)),
-                        text(format!("0x{:04x}", device.vendor_id)).width(Length::FillPortion(2))
-                    ].padding(5).spacing(10),
-                    row![
-                        text("Product ID:").width(Length::FillPortion(1)),
-                        text(format!("0x{:04x}", device.product_id)).width(Length::FillPortion(2))
-                    ].padding(5).spacing(10),
-                    row![
-                        text("Manufacturer:").width(Length::FillPortion(1)),
-                        text(device.manufacturer.as_deref().unwrap_or("Unknown")).width(Length::FillPortion(2))
-                    ].padding(5).spacing(10),
-                    row![
-                        text("Product:").width(Length::FillPortion(1)),
-                        text(device.product.as_deref().unwrap_or("Unknown")).width(Length::FillPortion(2))
-                    ].padding(5).spacing(10),
-                    row![
-                        text("Serial Number:").width(Length::FillPortion(1)),
-                        text(device.serial_number.as_deref().unwrap_or("N/A")).width(Length::FillPortion(2))
-                    ].padding(5).spacing(10),
-                    row![
-                        text("Compatibility:").width(Length::FillPortion(1)),
-                        text(if is_compatible { "Compatible with USBfly" } else { "Not compatible" })
-                            .style(if is_compatible {
-                                iced::theme::Text::Color(crate::gui::styles::color::SUCCESS)
-                            } else {
-                                iced::theme::Text::Color(crate::gui::styles::color::ERROR)
-                            })
-                            .width(Length::FillPortion(2))
-                    ].padding(5).spacing(10)
+                row![
+                    text("Selected Device Details").size(18),
+                    if is_compatible {
+                        text("✓ Compatible with USBfly")
+                            .style(iced::theme::Text::Color(crate::gui::styles::color::SUCCESS))
+                    } else {
+                        text("⚠ Not compatible")
+                            .style(iced::theme::Text::Color(crate::gui::styles::color::ERROR))
+                    }
                 ]
-                .spacing(5)
+                .spacing(15)
+                .width(Length::Fill),
+                
+                container(
+                    column![
+                        row![
+                            text("Vendor ID:")
+                                .width(Length::FillPortion(1))
+                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
+                            text(format!("0x{:04x}", device.vendor_id))
+                                .width(Length::FillPortion(2))
+                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::PRIMARY_LIGHT))
+                        ].padding(5).spacing(10),
+                        row![
+                            text("Product ID:")
+                                .width(Length::FillPortion(1))
+                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
+                            text(format!("0x{:04x}", device.product_id))
+                                .width(Length::FillPortion(2))
+                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::PRIMARY_LIGHT))
+                        ].padding(5).spacing(10),
+                        row![
+                            text("Manufacturer:")
+                                .width(Length::FillPortion(1))
+                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
+                            text(device.manufacturer.as_deref().unwrap_or("Unknown"))
+                                .width(Length::FillPortion(2))
+                        ].padding(5).spacing(10),
+                        row![
+                            text("Product:")
+                                .width(Length::FillPortion(1))
+                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
+                            text(device.product.as_deref().unwrap_or("Unknown"))
+                                .width(Length::FillPortion(2))
+                        ].padding(5).spacing(10),
+                        row![
+                            text("Serial Number:")
+                                .width(Length::FillPortion(1))
+                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
+                            text(device.serial_number.as_deref().unwrap_or("N/A"))
+                                .width(Length::FillPortion(2))
+                        ].padding(5).spacing(10),
+                    ]
+                    .spacing(5)
+                    .width(Length::Fill)
+                )
+                .style(if is_compatible {
+                    iced::theme::Container::Custom(Box::new(CompatibleDeviceStyle))
+                } else {
+                    iced::theme::Container::Custom(Box::new(RegularDeviceStyle))
+                })
                 .padding(10)
                 .width(Length::Fill)
             ]
@@ -414,12 +439,20 @@ impl DeviceView {
         } else {
             column![
                 text("No device selected")
+                    .size(18)
+                    .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY))
+                    .width(Length::Fill)
+                    .horizontal_alignment(iced::alignment::Horizontal::Center),
+                text("Select a device from the list above to view details")
+                    .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY))
                     .width(Length::Fill)
                     .horizontal_alignment(iced::alignment::Horizontal::Center)
-                    .vertical_alignment(iced::alignment::Vertical::Center)
             ]
+            .spacing(10)
+            .padding(20)
             .width(Length::Fill)
             .height(Length::Fill)
+            .align_items(iced::Alignment::Center)
         };
         
         let content = column![

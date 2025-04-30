@@ -863,7 +863,7 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
             
             // For control transfers, direction is determined by bit 7 of header second byte
             // This is different from other transfer types!
-            use log::{debug, info, trace};
+            use log::{debug, trace};
             
             let raw_byte = raw_data[1];
             trace!("Processing control data transfer packet with byte 0x{:02X}", raw_byte);
@@ -939,7 +939,7 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
         
         // Bulk transfer
         0x83 => {
-            use log::{debug, info, trace};
+            use log::{debug, info};
             transaction.transfer_type = UsbTransferType::Bulk;
             
             // Need at least 3 bytes (1 header + 1 endpoint + 1 data minimum)
@@ -995,7 +995,7 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
         
         // Interrupt transfer
         0x84 => {
-            use log::{debug, info, trace};
+            use log::{debug, info};
             transaction.transfer_type = UsbTransferType::Interrupt;
             
             // Need at least 3 bytes (1 header + 1 endpoint + 1 data minimum)
@@ -1051,7 +1051,7 @@ pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Opti
         
         // Isochronous transfer
         0x85 => {
-            use log::{debug, info, trace};
+            use log::{debug, info};
             transaction.transfer_type = UsbTransferType::Isochronous;
             
             // Need at least 3 bytes (1 header + 1 endpoint + 1 data minimum)

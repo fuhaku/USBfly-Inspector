@@ -424,6 +424,22 @@ impl iced::widget::container::StyleSheet for DarkModeContainer {
     }
 }
 
+pub struct LightModeContainer;
+
+impl iced::widget::container::StyleSheet for LightModeContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(color::TEXT),
+            background: Some(Background::Color(color::SURFACE)),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 1.0,
+            border_color: Color::from_rgba(0.0, 0.0, 0.0, 0.1),
+        }
+    }
+}
+
 pub struct DarkModeSelectedContainer;
 
 impl iced::widget::container::StyleSheet for DarkModeSelectedContainer {
@@ -452,6 +468,40 @@ impl iced::widget::container::StyleSheet for DarkModeTreeNodeContainer {
             border_radius: BORDER_RADIUS.into(),
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+// Primary node container (for Device, BulkTransfer, etc.)
+pub struct DarkModePrimaryNodeContainer;
+
+impl iced::widget::container::StyleSheet for DarkModePrimaryNodeContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(color::dark::TEXT),
+            background: Some(Background::Color(Color::from_rgba(0.0, 0.6, 0.8, 0.15))),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 1.0,
+            border_color: Color::from_rgba(0.0, 0.6, 0.8, 0.2),
+        }
+    }
+}
+
+// Secondary node container (for Setup, Status, Data)
+pub struct DarkModeSecondaryNodeContainer;
+
+impl iced::widget::container::StyleSheet for DarkModeSecondaryNodeContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(color::dark::TEXT),
+            background: Some(Background::Color(Color::from_rgba(0.6, 0.8, 0.0, 0.15))),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 1.0,
+            border_color: Color::from_rgba(0.6, 0.8, 0.0, 0.2),
         }
     }
 }
@@ -486,8 +536,8 @@ impl iced::widget::button::StyleSheet for DarkModePrimaryButton {
             shadow_offset: iced::Vector::new(0.0, 1.0),
             background: Some(Background::Color(color::dark::PRIMARY)),
             border_radius: BORDER_RADIUS.into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
+            border_width: 1.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.1),
             text_color: Color::WHITE,
         }
     }
@@ -496,7 +546,9 @@ impl iced::widget::button::StyleSheet for DarkModePrimaryButton {
         let active = self.active(style);
         iced::widget::button::Appearance {
             background: Some(Background::Color(color::dark::PRIMARY_LIGHT)),
-            shadow_offset: iced::Vector::new(0.0, 2.0),
+            shadow_offset: iced::Vector::new(0.0, 3.0),
+            border_width: 2.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.3),
             ..active
         }
     }
@@ -506,6 +558,8 @@ impl iced::widget::button::StyleSheet for DarkModePrimaryButton {
         iced::widget::button::Appearance {
             background: Some(Background::Color(color::dark::PRIMARY_DARK)),
             shadow_offset: iced::Vector::new(0.0, 0.0),
+            border_width: 2.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.5),
             ..active
         }
     }
@@ -643,8 +697,8 @@ impl iced::widget::button::StyleSheet for DarkModeSecondaryButton {
             shadow_offset: iced::Vector::new(0.0, 1.0),
             background: Some(Background::Color(color::dark::SECONDARY)),
             border_radius: BORDER_RADIUS.into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
+            border_width: 1.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.1),
             text_color: Color::WHITE,
         }
     }
@@ -652,8 +706,10 @@ impl iced::widget::button::StyleSheet for DarkModeSecondaryButton {
     fn hovered(&self, style: &Self::Style) -> iced::widget::button::Appearance {
         let active = self.active(style);
         iced::widget::button::Appearance {
-            background: Some(Background::Color(Color::from_rgb(0.9, 0.3, 0.9))),
-            shadow_offset: iced::Vector::new(0.0, 2.0),
+            background: Some(Background::Color(Color::from_rgb(0.1, 0.8, 0.5))),
+            shadow_offset: iced::Vector::new(0.0, 3.0),
+            border_width: 2.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.3),
             ..active
         }
     }
@@ -661,8 +717,10 @@ impl iced::widget::button::StyleSheet for DarkModeSecondaryButton {
     fn pressed(&self, style: &Self::Style) -> iced::widget::button::Appearance {
         let active = self.active(style);
         iced::widget::button::Appearance {
-            background: Some(Background::Color(Color::from_rgb(0.7, 0.1, 0.7))),
+            background: Some(Background::Color(Color::from_rgb(0.0, 0.6, 0.3))),
             shadow_offset: iced::Vector::new(0.0, 0.0),
+            border_width: 2.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.5),
             ..active
         }
     }
@@ -678,8 +736,8 @@ impl iced::widget::button::StyleSheet for DarkModeDestructiveButton {
             shadow_offset: iced::Vector::new(0.0, 1.0),
             background: Some(Background::Color(color::dark::ERROR)),
             border_radius: BORDER_RADIUS.into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
+            border_width: 1.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.1),
             text_color: Color::WHITE,
         }
     }
@@ -688,7 +746,9 @@ impl iced::widget::button::StyleSheet for DarkModeDestructiveButton {
         let active = self.active(style);
         iced::widget::button::Appearance {
             background: Some(Background::Color(Color::from_rgb(1.0, 0.3, 0.4))),
-            shadow_offset: iced::Vector::new(0.0, 2.0),
+            shadow_offset: iced::Vector::new(0.0, 3.0),
+            border_width: 2.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.3),
             ..active
         }
     }
@@ -697,6 +757,44 @@ impl iced::widget::button::StyleSheet for DarkModeDestructiveButton {
         let active = self.active(style);
         iced::widget::button::Appearance {
             background: Some(Background::Color(Color::from_rgb(0.8, 0.1, 0.2))),
+            shadow_offset: iced::Vector::new(0.0, 0.0),
+            border_width: 2.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.5),
+            ..active
+        }
+    }
+}
+
+// Device button style for selection
+pub struct DeviceButtonStyle;
+
+impl iced::widget::button::StyleSheet for DeviceButtonStyle {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced::widget::button::Appearance {
+        iced::widget::button::Appearance {
+            shadow_offset: iced::Vector::new(0.0, 1.0),
+            background: Some(Background::Color(Color::TRANSPARENT)),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            text_color: color::dark::TEXT,
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgba(0.3, 0.3, 0.4, 0.2))),
+            shadow_offset: iced::Vector::new(0.0, 2.0),
+            ..active
+        }
+    }
+
+    fn pressed(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgba(0.2, 0.2, 0.3, 0.3))),
             shadow_offset: iced::Vector::new(0.0, 0.0),
             ..active
         }
@@ -746,7 +844,7 @@ impl iced::widget::button::StyleSheet for DarkModeTreeNodeButton {
         iced::widget::button::Appearance {
             shadow_offset: iced::Vector::new(0.0, 0.0),
             background: Some(Background::Color(Color::TRANSPARENT)),
-            border_radius: 0.0.into(),
+            border_radius: 4.0.into(),
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
             text_color: color::dark::TEXT,
@@ -757,6 +855,9 @@ impl iced::widget::button::StyleSheet for DarkModeTreeNodeButton {
         let active = self.active(style);
         iced::widget::button::Appearance {
             background: Some(Background::Color(Color::from_rgba(0.0, 0.8, 0.8, 0.15))),
+            border_width: 1.0,
+            border_color: Color::from_rgba(0.0, 0.8, 0.8, 0.3),
+            text_color: Color { a: 1.0, ..color::dark::TEXT },
             ..active
         }
     }
@@ -765,6 +866,9 @@ impl iced::widget::button::StyleSheet for DarkModeTreeNodeButton {
         let active = self.active(style);
         iced::widget::button::Appearance {
             background: Some(Background::Color(Color::from_rgba(0.0, 0.8, 0.8, 0.25))),
+            border_width: 1.0,
+            border_color: Color::from_rgba(0.0, 0.8, 0.8, 0.5),
+            text_color: Color { a: 1.0, ..Color::WHITE },
             ..active
         }
     }
