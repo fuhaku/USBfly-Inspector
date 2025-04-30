@@ -30,8 +30,11 @@ pub mod color {
     
     // Electronics-themed colors
     pub const USB_GREEN: Color = Color::from_rgb(0.0, 0.8, 0.4);     // USB logo green
+    #[allow(dead_code)]
     pub const PCB_GREEN: Color = Color::from_rgb(0.0, 0.5, 0.3);     // PCB color
+    #[allow(dead_code)]
     pub const SIGNAL_BLUE: Color = Color::from_rgb(0.1, 0.6, 0.9);   // Signal trace blue
+    #[allow(dead_code)]
     pub const COPPER: Color = Color::from_rgb(0.8, 0.5, 0.2);        // Copper traces
 }
 
@@ -68,6 +71,23 @@ impl iced::widget::container::StyleSheet for HintContainer {
             border_radius: BORDER_RADIUS.into(),
             border_width: 1.0,
             border_color: color::SECONDARY,
+        }
+    }
+}
+
+/// Style for hint category headers
+pub struct HintCategoryContainer;
+
+impl iced::widget::container::StyleSheet for HintCategoryContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(Color::WHITE),
+            background: Some(Background::Color(color::USB_GREEN)),
+            border_radius: (BORDER_RADIUS * 0.7).into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
         }
     }
 }
@@ -262,3 +282,5 @@ impl iced::widget::button::StyleSheet for GhostButton {
         }
     }
 }
+
+// HintCategoryContainer is defined above

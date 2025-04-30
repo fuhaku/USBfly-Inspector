@@ -319,7 +319,7 @@ impl CynthionConnection {
         };
         
         // Get device handle
-        let handle = device.open()?;
+        let mut handle = device.open()?;
         
         // Get device descriptor for logging
         if let Ok(descriptor) = device.device_descriptor() {
@@ -374,8 +374,8 @@ impl CynthionConnection {
         
         // Check if the interface is available and log any issues
         if let Ok(config) = device.active_config_descriptor() {
-            let has_interface = config.interfaces().any(|i| i.number() == CYNTHION_INTERFACE);
-            if !has_interface {
+            let _interface_available = config.interfaces().any(|i| i.number() == CYNTHION_INTERFACE);
+            if !_interface_available {
                 warn!("Device does not appear to have interface {}. Will try anyway.", CYNTHION_INTERFACE);
             }
         } else {
@@ -710,7 +710,7 @@ impl CynthionConnection {
             return Ok(());
         }
         
-        let handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
+        let mut handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
         
         match handle.write_bulk(CYNTHION_OUT_EP, command, TIMEOUT_MS) {
             Ok(len) => {

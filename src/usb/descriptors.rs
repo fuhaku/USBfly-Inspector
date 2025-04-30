@@ -642,8 +642,9 @@ impl UsbDevice {
     }
     
     // Get contextual hints for this device
+    #[allow(dead_code)]
     pub fn get_device_hints(&self) -> Vec<String> {
-        use crate::usb::hints::{UsbHints, get_descriptor_hints};
+        use crate::usb::hints::get_descriptor_hints;
         
         let mut hints = Vec::new();
         

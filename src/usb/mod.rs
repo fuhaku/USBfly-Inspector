@@ -8,7 +8,6 @@ pub use descriptor_types::{
     UsbDescriptorType,
     UsbDeviceClass,
     UsbEndpointType,
-    UsbEndpointDirection,
     UsbIsoSyncType,
     UsbIsoUsageType,
 };
@@ -18,7 +17,5 @@ pub use descriptors::{
     ConfigurationDescriptor,
     InterfaceDescriptor,
     EndpointDescriptor,
-    StringDescriptor,
-    DeviceQualifierDescriptor,
     UsbDevice,
 };

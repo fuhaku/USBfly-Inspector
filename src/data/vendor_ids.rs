@@ -72,6 +72,7 @@ lazy_static! {
     };
 }
 
+#[allow(dead_code)]
 pub fn lookup_vendor(vendor_id: u16) -> Option<String> {
     VENDOR_MAP.get(&vendor_id).map(|s| s.to_string())
 }

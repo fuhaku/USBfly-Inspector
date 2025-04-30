@@ -34,6 +34,7 @@ lazy_static! {
     };
 }
 
+#[allow(dead_code)]
 pub fn get_descriptor_type_name(descriptor_type: u8) -> Option<&'static str> {
     DESCRIPTOR_TYPE_MAP.get(&descriptor_type).copied()
 }

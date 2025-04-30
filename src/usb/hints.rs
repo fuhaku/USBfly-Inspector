@@ -1,5 +1,5 @@
 use crate::usb::{
-    UsbDescriptorType, UsbDeviceClass, UsbEndpointType, UsbIsoSyncType, UsbIsoUsageType,
+    UsbDescriptorType, UsbDeviceClass, UsbEndpointType, UsbIsoSyncType,
     DeviceDescriptor, ConfigurationDescriptor, InterfaceDescriptor, EndpointDescriptor
 };
 

@@ -89,6 +89,7 @@ lazy_static! {
     };
 }
 
+#[allow(dead_code)]
 pub fn get_class_description(class_code: u8) -> Option<String> {
     CLASS_MAP.get(&class_code).map(|s| s.to_string())
 }

@@ -110,6 +110,7 @@ impl UsbDescriptorType {
         }
     }
     
+    #[allow(dead_code)]
     pub fn description(&self) -> &'static str {
         match self {
             UsbDescriptorType::Device => "Provides basic information about the device such as USB version, vendor/product IDs, and configuration count.",
@@ -250,6 +251,7 @@ impl UsbDeviceClass {
         }
     }
     
+    #[allow(dead_code)]
     pub fn description(&self) -> &'static str {
         match self {
             UsbDeviceClass::UseInterfaceDescriptor => "Class information is provided at the interface level instead of the device level.",
@@ -303,6 +305,7 @@ impl From<u8> for UsbEndpointType {
 }
 
 impl UsbEndpointType {
+    #[allow(dead_code)]
     pub fn get_value(&self) -> u8 {
         match self {
             UsbEndpointType::Control => 0,
@@ -323,6 +326,7 @@ impl UsbEndpointType {
         }
     }
     
+    #[allow(dead_code)]
     pub fn description(&self) -> &'static str {
         match self {
             UsbEndpointType::Control => "Used for device control and status. Guaranteed delivery with error checking.",
@@ -353,6 +357,7 @@ impl From<u8> for UsbEndpointDirection {
 }
 
 impl UsbEndpointDirection {
+    #[allow(dead_code)]
     pub fn get_value(&self) -> u8 {
         match self {
             UsbEndpointDirection::Out => 0,
@@ -367,6 +372,7 @@ impl UsbEndpointDirection {
         }
     }
     
+    #[allow(dead_code)]
     pub fn description(&self) -> &'static str {
         match self {
             UsbEndpointDirection::Out => "Data flows from host to device (outbound).",
@@ -400,6 +406,7 @@ impl From<u8> for UsbIsoSyncType {
 }
 
 impl UsbIsoSyncType {
+    #[allow(dead_code)]
     pub fn get_value(&self) -> u8 {
         match self {
             UsbIsoSyncType::NoSync => 0,
@@ -420,6 +427,7 @@ impl UsbIsoSyncType {
         }
     }
     
+    #[allow(dead_code)]
     pub fn description(&self) -> &'static str {
         match self {
             UsbIsoSyncType::NoSync => "No synchronization supported.",
@@ -456,6 +464,7 @@ impl From<u8> for UsbIsoUsageType {
 }
 
 impl UsbIsoUsageType {
+    #[allow(dead_code)]
     pub fn get_value(&self) -> u8 {
         match self {
             UsbIsoUsageType::Data => 0,
@@ -476,6 +485,7 @@ impl UsbIsoUsageType {
         }
     }
     
+    #[allow(dead_code)]
     pub fn description(&self) -> &'static str {
         match self {
             UsbIsoUsageType::Data => "Standard data endpoint.",

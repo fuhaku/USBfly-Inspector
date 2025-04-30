@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use crate::usb::{UsbDevice, UsbDescriptorType};
 use serde::{Deserialize, Serialize};
 
@@ -90,6 +90,7 @@ impl UsbDecoder {
     }
     
     // Get all descriptors as a formatted string
+    #[allow(dead_code)]
     pub fn get_all_descriptors_text(&self) -> String {
         format!("{}", self.device)
     }
@@ -203,6 +204,7 @@ impl UsbDecoder {
     }
     
     // Identify device class based on descriptor
+    #[allow(dead_code)]
     pub fn identify_device_class(&self) -> Option<String> {
         self.device.device.as_ref().map(|d| {
             format!("{}", d.device_class.name())
@@ -210,6 +212,7 @@ impl UsbDecoder {
     }
     
     // Get list of all endpoints
+    #[allow(dead_code)]
     pub fn get_endpoints(&self) -> Vec<String> {
         let mut endpoints = Vec::new();
         
@@ -231,6 +234,7 @@ impl UsbDecoder {
     }
     
     // Get device strings
+    #[allow(dead_code)]
     pub fn get_device_strings(&self) -> Vec<String> {
         let mut strings = Vec::new();
         
@@ -265,6 +269,7 @@ impl UsbDecoder {
     }
     
     // Decode raw USB data into structured format for display
+    #[allow(dead_code)]
     pub fn decode_raw_data(&self, data: &[u8]) -> DecodedUSBData {
         let mut decoded = DecodedUSBData {
             data_type: "Unknown".to_string(),

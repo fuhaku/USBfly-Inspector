@@ -1,0 +1,94 @@
+warning: unused import: `UsbHints`
+   --> src/usb/descriptors.rs:646:33
+    |
+646 |         use crate::usb::hints::{UsbHints, get_descriptor_hints};
+    |                                 ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `warn`
+ --> src/usb/decoder.rs:2:31
+  |
+2 | use log::{debug, error, info, warn};
+  |                               ^^^^
+
+warning: unused import: `UsbIsoUsageType`
+ --> src/usb/hints.rs:2:73
+  |
+2 |     UsbDescriptorType, UsbDeviceClass, UsbEndpointType, UsbIsoSyncType, UsbIsoUsageType,
+  |                                                                         ^^^^^^^^^^^^^^^
+
+warning: unused import: `UsbEndpointDirection`
+  --> src/usb/mod.rs:11:5
+   |
+11 |     UsbEndpointDirection,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `DeviceQualifierDescriptor` and `StringDescriptor`
+  --> src/usb/mod.rs:21:5
+   |
+21 |     StringDescriptor,
+   |     ^^^^^^^^^^^^^^^^
+22 |     DeviceQualifierDescriptor,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0609]: no field `device` on type `&DecodedUSBData`
+   --> src/gui/views/descriptor_view.rs:177:61
+    |
+177 |                         if let Some(device) = &decoded_data.device {
+    |                                                             ^^^^^^ unknown field
+    |
+    = note: available fields are: `data_type`, `description`, `fields`, `details`, `descriptors`
+
+error[E0277]: a value of type `Vec<iced::advanced::iced_graphics::iced_core::Element<'_, _, _>>` cannot be built from an iterator over elements of type `iced::widget::Container<'_, _, _>`
+   --> src/gui/views/descriptor_view.rs:193:24
+    |
+193 |                     }).collect();
+    |                        ^^^^^^^ value of type `Vec<iced::advanced::iced_graphics::iced_core::Element<'_, _, _>>` cannot be built from `std::iter::Iterator<Item=iced::widget::Container<'_, _, _>>`
+    |
+    = help: the trait `FromIterator<iced::widget::Container<'_, _, _>>` is not implemented for `Vec<iced::advanced::iced_graphics::iced_core::Element<'_, _, _>>`
+            but trait `FromIterator<iced::advanced::iced_graphics::iced_core::Element<'_, _, _>>` is implemented for it
+    = help: for that trait implementation, expected `iced::advanced::iced_graphics::iced_core::Element<'_, _, _>`, found `iced::widget::Container<'_, _, _>`
+note: the method call chain might not have had the expected associated types
+   --> src/gui/views/descriptor_view.rs:186:55
+    |
+165 |   ...   let mut all_hints = Vec::new();
+    |                             ---------- this expression has type `Vec<String>`
+...
+186 |   ...       let hint_items = all_hints.iter().map(|hint| {
+    |  ______________________________________------_^
+    | |                                      |
+    | |                                      `Iterator::Item` is `&String` here
+187 | | ...           container(
+188 | | ...               text(hint)
+189 | | ...                   .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0....
+...   |
+192 | | ...           .width(Length::Fill)
+193 | | ...       }).collect();
+    | |____________^ `Iterator::Item` changed to `Container<'_, _, _>` here
+note: required by a bound in `std::iter::Iterator::collect`
+   --> /rustc/05f9846f893b09a1be1fc8560e33fc3c815cfecb/library/core/src/iter/traits/iterator.rs:1967:5
+
+error[E0599]: no method named `style` found for struct `Column` in the current scope
+   --> src/gui/views/descriptor_view.rs:198:26
+    |
+195 | / ...   column(hint_items)
+196 | | ...       .spacing(5)
+197 | | ...       .width(Length::Fill)
+198 | | ...       .style(iced::theme::Container::Custom(Box::new(styles::HintContainer)))
+    | |           -^^^^^ method not found in `Column<'_, _, _>`
+    | |___________|
+    |
+
+warning: unused variable: `handle`
+   --> src/cynthion/connection.rs:677:33
+    |
+677 |                     if let Some(handle) = self.handle.take() {
+    |                                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_handle`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+Some errors have detailed explanations: E0277, E0599, E0609.
+For more information about an error, try `rustc --explain E0277`.
+warning: `usbfly` (bin "usbfly") generated 6 warnings
+error: could not compile `usbfly` (bin "usbfly") due to 3 previous errors; 6 warnings emitted
