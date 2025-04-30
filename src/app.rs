@@ -1,6 +1,6 @@
 use crate::cynthion::connection::CynthionConnection;
 use crate::gui::views::{DeviceView, TrafficView, DescriptorView};
-use crate::usb::decoder::USBDecoder;
+use crate::usb::decoder::UsbDecoder;
 use iced::widget::{button, column, container, row, text};
 use iced::{executor, Application, Background, Color, Command, Element, Length, Subscription, Theme};
 use std::sync::{Arc, Mutex};
@@ -48,7 +48,7 @@ pub enum Tab {
 
 pub struct USBflyApp {
     connection: Option<Arc<Mutex<CynthionConnection>>>,
-    usb_decoder: USBDecoder,
+    usb_decoder: UsbDecoder,
     active_tab: Tab,
     device_view: DeviceView,
     traffic_view: TrafficView,
@@ -85,7 +85,7 @@ impl Application for USBflyApp {
         
         let app = Self {
             connection: None,
-            usb_decoder: USBDecoder::new(),
+            usb_decoder: UsbDecoder::new(),
             active_tab: Tab::Devices,
             device_view,
             traffic_view: TrafficView::new(),

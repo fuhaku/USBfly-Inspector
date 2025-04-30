@@ -99,6 +99,60 @@ impl UsbDecoder {
         self.vendor_names.get(&vendor_id).cloned()
     }
     
+    // Decode USB data into a structured format for UI display
+    pub fn decode(&self, data: &[u8]) -> Option<DecodedUSBData> {
+        // Create a clone of self to process the data without modifying state
+        let mut decoder_clone = UsbDecoder::new();
+        
+        // Try to process the data
+        if let Err(e) = decoder_clone.process_data(data) {
+            error!("Failed to decode USB data: {}", e);
+            return None;
+        }
+        
+        // Extract descriptors from processed data
+        let descriptors = decoder_clone.device.get_all_descriptors();
+        if descriptors.is_empty() {
+            return None;
+        }
+        
+        // Create DecodedUSBData structure
+        let mut decoded = DecodedUSBData {
+            data_type: "USB Descriptors".to_string(),
+            description: "Decoded USB device descriptors".to_string(),
+            fields: HashMap::new(),
+            details: None,
+            descriptors,
+        };
+        
+        // Add basic device info to fields if available
+        if let Some(dev) = &decoder_clone.device.device {
+            decoded.fields.insert("VID".to_string(), format!("{:04X}", dev.vendor_id));
+            decoded.fields.insert("PID".to_string(), format!("{:04X}", dev.product_id));
+            decoded.fields.insert("Device Class".to_string(), dev.device_class.name().to_string());
+            // Extract USB version major and minor from BCD format
+            let usb_version_major = (dev.usb_version >> 8) & 0xFF;
+            let usb_version_minor = (dev.usb_version >> 4) & 0xF;
+            decoded.fields.insert("USB Version".to_string(), format!("{}.{}", usb_version_major, usb_version_minor));
+            
+            // Add vendor and product names if available
+            if let Some(vendor) = self.get_vendor_name(dev.vendor_id) {
+                decoded.fields.insert("Vendor".to_string(), vendor);
+            }
+            
+            if let Some(product) = self.get_device_name(dev.vendor_id, dev.product_id) {
+                decoded.fields.insert("Product".to_string(), product);
+            }
+            
+            // Add additional details
+            decoded.details = Some(format!("USB {} device with {} configuration(s)", 
+                                          dev.usb_version_string(), 
+                                          dev.num_configurations));
+        }
+        
+        Some(decoded)
+    }
+    
     // Get friendly device name for a vendor/product ID pair
     pub fn get_device_name(&self, vendor_id: u16, product_id: u16) -> Option<String> {
         self.device_names.get(&(vendor_id, product_id)).cloned()

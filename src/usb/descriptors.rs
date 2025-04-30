@@ -606,6 +606,110 @@ impl UsbDevice {
         }
     }
     
+    // Get all descriptors in a structured format for display
+    pub fn get_all_descriptors(&self) -> Vec<USBDescriptor> {
+        let mut descriptors = Vec::new();
+        
+        // Add device descriptor if available
+        if let Some(device) = &self.device {
+            descriptors.push(USBDescriptor::Device(device.clone()));
+        }
+        
+        // Add device qualifier if available
+        if let Some(qualifier) = &self.device_qualifier {
+            descriptors.push(USBDescriptor::DeviceQualifier(qualifier.clone()));
+        }
+        
+        // Add configurations and their interfaces/endpoints
+        for config in &self.configurations {
+            descriptors.push(USBDescriptor::Configuration(config.clone()));
+            
+            for interface in &config.interfaces {
+                descriptors.push(USBDescriptor::Interface(interface.clone()));
+                
+                for endpoint in &interface.endpoints {
+                    descriptors.push(USBDescriptor::Endpoint(endpoint.clone()));
+                }
+            }
+        }
+        
+        // Add string descriptors
+        for string in &self.strings {
+            descriptors.push(USBDescriptor::String(string.clone()));
+        }
+        
+        descriptors
+    }
+    
+    // Get contextual hints for this device
+    pub fn get_device_hints(&self) -> Vec<String> {
+        use crate::usb::hints::{UsbHints, get_descriptor_hints};
+        
+        let mut hints = Vec::new();
+        
+        // Add device descriptor hints
+        if let Some(device) = &self.device {
+            hints.push(format!("Device Class: {}", device.device_class.name()));
+            
+            // Add vendor information if available
+            if let Some(manufacturer) = &device.manufacturer_string {
+                hints.push(format!("Manufacturer: {}", manufacturer));
+            }
+            
+            if let Some(product) = &device.product_string {
+                hints.push(format!("Product: {}", product));
+            }
+            
+            // Add USB version information
+            hints.push(format!("USB Version: {}", device.usb_version_string()));
+            
+            // Add max packet size
+            hints.push(format!("Max Packet Size (EP0): {} bytes", device.max_packet_size0));
+            
+            // Add descriptor hint
+            hints.push(get_descriptor_hints(&UsbDescriptorType::Device));
+            
+            if let Some(qualifier) = &self.device_qualifier {
+                hints.push(format!("Device Qualifier: USB {} device", qualifier.usb_version_string()));
+                hints.push(format!("Device can operate at high and full speeds"));
+                hints.push(get_descriptor_hints(&UsbDescriptorType::DeviceQualifier));
+            }
+        }
+        
+        // Add configuration hints
+        if !self.configurations.is_empty() {
+            let config_count = self.configurations.len();
+            hints.push(format!("Device has {} configuration{}", config_count, if config_count > 1 { "s" } else { "" }));
+            
+            for (i, config) in self.configurations.iter().enumerate() {
+                let config_name = if let Some(name) = &config.configuration_string {
+                    name.clone()
+                } else {
+                    format!("Configuration {}", i + 1)
+                };
+                
+                hints.push(format!("{}: {} interface{}, {}mA power requirement", 
+                    config_name, 
+                    config.num_interfaces,
+                    if config.num_interfaces > 1 { "s" } else { "" },
+                    config.max_power as u16 * 2
+                ));
+                
+                if config.self_powered {
+                    hints.push(format!("{} is self-powered", config_name));
+                }
+                
+                if config.remote_wakeup {
+                    hints.push(format!("{} supports remote wakeup", config_name));
+                }
+            }
+            
+            hints.push(get_descriptor_hints(&UsbDescriptorType::Configuration));
+        }
+        
+        hints
+    }
+    
     pub fn parse_descriptors(&mut self, data: &[u8]) -> Result<(), String> {
         let mut offset = 0;
         

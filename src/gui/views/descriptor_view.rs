@@ -7,6 +7,7 @@ use crate::gui::styles;
 pub struct DescriptorView {
     descriptors: Vec<USBDescriptor>,
     selected_descriptor: Option<usize>,
+    decoded_data: Vec<crate::usb::decoder::DecodedUSBData>,
 }
 
 #[derive(Debug, Clone)]
@@ -20,6 +21,7 @@ impl DescriptorView {
         Self {
             descriptors: Vec::new(),
             selected_descriptor: None,
+            decoded_data: Vec::new(),
         }
     }
     
@@ -31,6 +33,7 @@ impl DescriptorView {
             },
             Message::ClearDescriptors => {
                 self.descriptors.clear();
+                self.decoded_data.clear();
                 self.selected_descriptor = None;
                 Command::none()
             },
@@ -38,6 +41,9 @@ impl DescriptorView {
     }
     
     pub fn update_descriptors(&mut self, decoded_data: crate::usb::decoder::DecodedUSBData) {
+        // Store the complete decoded data for context and hints
+        self.decoded_data.push(decoded_data.clone());
+        
         // Add new descriptors to our list
         for descriptor in decoded_data.descriptors {
             if !self.descriptors.iter().any(|d| format!("{:?}", d) == format!("{:?}", descriptor)) {
@@ -53,6 +59,7 @@ impl DescriptorView {
     
     pub fn clear(&mut self) {
         self.descriptors.clear();
+        self.decoded_data.clear();
         self.selected_descriptor = None;
     }
     
@@ -95,6 +102,7 @@ impl DescriptorView {
                             USBDescriptor::Endpoint(_) => "Endpoint Descriptor",
                             USBDescriptor::String(_) => "String Descriptor",
                             USBDescriptor::HID(_) => "HID Descriptor",
+                            USBDescriptor::DeviceQualifier(_) => "Device Qualifier Descriptor",
                             USBDescriptor::Unknown { descriptor_type, .. } => 
                                 return text(format!("Unknown Descriptor (0x{:02X})", descriptor_type))
                                     .width(Length::Fill)
@@ -141,23 +149,53 @@ impl DescriptorView {
                 let descriptor = &self.descriptors[index];
                 let descriptor_str = format!("{}", descriptor);
                 
-                // Get hints for this descriptor
-                let hints = get_descriptor_hints(descriptor);
-                let hints_view = if !hints.is_empty() {
-                    column(
-                        hints.iter()
-                            .map(|hint| {
-                                container(
-                                    text(hint)
-                                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0)))
-                                )
-                                .padding(5)
-                                .width(Length::Fill)
-                                .style(iced::theme::Container::Custom(Box::new(styles::HintContainer)))
-                                .into()
-                            })
-                            .collect()
-                    )
+                // Get hints for this descriptor type
+                let descriptor_type = match descriptor {
+                    crate::usb::descriptors::USBDescriptor::Device(desc) => &desc.descriptor_type,
+                    crate::usb::descriptors::USBDescriptor::Configuration(desc) => &desc.descriptor_type,
+                    crate::usb::descriptors::USBDescriptor::Interface(desc) => &desc.descriptor_type,
+                    crate::usb::descriptors::USBDescriptor::Endpoint(desc) => &desc.descriptor_type,
+                    crate::usb::descriptors::USBDescriptor::String(desc) => &desc.descriptor_type,
+                    crate::usb::descriptors::USBDescriptor::DeviceQualifier(desc) => &desc.descriptor_type,
+                    crate::usb::descriptors::USBDescriptor::Unknown { descriptor_type, .. } => descriptor_type,
+                    _ => &crate::usb::descriptor_types::UsbDescriptorType::Unknown(0),
+                };
+                
+                // Get contextual hints
+                let mut all_hints = Vec::new();
+                
+                // Get basic descriptor type hint
+                let type_hint = get_descriptor_hints(descriptor_type);
+                if !type_hint.is_empty() {
+                    all_hints.push(type_hint);
+                }
+                
+                // If this is a device descriptor, get more detailed hints
+                if let crate::usb::descriptors::USBDescriptor::Device(_) = descriptor {
+                    // Check if we have access to the whole device
+                    for decoded_data in &self.decoded_data {
+                        if let Some(device) = &decoded_data.device {
+                            // Use our new device hints system
+                            all_hints.extend(device.get_device_hints());
+                            break;
+                        }
+                    }
+                }
+                
+                let hints_view = if !all_hints.is_empty() {
+                    let hint_items = all_hints.iter().map(|hint| {
+                        container(
+                            text(hint)
+                                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.5, 0.0)))
+                        )
+                        .padding(5)
+                        .width(Length::Fill)
+                    }).collect();
+                    
+                    column(hint_items)
+                        .spacing(5)
+                        .width(Length::Fill)
+                        .style(iced::theme::Container::Custom(Box::new(styles::HintContainer)))
                 } else {
                     column![
                         text("No hints available for this descriptor")

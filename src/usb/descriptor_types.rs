@@ -135,31 +135,32 @@ impl UsbDescriptorType {
 
 // USB Device Classes based on USB-IF specifications
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[repr(u8)]
 pub enum UsbDeviceClass {
-    UseInterfaceDescriptor = 0x00,
-    Audio = 0x01,
-    Communications = 0x02,
-    HumanInterfaceDevice = 0x03,
-    Physical = 0x05,
-    Image = 0x06,
-    Printer = 0x07,
-    MassStorage = 0x08,
-    Hub = 0x09,
-    CdcData = 0x0A,
-    SmartCard = 0x0B,
-    ContentSecurity = 0x0D,
-    Video = 0x0E,
-    PersonalHealthcare = 0x0F,
-    AudioVideo = 0x10,
-    Billboard = 0x11,
-    UsbTypeCBridge = 0x12,
-    Diagnostic = 0xDC,
-    WirelessController = 0xE0,
-    Miscellaneous = 0xEF,
-    ApplicationSpecific = 0xFE,
-    VendorSpecific = 0xFF,
-    Unknown(u8) = 0x100, // Explicitly set to a value above u8 range
+    UseInterfaceDescriptor,
+    Audio,
+    Communications,
+    HumanInterfaceDevice,
+    Physical,
+    Image,
+    Printer,
+    MassStorage,
+    Hub,
+    CdcData,
+    SmartCard,
+    ContentSecurity,
+    Video,
+    PersonalHealthcare,
+    AudioVideo,
+    Billboard,
+    UsbTypeCBridge,
+    Diagnostic,
+    WirelessController,
+    Miscellaneous,
+    ApplicationSpecific,
+    VendorSpecific,
+    // Store the raw value separately
+    #[serde(skip)]
+    Unknown(#[serde(skip_serializing)] u8)
 }
 
 impl From<u8> for UsbDeviceClass {
@@ -280,13 +281,13 @@ impl UsbDeviceClass {
 
 // USB Endpoint Types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[repr(u8)]
 pub enum UsbEndpointType {
-    Control = 0,
-    Isochronous = 1,
-    Bulk = 2,
-    Interrupt = 3,
-    Unknown(u8) = 0x100, // Explicitly set to a value above u8 range
+    Control,
+    Isochronous,
+    Bulk,
+    Interrupt,
+    #[serde(skip)]
+    Unknown(#[serde(skip_serializing)] u8),
 }
 
 impl From<u8> for UsbEndpointType {
@@ -335,15 +336,15 @@ impl UsbEndpointType {
 
 // USB Endpoint Directions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[repr(u8)]
 pub enum UsbEndpointDirection {
-    Out = 0,  // Host to device
-    In = 1,   // Device to host
+    Out = 0, // Host to device
+    In = 1,  // Device to host
+    // No Unknown variant needed as this is binary
 }
 
 impl From<u8> for UsbEndpointDirection {
     fn from(value: u8) -> Self {
-        if (value & 0x80) != 0 {
+        if (value & 0x80) == 0x80 {
             UsbEndpointDirection::In
         } else {
             UsbEndpointDirection::Out
@@ -355,7 +356,7 @@ impl UsbEndpointDirection {
     pub fn get_value(&self) -> u8 {
         match self {
             UsbEndpointDirection::Out => 0,
-            UsbEndpointDirection::In => 1,
+            UsbEndpointDirection::In => 0x80,
         }
     }
     
@@ -365,9 +366,16 @@ impl UsbEndpointDirection {
             UsbEndpointDirection::In => "IN (Device to Host)",
         }
     }
+    
+    pub fn description(&self) -> &'static str {
+        match self {
+            UsbEndpointDirection::Out => "Data flows from host to device (outbound).",
+            UsbEndpointDirection::In => "Data flows from device to host (inbound).",
+        }
+    }
 }
 
-// USB Endpoint Synchronization Types (for Isochronous endpoints)
+// Isochronous Synchronization Type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum UsbIsoSyncType {
@@ -375,7 +383,8 @@ pub enum UsbIsoSyncType {
     Asynchronous = 1,
     Adaptive = 2,
     Synchronous = 3,
-    Unknown(u8) = 0x100, // Explicitly set to a value above u8 range
+    #[serde(skip)]
+    Unknown(#[serde(skip_serializing)] u8) = 4,
 }
 
 impl From<u8> for UsbIsoSyncType {
@@ -413,16 +422,16 @@ impl UsbIsoSyncType {
     
     pub fn description(&self) -> &'static str {
         match self {
-            UsbIsoSyncType::NoSync => "No synchronization mechanism.",
-            UsbIsoSyncType::Asynchronous => "Endpoint data synchronized to its own clock.",
-            UsbIsoSyncType::Adaptive => "Endpoint adjusts its data rate based on the USB data stream.",
-            UsbIsoSyncType::Synchronous => "Endpoint synchronizes to the USB frame rate.",
+            UsbIsoSyncType::NoSync => "No synchronization supported.",
+            UsbIsoSyncType::Asynchronous => "Data rate is synchronized to its own clock.",
+            UsbIsoSyncType::Adaptive => "Data rate adapts to the host's data rate.",
+            UsbIsoSyncType::Synchronous => "Data rate is synchronized to the USB's Start of Frame.",
             UsbIsoSyncType::Unknown(_) => "Synchronization type not recognized in USB specification.",
         }
     }
 }
 
-// USB Endpoint Usage Types (for Isochronous endpoints)
+// Isochronous Usage Type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum UsbIsoUsageType {
@@ -430,7 +439,8 @@ pub enum UsbIsoUsageType {
     Feedback = 1,
     ImplicitFeedback = 2,
     Reserved = 3,
-    Unknown(u8) = 0x100, // Explicitly set to a value above u8 range
+    #[serde(skip)]
+    Unknown(#[serde(skip_serializing)] u8) = 4,
 }
 
 impl From<u8> for UsbIsoUsageType {

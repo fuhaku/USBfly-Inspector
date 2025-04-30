@@ -528,6 +528,28 @@ fn build_descriptor_tree(descriptors: &[crate::usb::descriptors::USBDescriptor])
                     ].into()
                 );
             },
+            crate::usb::descriptors::USBDescriptor::DeviceQualifier(dev_qual) => {
+                // Device Qualifier descriptor
+                // Extract the major and minor from USB version BCD
+                let major = (dev_qual.usb_version >> 8) & 0xFF;
+                let minor = (dev_qual.usb_version >> 4) & 0xF;
+                
+                elements.push(
+                    column![
+                        text(format!("Device Qualifier Descriptor (USB: {}.{})", major, minor))
+                            .size(14)
+                            .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0, 0.4, 0.7))),
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Device Class: {}", dev_qual.device_class.name()))
+                        ],
+                        row![
+                            text("").width(Length::Fixed(20.0)),
+                            text(format!("Max Packet Size: {}", dev_qual.max_packet_size0))
+                        ]
+                    ].into()
+                );
+            },
             crate::usb::descriptors::USBDescriptor::Unknown { descriptor_type, data } => {
                 // Unknown descriptor type
                 elements.push(
