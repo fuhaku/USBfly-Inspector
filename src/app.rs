@@ -5,7 +5,7 @@ use iced::widget::{button, column, container, row, text};
 use iced::{executor, Application, Background, Color, Command, Element, Length, Subscription, Theme};
 use std::sync::{Arc, Mutex};
 // Use the log macros for consistent error handling
-use log::{info, error, warn, debug};
+use log::{info, error};
 
 // Custom tab styles
 struct ActiveTabStyle;
@@ -147,8 +147,8 @@ impl Application for USBflyApp {
                 // Attempt to connect to Cynthion device
                 Command::perform(
                     async {
-                        // First try using a safer connection method that's well-protected
-                        let connection_result = match CynthionConnection::connect().await {
+                        // Connect to device and handle result directly
+                        match CynthionConnection::connect().await {
                             Ok(conn) => {
                                 // Extra safety check - verify connection is actually valid
                                 if conn.is_connected() {
@@ -162,26 +162,19 @@ impl Application for USBflyApp {
                                         safe_conn.set_simulation_mode(true);
                                         
                                         let connection = Arc::new(Mutex::new(safe_conn));
-                                        Ok(Message::ConnectionEstablished(connection))
+                                        Message::ConnectionEstablished(connection)
                                     } else {
                                         // For other platforms, continue with normal operation
                                         let connection = Arc::new(Mutex::new(conn));
-                                        Ok(Message::ConnectionEstablished(connection))
+                                        Message::ConnectionEstablished(connection)
                                     }
                                 } else {
-                                    Ok(Message::ConnectionFailed("Connection state invalid".to_string()))
+                                    Message::ConnectionFailed("Connection state invalid".to_string())
                                 }
                             }
-                            Err(e) => Ok(Message::ConnectionFailed(e.to_string())),
-                        };
-                        
-                        // Handle any errors from the connection process
-                        match connection_result {
-                            Ok(message) => message,
                             Err(e) => {
-                                // Fallback for any other errors
                                 error!("Connection error: {}", e);
-                                Message::ConnectionFailed(format!("Connection error: {}", e))
+                                Message::ConnectionFailed(e.to_string())
                             }
                         }
                     },

@@ -30,6 +30,9 @@ pub mod color {
     
     // Electronics-themed colors
     pub const USB_GREEN: Color = Color::from_rgb(0.0, 0.8, 0.4);     // USB logo green
+    pub const USB_YELLOW: Color = Color::from_rgb(0.9, 0.8, 0.0);    // Yellow for status packets
+    pub const USB_CYAN: Color = Color::from_rgb(0.0, 0.8, 0.8);      // Cyan for isochronous
+    pub const CODE_GREEN: Color = Color::from_rgb(0.0, 0.7, 0.2);    // Green for code
     #[allow(dead_code)]
     pub const PCB_GREEN: Color = Color::from_rgb(0.0, 0.5, 0.3);     // PCB color
     #[allow(dead_code)]
@@ -72,6 +75,8 @@ pub mod color {
         
         // Electronics-themed colors
         pub const USB_GREEN: Color = Color::from_rgb(0.2, 1.0, 0.6);     // Brighter USB logo green
+        pub const USB_YELLOW: Color = Color::from_rgb(1.0, 0.9, 0.2);    // Yellow for status packets
+        pub const USB_CYAN: Color = Color::from_rgb(0.2, 0.9, 1.0);      // Cyan for isochronous
         #[allow(dead_code)]
         pub const PCB_GREEN: Color = Color::from_rgb(0.1, 0.6, 0.4);     // PCB color
         #[allow(dead_code)]
@@ -90,6 +95,57 @@ pub mod color {
 
 // Consistent border radius throughout the app
 pub const BORDER_RADIUS: f32 = 6.0;
+
+/// Style for header containers
+pub struct HeaderContainer;
+
+impl iced::widget::container::StyleSheet for HeaderContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(Color::WHITE),
+            background: Some(Background::Color(color::PRIMARY_LIGHT)),
+            border_radius: (BORDER_RADIUS * 0.7).into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+/// Style for child containers in tree view
+pub struct ChildContainer;
+
+impl iced::widget::container::StyleSheet for ChildContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(color::TEXT),
+            background: Some(Background::Color(Color { r: 0.95, g: 0.95, b: 0.95, a: 1.0 })),
+            border_radius: (BORDER_RADIUS * 0.5).into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+/// Style for child containers in tree view (dark mode)
+pub struct DarkModeChildContainer;
+
+impl iced::widget::container::StyleSheet for DarkModeChildContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(color::dark::TEXT),
+            background: Some(Background::Color(Color { r: 0.15, g: 0.16, b: 0.20, a: 1.0 })),
+            border_radius: (BORDER_RADIUS * 0.5).into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
 
 /// Style for selected containers/items (active selection)
 pub struct SelectedContainer;
@@ -397,6 +453,25 @@ impl iced::widget::container::StyleSheet for DarkModeTreeNodeContainer {
         }
     }
 }
+
+/// Dark mode style for header containers
+pub struct DarkModeHeaderContainer;
+
+impl iced::widget::container::StyleSheet for DarkModeHeaderContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(Color::WHITE),
+            background: Some(Background::Color(color::dark::PRIMARY_DARK)),
+            border_radius: (BORDER_RADIUS * 0.7).into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+// Removed duplicate DarkModeChildContainer definition
 
 // Dark mode buttons
 pub struct DarkModePrimaryButton;

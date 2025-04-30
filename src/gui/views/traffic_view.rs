@@ -55,14 +55,16 @@ pub enum TreeNodeType {
     Configuration,
     Interface,
     Endpoint,
-    #[allow(dead_code)]
-    Transaction,
-    #[allow(dead_code)]
-    Setup,
-    #[allow(dead_code)]
-    Data,
-    #[allow(dead_code)]
-    Status,
+    Transaction, // Transaction node (e.g., control transfer)
+    Setup,       // Setup packet
+    Data,        // Data packet
+    Status,      // Status/ACK packet
+    BulkTransfer, // Bulk transfer
+    InterruptTransfer, // Interrupt transfer
+    IsochronousTransfer, // Isochronous transfer
+    ClassRequest, // Class-specific request
+    VendorRequest, // Vendor-specific request
+    StandardRequest, // Standard request
     Unknown,
 }
 
@@ -365,6 +367,16 @@ impl TrafficView {
                     TreeNodeType::Configuration => color::dark::SECONDARY,
                     TreeNodeType::Interface => color::dark::USB_GREEN,
                     TreeNodeType::Endpoint => color::dark::TEXT,
+                    TreeNodeType::Transaction => color::dark::PRIMARY,
+                    TreeNodeType::Setup => color::dark::SECONDARY,
+                    TreeNodeType::Data => color::dark::USB_GREEN,
+                    TreeNodeType::Status => color::dark::USB_YELLOW,
+                    TreeNodeType::BulkTransfer => color::dark::PRIMARY,
+                    TreeNodeType::InterruptTransfer => color::dark::USB_GREEN,
+                    TreeNodeType::IsochronousTransfer => color::dark::USB_CYAN,
+                    TreeNodeType::ClassRequest => color::dark::USB_YELLOW,
+                    TreeNodeType::VendorRequest => color::dark::USB_CYAN,
+                    TreeNodeType::StandardRequest => color::dark::PRIMARY,
                     _ => color::dark::TEXT_SECONDARY,
                 }
             } else {
@@ -374,8 +386,25 @@ impl TrafficView {
                     TreeNodeType::Configuration => color::SECONDARY,
                     TreeNodeType::Interface => color::USB_GREEN,
                     TreeNodeType::Endpoint => color::TEXT,
+                    TreeNodeType::Transaction => color::PRIMARY,
+                    TreeNodeType::Setup => color::SECONDARY,
+                    TreeNodeType::Data => color::USB_GREEN,
+                    TreeNodeType::Status => color::USB_YELLOW,
+                    TreeNodeType::BulkTransfer => color::PRIMARY,
+                    TreeNodeType::InterruptTransfer => color::USB_GREEN,
+                    TreeNodeType::IsochronousTransfer => color::USB_CYAN,
+                    TreeNodeType::ClassRequest => color::USB_YELLOW,
+                    TreeNodeType::VendorRequest => color::USB_CYAN,
+                    TreeNodeType::StandardRequest => color::PRIMARY,
                     _ => color::TEXT_SECONDARY,
                 }
+            };
+            
+            // Add connection line symbol based on level and position
+            let connector_symbol = match (level, node.children.is_empty()) {
+                (0, _) => "", // root level, no connector
+                (_, true) => "├──⮞", // non-root leaf node
+                (_, false) => "├──⮟", // non-root internal node
             };
             
             // Build the row with toggle button and node content
@@ -383,6 +412,18 @@ impl TrafficView {
                 // Indentation space
                 container(text(""))
                     .width(Length::Fixed(indent_width)),
+                
+                // Connector line
+                if level > 0 {
+                    text(connector_symbol)
+                        .style(if self.dark_mode {
+                            iced::theme::Text::Color(color::dark::TEXT_SECONDARY)
+                        } else {
+                            iced::theme::Text::Color(color::TEXT_SECONDARY)
+                        })
+                } else {
+                    text("")
+                },
                 
                 // Toggle button
                 if !node.children.is_empty() {
@@ -397,10 +438,9 @@ impl TrafficView {
                         .into();
                     btn
                 } else {
-                    let container: Element<Message> = container(text(toggle_icon))
+                    container(text(toggle_icon))
                         .width(Length::Fixed(30.0))
-                        .into();
-                    container
+                        .into()
                 },
                 
                 // Node content
@@ -572,81 +612,182 @@ impl TrafficView {
                 })
                 .collect();
             
-            let items = Column::with_children(
-                filtered_items
-                    .iter()
-                    .map(|(index, item)| {
-                        let formatted_time = format_timestamp(item.timestamp);
-                        let data_preview = if item.raw_data.len() > 8 {
-                            format!("{:02X?}...", &item.raw_data[..8])
+            // Create a tree structure view for traffic items
+            let mut traffic_tree = Column::new().spacing(2);
+            
+            // Table headers
+            let headers = row![
+                text("Time")
+                    .style(if self.dark_mode {
+                        iced::theme::Text::Color(color::dark::PRIMARY)
+                    } else {
+                        iced::theme::Text::Color(color::PRIMARY)
+                    }).width(Length::FillPortion(1)),
+                text("Traffic")
+                    .style(if self.dark_mode {
+                        iced::theme::Text::Color(color::dark::PRIMARY)
+                    } else {
+                        iced::theme::Text::Color(color::PRIMARY)
+                    }).width(Length::FillPortion(4))
+            ]
+            .padding(5)
+            .spacing(10);
+            
+            traffic_tree = traffic_tree.push(
+                container(headers)
+                    .style(if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                    } else {
+                        iced::theme::Container::Custom(Box::new(styles::HeaderContainer))
+                    })
+                    .width(Length::Fill)
+            );
+            
+            // Create tree structure for items
+            for (index, item) in filtered_items {
+                let formatted_time = format_timestamp(item.timestamp);
+                
+                // Determine item type and make appropriate tree item
+                let descriptor_types = item.decoded_data.descriptors.iter()
+                    .map(|d| format!("{:?}", d))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                
+                // Create a transaction summary based on the data and descriptors
+                let transaction_summary = if descriptor_types.contains("Device") {
+                    create_device_transaction_entry(&item.raw_data, &item.decoded_data)
+                } else if descriptor_types.contains("Configuration") {
+                    create_config_transaction_entry(&item.raw_data, &item.decoded_data)
+                } else if descriptor_types.contains("Interface") {
+                    create_interface_transaction_entry(&item.raw_data, &item.decoded_data)
+                } else if descriptor_types.contains("Endpoint") {
+                    create_endpoint_transaction_entry(&item.raw_data, &item.decoded_data)
+                } else if item.raw_data.len() > 4 && item.raw_data[0] & 0x80 == 0x80 {
+                    // Simple heuristic for data IN packet
+                    format!("IN data packet on endpoint 0x{:02X}, {} bytes", 
+                            item.raw_data[0] & 0x7F, 
+                            item.raw_data.len())
+                } else if !item.raw_data.is_empty() {
+                    // Generic OUT packet
+                    format!("OUT data packet on endpoint 0x{:02X}, {} bytes", 
+                            item.raw_data[0] & 0x7F, 
+                            item.raw_data.len())
+                } else {
+                    "Unknown transaction".to_string()
+                };
+                
+                // Display the data with collapsible effect
+                let is_selected = Some(index) == self.selected_item;
+                let toggle_symbol = "▶"; // Always show as collapsible (we'll handle expansion in the tree view)
+                
+                let row_content: iced::widget::Row<'_, Message> = row![
+                    // Time column
+                    text(formatted_time)
+                        .width(Length::FillPortion(1))
+                        .style(if self.dark_mode {
+                            iced::theme::Text::Color(color::dark::TEXT)
                         } else {
-                            format!("{:02X?}", item.raw_data)
-                        };
-                        
-                        let descriptor_type = if let Some(first) = item.decoded_data.descriptors.first() {
-                            format!("{:?}", first)
+                            iced::theme::Text::Default
+                        }),
+                    
+                    // Content column with arrow 
+                    row![
+                        text(toggle_symbol)
+                            .width(Length::Fixed(20.0))
+                            .style(if self.dark_mode {
+                                iced::theme::Text::Color(color::dark::TEXT_SECONDARY)
+                            } else {
+                                iced::theme::Text::Color(color::TEXT_SECONDARY)
+                            }),
+                        text(transaction_summary)
+                            .width(Length::Fill)
+                            .style(if self.dark_mode {
+                                iced::theme::Text::Color(color::dark::USB_GREEN)
+                            } else {
+                                iced::theme::Text::Color(color::USB_GREEN)
+                            })
+                    ]
+                    .spacing(5)
+                    .width(Length::FillPortion(4))
+                ]
+                .spacing(10)
+                .padding(5)
+                .width(Length::Fill);
+                
+                // Create suitable container based on selection state
+                let row_element: Element<Message> = if is_selected {
+                    container(row_content)
+                        .style(if self.dark_mode {
+                            iced::theme::Container::Custom(Box::new(styles::DarkModeSelectedContainer))
                         } else {
-                            "Unknown".to_string()
-                        };
-                        
-                        let row = row![
-                            text(formatted_time)
-                                .width(Length::FillPortion(1))
-                                .style(if self.dark_mode {
-                                    iced::theme::Text::Color(color::dark::TEXT)
-                                } else {
-                                    iced::theme::Text::Default
-                                }),
-                            text(&data_preview)
-                                .width(Length::FillPortion(2))
-                                .style(if self.dark_mode {
-                                    iced::theme::Text::Color(color::dark::TEXT)
-                                } else {
-                                    iced::theme::Text::Default
-                                }),
-                            text(&descriptor_type)
-                                .width(Length::FillPortion(3))
-                                .style(if self.dark_mode {
-                                    iced::theme::Text::Color(color::dark::TEXT)
-                                } else {
-                                    iced::theme::Text::Default
-                                })
+                            iced::theme::Container::Custom(Box::new(styles::SelectedContainer))
+                        })
+                        .width(Length::Fill)
+                        .into()
+                } else {
+                    button(container(row_content)
+                        .style(if self.dark_mode {
+                            iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                        } else {
+                            iced::theme::Container::Box
+                        })
+                        .width(Length::Fill))
+                    .width(Length::Fill)
+                    .style(if self.dark_mode {
+                        iced::theme::Button::Custom(Box::new(styles::DarkModeTreeNodeButton))
+                    } else {
+                        iced::theme::Button::Text
+                    })
+                    .on_press(Message::ItemSelected(index))
+                    .into()
+                };
+                
+                traffic_tree = traffic_tree.push(row_element);
+                
+                // If selected, show child items indented
+                if is_selected {
+                    // Show sub-transactions
+                    // For now, we'll show raw data as separate entries
+                    let raw_bytes = create_data_chunks_view(&item.raw_data);
+                    for (_i, chunk) in raw_bytes.iter().enumerate() {
+                        let child_row: iced::widget::Row<'_, Message> = row![
+                            // Time column (empty for child)
+                            container(text(""))
+                                .width(Length::FillPortion(1)),
+                            
+                            // Content column with indentation
+                            row![
+                                container(text(""))
+                                    .width(Length::Fixed(20.0)), // Indentation
+                                text(format!("│ {}", chunk))
+                                    .font(iced::Font::MONOSPACE)
+                                    .style(if self.dark_mode {
+                                        iced::theme::Text::Color(color::dark::CODE_GREEN)
+                                    } else {
+                                        iced::theme::Text::Color(color::CODE_GREEN)
+                                    })
+                            ]
+                            .spacing(5)
+                            .width(Length::FillPortion(4))
                         ]
                         .spacing(10)
                         .padding(5)
                         .width(Length::Fill);
                         
-                        if Some(*index) == self.selected_item {
-                            container(row)
+                        traffic_tree = traffic_tree.push(
+                            container(child_row)
                                 .style(if self.dark_mode {
-                                    iced::theme::Container::Custom(Box::new(styles::DarkModeSelectedContainer))
+                                    iced::theme::Container::Custom(Box::new(styles::DarkModeChildContainer))
                                 } else {
-                                    iced::theme::Container::Custom(Box::new(styles::SelectedContainer))
+                                    iced::theme::Container::Custom(Box::new(styles::ChildContainer))
                                 })
                                 .width(Length::Fill)
-                                .into()
-                        } else {
-                            button(
-                                container(row)
-                                    .style(if self.dark_mode {
-                                        iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
-                                    } else {
-                                        iced::theme::Container::Box
-                                    })
-                                    .width(Length::Fill)
-                            )
-                            .width(Length::Fill)
-                            .style(if self.dark_mode {
-                                iced::theme::Button::Custom(Box::new(styles::DarkModeTreeNodeButton))
-                            } else {
-                                iced::theme::Button::Text
-                            })
-                            .on_press(Message::ItemSelected(*index))
-                            .into()
-                        }
-                    })
-                    .collect()
-            );
+                        );
+                    }
+                }
+            }
+            
+            let items = traffic_tree;
             
             scrollable(items)
                 .height(Length::Fill)
@@ -878,6 +1019,139 @@ fn format_timestamp(timestamp: f64) -> String {
     
     time.format(&time::format_description::parse("[hour]:[minute]:[second].[subsecond digits:3]").unwrap())
         .unwrap_or_else(|_| format!("{:.3}", timestamp))
+}
+
+// Create data chunks for display
+fn create_data_chunks_view(data: &[u8]) -> Vec<String> {
+    let mut result = Vec::new();
+    for chunk in data.chunks(16) {
+        let offset = result.len() * 16;
+        let hex_values: Vec<String> = chunk.iter().map(|b| format!("{:02X}", b)).collect();
+        let ascii_values: String = chunk.iter()
+            .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+            .collect();
+        
+        // Format as: 0000: 00 01 02 03 ... | .ABC...
+        let mut hex_str = hex_values.join(" ");
+        while hex_str.len() < 48 {
+            hex_str.push(' ');
+        }
+        let line = format!("{:04X}: {} | {}", offset, hex_str, ascii_values);
+        result.push(line);
+    }
+    result
+}
+
+// Helper to create a device transaction entry
+fn create_device_transaction_entry(_raw_data: &[u8], decoded_data: &DecodedUSBData) -> String {
+    for descriptor in &decoded_data.descriptors {
+        if let USBDescriptor::Device(dev) = descriptor {
+            return format!("Device Descriptor: VID:{:04X} PID:{:04X} ({})", 
+                dev.vendor_id, 
+                dev.product_id,
+                get_vendor_name(dev.vendor_id).unwrap_or("Unknown Vendor"));
+        }
+    }
+    "Device Transaction".to_string()
+}
+
+// Helper to create a configuration transaction entry
+fn create_config_transaction_entry(_raw_data: &[u8], decoded_data: &DecodedUSBData) -> String {
+    for descriptor in &decoded_data.descriptors {
+        if let USBDescriptor::Configuration(cfg) = descriptor {
+            return format!("Configuration Descriptor: Config #{} ({} interfaces, {} mA)", 
+                cfg.configuration_value,
+                cfg.num_interfaces,
+                cfg.max_power * 2);
+        }
+    }
+    "Configuration Transaction".to_string()
+}
+
+// Helper to create an interface transaction entry
+fn create_interface_transaction_entry(_raw_data: &[u8], decoded_data: &DecodedUSBData) -> String {
+    for descriptor in &decoded_data.descriptors {
+        if let USBDescriptor::Interface(iface) = descriptor {
+            return format!("Interface Descriptor: Interface #{} (Class: {})", 
+                iface.interface_number,
+                get_class_name_by_value(iface.interface_class.get_value()).unwrap_or("Unknown Class"));
+        }
+    }
+    "Interface Transaction".to_string()
+}
+
+// Helper to create an endpoint transaction entry
+fn create_endpoint_transaction_entry(_raw_data: &[u8], decoded_data: &DecodedUSBData) -> String {
+    for descriptor in &decoded_data.descriptors {
+        if let USBDescriptor::Endpoint(ep) = descriptor {
+            let direction = if ep.endpoint_address & 0x80 == 0x80 {
+                "IN (Device to Host)"
+            } else {
+                "OUT (Host to Device)"
+            };
+            
+            let endpoint_type = match ep.attributes & 0x03 {
+                0 => "Control",
+                1 => "Isochronous",
+                2 => "Bulk",
+                3 => "Interrupt",
+                _ => "Unknown"
+            };
+            
+            return format!("Endpoint Descriptor: EP 0x{:02X} {} ({} Transfer, {} bytes/interval)", 
+                ep.endpoint_address,
+                direction,
+                endpoint_type,
+                ep.max_packet_size);
+        }
+    }
+    "Endpoint Transaction".to_string()
+}
+
+// Helper to get vendor name from vendor ID (simplified version)
+fn get_vendor_name(vendor_id: u16) -> Option<&'static str> {
+    // Simplified implementation for now
+    match vendor_id {
+        0x1d50 => Some("Great Scott Gadgets"),
+        0x04b4 => Some("Cypress Semiconductor"),
+        0x1A86 => Some("QinHeng Electronics"),
+        0x0483 => Some("STMicroelectronics"),
+        0x2341 => Some("Arduino"),
+        0x0403 => Some("FTDI"),
+        0x046D => Some("Logitech"),
+        0x8087 => Some("Intel"),
+        _ => None
+    }
+}
+
+// Helper to get class name from interface class (simplified version)
+fn get_class_name_by_value(class_code: u8) -> Option<&'static str> {
+    // Simplified implementation for now
+    match class_code {
+        0x00 => Some("Interface Association"),
+        0x01 => Some("Audio"),
+        0x02 => Some("Communications and CDC Control"),
+        0x03 => Some("Human Interface Device"),
+        0x05 => Some("Physical"),
+        0x06 => Some("Image"),
+        0x07 => Some("Printer"),
+        0x08 => Some("Mass Storage"),
+        0x09 => Some("Hub"),
+        0x0A => Some("CDC-Data"),
+        0x0B => Some("Smart Card"),
+        0x0D => Some("Content Security"),
+        0x0E => Some("Video"),
+        0x0F => Some("Personal Healthcare"),
+        0x10 => Some("Audio/Video Devices"),
+        0x11 => Some("Billboard Device"),
+        0x12 => Some("USB Type-C Bridge"),
+        0xDC => Some("Diagnostic Device"),
+        0xE0 => Some("Wireless Controller"),
+        0xEF => Some("Miscellaneous"),
+        0xFE => Some("Application Specific"),
+        0xFF => Some("Vendor Specific"),
+        _ => None
+    }
 }
 
 // The old build_descriptor_tree function has been replaced by our render_tree_node implementation
