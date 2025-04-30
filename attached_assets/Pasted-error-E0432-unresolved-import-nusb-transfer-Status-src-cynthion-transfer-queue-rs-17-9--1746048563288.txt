@@ -1,0 +1,76 @@
+error[E0432]: unresolved import `nusb::transfer::Status`
+  --> src/cynthion/transfer_queue.rs:17:9
+   |
+17 |         Status as TransferStatus,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ no `Status` in `transfer`
+   |
+   = help: consider importing one of these items instead:
+           crate::gui::views::traffic_view::TreeNodeType::Status
+           iced::event::Status
+           iced_native::event::Status
+
+error[E0412]: cannot find type `Bulk` in module `transfer`
+  --> src/cynthion/transfer_queue.rs:28:31
+   |
+28 | type BulkTransfer = transfer::Bulk;
+   |                               ^^^^ not found in `transfer`
+   |
+help: there is an enum variant `crate::cynthion::transfer_queue::transfer::EndpointType::Bulk` and 5 others; try using the variant's enum
+   |
+28 - type BulkTransfer = transfer::Bulk;
+28 + type BulkTransfer = crate::cynthion::transfer_queue::transfer::EndpointType;
+   |
+28 - type BulkTransfer = transfer::Bulk;
+28 + type BulkTransfer = crate::usb::UsbEndpointType;
+   |
+28 - type BulkTransfer = transfer::Bulk;
+28 + type BulkTransfer = crate::usb::mitm_traffic::UsbTransferType;
+   |
+28 - type BulkTransfer = transfer::Bulk;
+28 + type BulkTransfer = nusb::transfer::EndpointType;
+   |
+     and 1 other candidate
+
+warning: unused import: `crate::cynthion::transfer_queue::TransferQueue`
+  --> src/cynthion/connection.rs:28:5
+   |
+28 | use crate::cynthion::transfer_queue::TransferQueue;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+error[E0308]: mismatched types
+   --> src/cynthion/transfer_queue.rs:110:13
+    |
+109 |         let transfer = match result {
+    |                              ------ this expression has type `Completion<Vec<u8>>`
+110 |             Ok(transfer) => transfer,
+    |             ^^^^^^^^^^^^ expected `Completion<Vec<u8>>`, found `Result<_, _>`
+    |
+    = note: expected struct `Completion<Vec<u8>>`
+                 found enum `Result<_, _>`
+help: you might have meant to use field `status` whose type is `Result<(), TransferError>`
+    |
+109 |         let transfer = match result.status {
+    |                                    +++++++
+
+error[E0308]: mismatched types
+   --> src/cynthion/transfer_queue.rs:111:13
+    |
+109 |         let transfer = match result {
+    |                              ------ this expression has type `Completion<Vec<u8>>`
+110 |             Ok(transfer) => transfer,
+111 |             Err(e) => return Err(anyhow::anyhow!("Transfer error: {}", e)),
+    |             ^^^^^^ expected `Completion<Vec<u8>>`, found `Result<_, _>`
+    |
+    = note: expected struct `Completion<Vec<u8>>`
+                 found enum `Result<_, _>`
+help: you might have meant to use field `status` whose type is `Result<(), TransferError>`
+    |
+109 |         let transfer = match result.status {
+    |                                    +++++++
+
+Some errors have detailed explanations: E0308, E0412, E0432.
+For more information about an error, try `rustc --explain E0308`.
+warning: `usbfly` (bin "usbfly") generated 1 warning
+error: could not compile `usbfly` (bin "usbfly") due to 4 previous errors; 1 warning emitted

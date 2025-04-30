@@ -14,8 +14,10 @@ use nusb::{
     self,
     transfer::{
         self,
-        Status as TransferStatus,
+        TransferError,
         RequestBuffer,
+        Completion,
+        TransferFuture
     },
     Interface,
 };
@@ -24,8 +26,9 @@ use nusb::{
 const MAX_DONE_TRANSFERS: usize = 16;  // Maximum number of completed transfers to keep in the done queue
 const TIMEOUT: Duration = Duration::from_millis(1000);
 
-// Define the bulk transfer type we'll use
-type BulkTransfer = transfer::Bulk;
+// For nusb, transfers are handled through TransferFuture and Completion
+// When polled, the future resolves to a Completion<Vec<u8>>
+type BulkTransfer = Completion<Vec<u8>>;
 
 /// A queue of USB bulk transfers to a device.
 pub struct TransferQueue {
@@ -101,15 +104,17 @@ impl TransferQueue {
         let mut pinned = Box::pin(future);
         
         // Poll the future and get the result
-        let result = match Pin::new(&mut pinned).poll(&mut context) {
-            Poll::Ready(result) => result,
+        let completion = match Pin::new(&mut pinned).poll(&mut context) {
+            Poll::Ready(completion) => completion,
             Poll::Pending => return Err(anyhow::anyhow!("Transfer future is still pending")),
         };
         
-        let transfer = match result {
-            Ok(transfer) => transfer,
-            Err(e) => return Err(anyhow::anyhow!("Transfer error: {}", e)),
-        };
+        // Check if there was an error during transfer
+        if let Err(e) = &completion.status {
+            return Err(anyhow::anyhow!("Transfer error: {}", e));
+        }
+        
+        let transfer = completion;
         
         // Add to active transfers queue
         self.active_transfers.push_back((transfer, buffer));
@@ -123,99 +128,79 @@ impl TransferQueue {
         let mut processed_count = 0;
         
         // Check all active transfers for completion
-        while let Some((mut transfer, mut buffer)) = self.active_transfers.pop_front() {
-            match transfer.check_status() {
-                // Completed successfully - process the data
-                TransferStatus::Completed => {
-                    let actual = transfer.actual_length().unwrap_or(0);
-                    if actual > 0 {
-                        debug!("Transfer complete: {} bytes", actual);
-                        
-                        // Resize buffer to actual size and send it to the processor
-                        buffer.truncate(actual);
-                        if let Err(e) = self.data_tx.send(buffer.clone()) {
-                            error!("Failed to send transfer data: {}", e);
-                        }
-                    }
+        while let Some((transfer, mut buffer)) = self.active_transfers.pop_front() {
+            // In nusb, we need to check the completion status in a different way
+            // The Completion struct has a status field that contains the Result
+            if transfer.status.is_ok() {
+                // Successfully completed - extract the data from the buffer
+                let data = &transfer.data;
+                let actual = data.len();
+                
+                if actual > 0 {
+                    debug!("Transfer complete: {} bytes", actual);
                     
-                    // Save this transfer for reuse
-                    self.done_transfers.push_back((transfer, buffer));
-                    processed_count += 1;
-                    
-                    // Trim the done queue if it gets too large
-                    if self.done_transfers.len() > MAX_DONE_TRANSFERS {
-                        self.done_transfers.pop_front();
+                    // Clone the data and send it to the processor
+                    if let Err(e) = self.data_tx.send(data.clone()) {
+                        error!("Failed to send transfer data: {}", e);
                     }
                 }
                 
-                // Still in progress - put it back in the queue
-                TransferStatus::Queued | TransferStatus::Transferring => {
-                    self.active_transfers.push_back((transfer, buffer));
-                    break;  // No need to check further transfers
-                }
+                // Save this transfer for reuse
+                self.done_transfers.push_back((transfer, buffer));
+                processed_count += 1;
                 
-                // Transfer failed or cancelled
-                TransferStatus::Error(e) => {
-                    error!("Transfer error: {}", e);
-                    // Save for reuse anyway
-                    self.done_transfers.push_back((transfer, buffer));
+                // Trim the done queue if it gets too large
+                if self.done_transfers.len() > MAX_DONE_TRANSFERS {
+                    self.done_transfers.pop_front();
                 }
-                
-                TransferStatus::Cancelled => {
-                    warn!("Transfer was cancelled");
-                    // Save for reuse
-                    self.done_transfers.push_back((transfer, buffer));
+            } else if let Err(e) = &transfer.status {
+                // Handle error based on the specific TransferError type
+                match e {
+                    TransferError::Cancelled => {
+                        warn!("Transfer was cancelled");
+                        // Save for reuse
+                        self.done_transfers.push_back((transfer, buffer));
+                    },
+                    
+                    // Transfer failed with other error
+                    _ => {
+                        error!("Transfer error: {}", e);
+                        // Save for reuse anyway
+                        self.done_transfers.push_back((transfer, buffer));
+                    }
                 }
-                
-                // Other status
-                other => {
-                    warn!("Transfer in unexpected state: {:?}", other);
-                    // Save for reuse
-                    self.done_transfers.push_back((transfer, buffer));
-                }
+            } else {
+                // Still in progress or other status
+                self.active_transfers.push_back((transfer, buffer));
+                break;  // No need to check further transfers
             }
         }
         
         // If we processed any transfers, submit new ones to keep the queue full
         if processed_count > 0 {
-            // Reuse transfers from the done queue
-            while let Some((transfer, mut buffer)) = self.done_transfers.pop_front() {
-                // Reset the buffer
-                buffer.resize(self.read_size, 0);
-                
-                // Resubmit the transfer with proper RequestBuffer
-                let request_buffer = RequestBuffer::reuse(buffer.clone(), self.read_size);
-                match transfer.submit(request_buffer) {
-                    Ok(transfer) => {
-                        // Put it back in the active queue
-                        self.active_transfers.push_back((transfer, buffer));
-                    }
-                    Err(e) => {
-                        error!("Failed to resubmit transfer: {}", e);
-                        // If we couldn't resubmit, try to create a new transfer instead
-                        if let Err(e) = self.submit_transfer() {
-                            error!("Failed to create new transfer: {}", e);
-                        }
-                    }
+            // In nusb, we can't reuse transfers from the done queue the same way
+            // Instead, we'll create new transfers to replace the completed ones
+            for _ in 0..processed_count {
+                // Submit a new transfer to keep the queue full
+                if let Err(e) = self.submit_transfer() {
+                    error!("Failed to create new transfer: {}", e);
                 }
             }
+            
+            // Clear the done queue after processing
+            self.done_transfers.clear();
         }
         
         Ok(())
     }
     
-    /// Cancel all active transfers and clean up resources
+    /// Clean up resources on shutdown - for nusb we just need to clear the queues
     pub fn shutdown(&mut self) {
         info!("Shutting down transfer queue");
         
-        // Cancel and drain all active transfers
-        while let Some((transfer, _)) = self.active_transfers.pop_front() {
-            if let Err(e) = transfer.cancel() {
-                error!("Failed to cancel transfer: {}", e);
-            }
-        }
-        
-        // Clear the done queue
+        // With nusb Completion, we don't need to explicitly cancel transfers
+        // Just clear out both queues
+        self.active_transfers.clear();
         self.done_transfers.clear();
     }
 }
