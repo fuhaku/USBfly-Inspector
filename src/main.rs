@@ -29,6 +29,53 @@ fn main() -> iced::Result {
     info!("Starting USBfly application v{}", env!("CARGO_PKG_VERSION"));
     info!("Platform: {}", std::env::consts::OS);
     
+    // On macOS, set the force hardware flag to prioritize real device connections
+    if cfg!(target_os = "macos") {
+        info!("MacOS detected - initializing with hardware mode preference");
+        env::set_var("USBFLY_FORCE_HARDWARE", "1");
+        env::set_var("USBFLY_SIMULATION_MODE", "0");
+    }
+    
+    // Actively check for USB devices at startup to force hardware mode if possible
+    match rusb::Context::new() {
+        Ok(context) => {
+            match context.devices() {
+                Ok(devices) => {
+                    let mut found_device = false;
+                    
+                    // Print all USB devices for debugging
+                    for device in devices.iter() {
+                        if let Ok(desc) = device.device_descriptor() {
+                            let vid = desc.vendor_id();
+                            let pid = desc.product_id();
+                            info!("Found USB device: VID={:04x} PID={:04x}", vid, pid);
+                            
+                            // Check if this is a Cynthion device
+                            if (vid == 0x1d50 && (pid == 0x615c || pid == 0x60e6 || pid == 0x615b)) ||
+                               (vid == 0x16d0 && pid == 0x0f3b) {
+                                info!("Cynthion device detected at startup! Forcing hardware mode");
+                                env::set_var("USBFLY_SIMULATION_MODE", "0");
+                                found_device = true;
+                            }
+                        }
+                    }
+                    
+                    if !found_device {
+                        info!("No Cynthion device found at startup");
+                    }
+                },
+                Err(e) => {
+                    warn!("USB context works but can't list devices: {}. Will try hardware mode anyway.", e);
+                }
+            }
+        },
+        Err(e) => {
+            warn!("USB context initialization error: {}. Environment doesn't support USB access.", e);
+            info!("Application will use simulation mode for USB devices");
+            env::set_var("USBFLY_SIMULATION_MODE", "1");
+        }
+    }
+    
     // Parse command line arguments
     let args: Vec<String> = env::args().collect();
     let mut port: Option<u16> = None;

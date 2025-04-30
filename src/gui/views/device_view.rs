@@ -253,6 +253,9 @@ impl DeviceView {
     }
     
     pub fn view(&self) -> Element<Message> {
+        // Check if we're in simulation mode
+        let simulation_mode = std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "0".to_string()) == "1";
+        
         // Use our title style with theme-compatible formatting
         let title = container(
             text("Connected USB Devices")
@@ -270,10 +273,27 @@ impl DeviceView {
             .on_press(Message::ForceRefreshDevices)
             .style(iced::theme::Button::Secondary);
             
-        let header = row![title, refresh_button, force_refresh_button]
-            .spacing(20)
-            .align_items(iced::Alignment::Center)
-            .width(Length::Fill);
+        // Create simulation mode banner if needed
+        let sim_banner = if simulation_mode {
+            container(
+                text("SIMULATION MODE - Showing virtual devices")
+                    .size(16)
+                    .style(iced::theme::Text::Color(Color::from_rgb(1.0, 0.5, 0.0)))
+            )
+            .padding(5)
+            .width(Length::Fill)
+            .style(iced::theme::Container::Box)
+        } else {
+            container(text("")).width(Length::Fill)
+        };
+        
+        let header = column![
+            row![title, refresh_button, force_refresh_button]
+                .spacing(20)
+                .align_items(iced::Alignment::Center)
+                .width(Length::Fill),
+            sim_banner
+        ];
             
         // Error message display if there's an error
         let error_display = if let Some(error) = &self.last_error {
