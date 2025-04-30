@@ -647,6 +647,7 @@ impl CynthionHandle {
     fn start_async_processing(&self) {
         // We need to clone these for the thread
         let interface = self.interface.clone();
+        let device_info = self.device_info.clone();
         
         // If we have a transfer queue, set up async processing
         if let Some(queue) = &self.transfer_queue {
@@ -660,11 +661,16 @@ impl CynthionHandle {
             
             // Create a new transfer queue with the same properties
             std::thread::spawn(move || {
+                info!("USB transfer processing thread started for device {:04x}:{:04x}",
+                      device_info.vendor_id(), device_info.product_id());
+                      
                 // Set up tokio runtime for async processing
                 let rt = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
                     .expect("Failed to create tokio runtime");
+                
+                debug!("Initializing transfer queue in async processing thread for endpoint 0x{:02X}", ENDPOINT);
                 
                 // Process transfers in the async runtime
                 if let Err(e) = rt.block_on(async {
@@ -677,16 +683,34 @@ impl CynthionHandle {
                         transfer_info.transfer_length
                     );
                     
+                    info!("USB transfer queue successfully created in processing thread");
+                    debug!("Starting USB transfer processing loop - waiting for USB data packets");
+                    
                     // Process transfers until stopped
+                    // This will continuously poll for new USB data
                     queue.process(stop_rx).await
                 }) {
                     error!("Error in transfer processing thread: {}", e);
+                    
+                    // Provide more detailed diagnostic information based on the error
+                    if e.to_string().contains("cancelled") {
+                        info!("Transfer was cancelled - this is normal during shutdown");
+                    } else if e.to_string().contains("pipe") || e.to_string().contains("endpoint") {
+                        warn!("USB communication pipe error - device may have been disconnected");
+                    } else if e.to_string().contains("permission") {
+                        error!("USB permission error - insufficient permission to access device");
+                    } else if e.to_string().contains("busy") {
+                        warn!("USB device is busy - another application may be using it");
+                    }
                 }
                 
+                info!("USB transfer processing thread completed");
                 // Thread will exit when processing is complete or errors
             });
             
             info!("Started async transfer processing thread");
+        } else {
+            warn!("Cannot start async processing - no transfer queue available");
         }
     }
     

@@ -7,8 +7,10 @@ use std::time::Duration;
 use anyhow::{Context, Error};
 use futures_channel::oneshot;
 use futures_util::{future::FusedFuture, FutureExt, select_biased};
-use log::{debug, error, info};
-use nusb::{Interface, transfer::{Queue, RequestBuffer, TransferError}};
+use log::{debug, error, info, warn};
+use nusb::{Interface, transfer::{Completion, Queue, RequestBuffer, TransferError}};
+
+// Import only what we need from Packetry's approach
 
 // Constants
 const TIMEOUT: Duration = Duration::from_millis(1000);
@@ -87,12 +89,23 @@ impl TransferQueue {
                 completion = self.queue.next_complete().fuse() => {
                     match completion.status {
                         Ok(()) => {
-                            // Send data to decoder thread if we have data.
-                            if !completion.data.is_empty() {
-                                debug!("Transfer complete: {} bytes", completion.data.len());
+                            // Improved diagnostic logging for all packets, including empty ones
+                            let data_len = completion.data.len();
+                            if data_len == 0 {
+                                warn!("Received empty data packet (0 bytes) - this may indicate a connection issue");
+                                // Still forward empty packets as they might be control signals
                                 self.data_tx.send(completion.data)
-                                    .context(
-                                        "Failed sending capture data to channel")?;
+                                    .context("Failed sending empty capture data to channel")?;
+                            } else {
+                                debug!("Transfer complete: received {} bytes of USB data", data_len);
+                                // Check for specific packet signatures in the first few bytes
+                                if data_len >= 4 {
+                                    let signature = &completion.data[0..4];
+                                    debug!("Packet signature: {:02X} {:02X} {:02X} {:02X}", 
+                                           signature[0], signature[1], signature[2], signature[3]);
+                                }
+                                self.data_tx.send(completion.data)
+                                    .context("Failed sending capture data to channel")?;
                             }
                             
                             if !stop_rx.is_terminated() {
