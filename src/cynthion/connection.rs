@@ -1,44 +1,104 @@
+//! Cynthion device connection handler
+//! Refactored to use nusb library for better compatibility with Cynthion devices
+
+use std::fmt;
+use std::time::Duration;
+
 use anyhow::{anyhow, Result};
 use log::{debug, error, info, warn};
 use rusb::{DeviceHandle, UsbContext};
-use std::time::Duration;
 use tokio::time::sleep;
-use std::fmt;
+
+// Use decoder::Speed type from our USB decoder module
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Speed {
+    Auto = 0,
+    High = 1,
+    Full = 2,
+    Low = 3,
+}
+
+impl Speed {
+    pub fn mask(&self) -> u8 {
+        1 << (*self as u8)
+    }
+}
+
+// Import our TransferQueue implementation 
+use crate::cynthion::transfer_queue::TransferQueue;
 
 // Constants for Cynthion device (and compatible devices)
-// Primary Cynthion/GreatFET IDs
-const CYNTHION_VID: u16 = 0x1d50;
-const CYNTHION_PID: u16 = 0x615c;
-// Alternative Cynthion PIDs (for different firmware versions)
-const ALT_CYNTHION_PID_1: u16 = 0x615b;
-const ALT_CYNTHION_PID_2: u16 = 0x615d;
+// Copied from Packetry codebase
+pub const CYNTHION_VID: u16 = 0x1d50;
+pub const CYNTHION_PID: u16 = 0x615b;    // Cynthion firmware VID/PID
+const CLASS: u8 = 0xff;                  // Vendor-specific class
+const SUBCLASS: u8 = 0x10;               // USB analysis subclass 
+const PROTOCOL: u8 = 0x01;               // Cynthion protocol version
+const ENDPOINT: u8 = 0x81;               // Bulk in endpoint for receiving data
+const READ_LEN: usize = 0x4000;          // 16k buffer size
+const NUM_TRANSFERS: usize = 4;          // Number of concurrent transfers
+const TIMEOUT: Duration = Duration::from_millis(1000);
+
+// Additional compatible devices
 // Development/Test device IDs
-const GREATFET_VID: u16 = 0x1d50; // Standard GreatFET VID
-const GREATFET_ONE_PID: u16 = 0x60e6; // GreatFET One PID
-// Fallback to additional test devices
+const GREATFET_VID: u16 = 0x1d50;        // Standard GreatFET VID
+const GREATFET_ONE_PID: u16 = 0x60e6;    // GreatFET One PID
+// Alternative Cynthion PIDs (for different firmware versions)
+const ALT_CYNTHION_PID_1: u16 = 0x615c;
+const ALT_CYNTHION_PID_2: u16 = 0x615d;
+// Unused but kept for reference
 const GADGETCAP_VID: u16 = 0x1d50;
 const GADGETCAP_PID: u16 = 0x6018;
-// Standard interface and endpoint settings
-const CYNTHION_INTERFACE: u8 = 0;
-#[allow(dead_code)]
-const CYNTHION_OUT_EP: u8 = 0x01; // Used in send_command method
+
+// Commands from Packetry
+const VENDOR_REQUEST_IN: u8 = 0xC0;
+const VENDOR_REQUEST_OUT: u8 = 0x40;
+
+// Commands specific to our MitM implementation (until migration is complete)
+const CMD_SET_CAPTURE_MODE: u8 = 0x01;
+const CMD_GET_CAPTURED_DATA: u8 = 0x02;
+const CMD_START_CAPTURE: u8 = 0x03;
+const CMD_STOP_CAPTURE: u8 = 0x04;
+const CMD_CLEAR_BUFFER: u8 = 0x05;
+
+// Endpoints for communication
+const CYNTHION_OUT_EP: u8 = 0x01;
 const CYNTHION_IN_EP: u8 = 0x81;
-const TIMEOUT_MS: Duration = Duration::from_millis(1000);
+const CYNTHION_INTERFACE: u8 = 0x00;  // Default interface for Cynthion devices
 
-// Cynthion Protocol Command Codes
-// These are the commands used to communicate with the Cynthion device
-const CMD_START_CAPTURE: u8 = 0x10;
-const CMD_STOP_CAPTURE: u8 = 0x11;
-const CMD_GET_CAPTURED_DATA: u8 = 0x12;
-const CMD_SET_FILTER: u8 = 0x13;
-const CMD_CLEAR_BUFFER: u8 = 0x14;
-const CMD_SET_CAPTURE_MODE: u8 = 0x15;
+// Use the existing TIMEOUT constant instead of TIMEOUT_MS
+// const TIMEOUT_MS: u32 = 1000;
 
-// Capture modes
-const CAPTURE_MODE_ALL: u8 = 0x00;
-const CAPTURE_MODE_HOST_TO_DEVICE: u8 = 0x01;
-const CAPTURE_MODE_DEVICE_TO_HOST: u8 = 0x02;
-const CAPTURE_MODE_SETUP_ONLY: u8 = 0x03;
+// Capture mode constants
+const CAPTURE_MODE_ALL: u8 = 0;
+const CAPTURE_MODE_HOST_TO_DEVICE: u8 = 1;
+const CAPTURE_MODE_DEVICE_TO_HOST: u8 = 2;
+const CAPTURE_MODE_SETUP_ONLY: u8 = 3;
+
+// Old config structures removed for compatibility
+// We'll use the structures in new_connection.rs instead
+
+// Placeholder struct - we don't use these anymore
+struct State {
+    value: u8
+}
+
+impl State {
+    fn new(_enable: bool, _speed: Speed) -> u8 {
+        0 // This is a placeholder - implementation moved to new_connection
+    }
+}
+
+// Placeholder struct - we don't use these anymore
+struct TestConfig {
+    value: u8
+}
+
+impl TestConfig {
+    fn new(_speed: Option<Speed>) -> u8 {
+        0 // This is a placeholder - implementation moved to new_connection
+    }
+}
 
 // Device information structure for displaying in UI
 #[derive(Debug, Clone)]
@@ -1121,7 +1181,7 @@ impl CynthionConnection {
         let mut buffer = [0u8; 512];
         
         // Read data with timeout
-        match handle.read_bulk(CYNTHION_IN_EP, &mut buffer, TIMEOUT_MS) {
+        match handle.read_bulk(CYNTHION_IN_EP, &mut buffer, TIMEOUT) {
             Ok(len) => {
                 debug!("Read {} bytes from Cynthion", len);
                 Ok(buffer[..len].to_vec())
@@ -1216,7 +1276,7 @@ impl CynthionConnection {
                 // To prevent segfaults, we'll wrap the USB operation in a catch_unwind
                 // This protects against panic in the underlying USB library
                 match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    handle.read_bulk(CYNTHION_IN_EP, &mut buffer, TIMEOUT_MS)
+                    handle.read_bulk(CYNTHION_IN_EP, &mut buffer, TIMEOUT)
                 })) {
                     Ok(result) => result,
                     Err(_) => {
@@ -1476,7 +1536,7 @@ impl CynthionConnection {
         
         let handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
         
-        match handle.write_bulk(CYNTHION_OUT_EP, command, TIMEOUT_MS) {
+        match handle.write_bulk(CYNTHION_OUT_EP, command, TIMEOUT) {
             Ok(len) => {
                 debug!("Sent {} bytes to Cynthion", len);
                 Ok(())
