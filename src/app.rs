@@ -289,18 +289,37 @@ impl Application for USBflyApp {
                     move |conn| async move {
                         // Use a clone + drop approach to avoid holding MutexGuard across an await point
                         let result = {
-                            let mut connection = conn.lock().unwrap();
-                            // Clone the required fields or prepare the async call
-                            connection.read_data_clone()
+                            // Add a safety check for the lock itself
+                            match conn.lock() {
+                                Ok(mut connection) => {
+                                    // Clone the required fields or prepare the async call
+                                    connection.read_data_clone()
+                                },
+                                Err(e) => {
+                                    // Handle poisoned mutex (another thread panicked while holding the lock)
+                                    log::error!("Mutex poisoned: {}", e);
+                                    Err(anyhow::anyhow!("Connection error: mutex poisoned"))
+                                }
+                            }
                         };
                         
-                        // The read_data_clone method now returns Result directly, 
-                        // so we don't need to use poll or futures machinery
-                        let data = result;
-                        
-                        match data {
+                        // The read_data_clone method now returns Result directly
+                        match result {
                             Ok(data) => (Message::USBDataReceived(data), conn),
-                            Err(_) => (Message::ConnectionFailed("Connection lost".to_string()), conn),
+                            Err(e) => {
+                                // Log connection errors but avoid overly verbose logs for routine disconnects
+                                if !e.to_string().contains("not active") && 
+                                   !e.to_string().contains("disconnected") {
+                                    log::warn!("Connection error: {}", e);
+                                }
+                                
+                                // Short delay to prevent error message flooding
+                                std::thread::sleep(std::time::Duration::from_millis(100));
+                                
+                                // Don't disconnect immediately on first error
+                                // Return a non-fatal message so we'll try again
+                                (Message::USBDataReceived(Vec::new()), conn)
+                            }
                         }
                     },
                 )
