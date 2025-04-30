@@ -18,12 +18,11 @@ pub use self::descriptors::{
     ConfigurationDescriptor,
     InterfaceDescriptor,
     EndpointDescriptor,
-    UsbDevice,
     USBDescriptor,
     // StringDescriptor and DeviceQualifierDescriptor are still available directly from descriptors module
 };
 
-pub use self::decoder::{DecodedUSBData, UsbDecoder};
+pub use self::decoder::{DecodedUSBData, UsbDecoder, Speed};
 
 // Re-export the essential MitM traffic types
 pub use self::mitm_traffic::{

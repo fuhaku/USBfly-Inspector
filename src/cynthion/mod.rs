@@ -2,11 +2,17 @@ pub mod connection;
 pub mod transfer_queue;
 pub mod new_connection;
 
-// We'll transition to the new implementation
-// Old connection module will remain for backward compatibility 
-// until the migration is complete
-pub use connection::CynthionConnection;  // Keep old connection temporarily
-pub use connection::Speed;  // Share Speed enum
+// Re-export these types if they're needed elsewhere in the application
+// The #[allow(unused_imports)] is temporary during our refactoring
+// and will be removed when the implementation is complete
+#[allow(unused_imports)]
+pub use crate::usb::Speed;  
 
-// Also expose new API that we're transitioning to
+// We'll keep the re-exports but mark them as allowed
+// during our transition to the new implementation
+#[allow(unused_imports)]
+pub use connection::CynthionConnection;
+#[allow(unused_imports)]
 pub use new_connection::{CynthionDevice, CynthionHandle, CynthionStream};
+#[allow(unused_imports)]
+pub use transfer_queue::TransferQueue;

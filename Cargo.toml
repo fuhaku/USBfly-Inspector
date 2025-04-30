@@ -20,7 +20,7 @@ tokio = { version = "1.28", features = ["full"] }
 anyhow = "1.0"
 crossbeam-channel = "0.5.8"
 rusb = "0.9.1"
-nusb = "0.1.10"  # Adding nusb, the USB library used by Packetry
+nusb = "0.1.13"  # Using latest nusb version for compatibility
 thiserror = "1.0.40"
 byteorder = "1.4.3"
 futures = "0.3.28"

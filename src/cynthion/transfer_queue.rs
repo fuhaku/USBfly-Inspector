@@ -3,23 +3,29 @@
 
 use std::collections::VecDeque;
 use std::sync::mpsc;
+use std::time::Duration;
+use std::future::Future;
+use std::task::{Context, Poll};
+use std::pin::Pin;
 
 use anyhow::Result;
 use log::{debug, error, info, warn};
 use nusb::{
     self,
     transfer::{
-        Bulk, 
-        BulkIn,
+        self,
         Status as TransferStatus,
-        TransferFuture,
+        RequestBuffer,
     },
     Interface,
-    RequestBuffer,
 };
 
-// Maximum number of completed transfers to keep in the done queue
-const MAX_DONE_TRANSFERS: usize = 16;
+// Constants
+const MAX_DONE_TRANSFERS: usize = 16;  // Maximum number of completed transfers to keep in the done queue
+const TIMEOUT: Duration = Duration::from_millis(1000);
+
+// Define the bulk transfer type we'll use
+type BulkTransfer = transfer::Bulk;
 
 /// A queue of USB bulk transfers to a device.
 pub struct TransferQueue {
@@ -27,8 +33,8 @@ pub struct TransferQueue {
     data_tx: mpsc::Sender<Vec<u8>>,
     endpoint: u8,
     read_size: usize,
-    active_transfers: VecDeque<(BulkIn, Vec<u8>)>,
-    done_transfers: VecDeque<(BulkIn, Vec<u8>)>,
+    active_transfers: VecDeque<(BulkTransfer, Vec<u8>)>,
+    done_transfers: VecDeque<(BulkTransfer, Vec<u8>)>,
     transfer_id: usize,
 }
 
@@ -77,15 +83,33 @@ impl TransferQueue {
         // Create a new buffer for the transfer
         let buffer = vec![0u8; self.read_size];
         
-        // Convert Vec<u8> to RequestBuffer for nusb
-        let request_buffer = RequestBuffer::from_vec(buffer.clone());
+        // Create a new RequestBuffer of the appropriate size
+        // The RequestBuffer API doesn't have from_vec, but it has "reuse" for existing buffers
+        let request_buffer = RequestBuffer::reuse(buffer.clone(), self.read_size);
         
         // In nusb, we create a bulk IN transfer (for receiving data)
         // The endpoint address already includes the direction bit (0x80 for IN)
-        // Use proper RequestBuffer but handle the future differently (no wait method available)
-        // For async we'd use await, but in our sync context we'll use a blocking approach
-        let transfer = self.interface.bulk_in_blocking(self.endpoint, request_buffer, TIMEOUT)
-            .map_err(|e| anyhow::anyhow!("Transfer error: {}", e))?;
+        // First we get a future, then poll it to get the transfer
+        let future = self.interface.bulk_in(self.endpoint, request_buffer);
+        
+        // Poll the future until we get a result - based on Packetry's approach
+        // Create a dummy waker and context to poll the future
+        let waker = futures::task::noop_waker();
+        let mut context = Context::from_waker(&waker);
+        
+        // We need to pin the future to poll it
+        let mut pinned = Box::pin(future);
+        
+        // Poll the future and get the result
+        let result = match Pin::new(&mut pinned).poll(&mut context) {
+            Poll::Ready(result) => result,
+            Poll::Pending => return Err(anyhow::anyhow!("Transfer future is still pending")),
+        };
+        
+        let transfer = match result {
+            Ok(transfer) => transfer,
+            Err(e) => return Err(anyhow::anyhow!("Transfer error: {}", e)),
+        };
         
         // Add to active transfers queue
         self.active_transfers.push_back((transfer, buffer));
@@ -160,7 +184,7 @@ impl TransferQueue {
                 buffer.resize(self.read_size, 0);
                 
                 // Resubmit the transfer with proper RequestBuffer
-                let request_buffer = RequestBuffer::from_vec(buffer.clone());
+                let request_buffer = RequestBuffer::reuse(buffer.clone(), self.read_size);
                 match transfer.submit(request_buffer) {
                     Ok(transfer) => {
                         // Put it back in the active queue

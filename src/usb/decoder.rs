@@ -1,7 +1,23 @@
 use std::collections::HashMap;
-use log::{debug, error, info};
-use crate::usb::{UsbDevice, UsbDescriptorType};
+use log::{debug, info};
+use crate::usb::descriptors::UsbDevice;
+use crate::usb::UsbDescriptorType;
 use serde::{Deserialize, Serialize};
+
+// Speed enum from the previous decoder/mod.rs
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Speed {
+    Auto = 0,
+    High = 1,
+    Full = 2,
+    Low = 3,
+}
+
+impl Speed {
+    pub fn mask(&self) -> u8 {
+        1 << (*self as u8)
+    }
+}
 
 // Data structure to hold decoded USB data for display in the UI
 #[derive(Debug, Clone, Serialize, Deserialize)]

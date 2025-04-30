@@ -669,7 +669,7 @@ impl CynthionConnection {
         // Get product name with language (safely)
         let product_name = match default_language {
             Some(lang) => {
-                if let Some(idx) = descriptor.product_string_index() {
+                if let Some(_idx) = descriptor.product_string_index() {
                     match handle.read_product_string(lang, &descriptor, timeout) {
                         Ok(name) => name,
                         Err(e) => {
