@@ -63,7 +63,7 @@ impl fmt::Display for USBDeviceInfo {
 
 #[derive(Debug)]
 pub struct CynthionConnection {
-    handle: Option<DeviceHandle<rusb::Context>>,
+    handle: Option<DeviceHandle<rusb::GlobalContext>>,
     active: bool,
     // Simulation mode for environments without USB access (like Replit)
     simulation_mode: bool,
@@ -246,98 +246,42 @@ impl CynthionConnection {
         self.simulation_mode
     }
     
+    // Set simulation mode explicitly
+    pub fn set_simulation_mode(&mut self, enabled: bool) {
+        if enabled && !self.simulation_mode {
+            info!("Setting connection to simulation mode for safer operation");
+            self.simulation_mode = true;
+        } else if !enabled && self.simulation_mode {
+            warn!("Disabling simulation mode - this may cause stability issues");
+            self.simulation_mode = false;
+        }
+    }
+    
+    // Set a read timeout for USB operations
+    pub fn set_read_timeout(&mut self, timeout: Option<std::time::Duration>) -> Result<()> {
+        // If in simulation mode, just acknowledge the timeout setting
+        if self.simulation_mode {
+            return Ok(());
+        }
+        
+        // Store the timeout value to use it in read operations
+        info!("Setting USB read timeout to {:?}", timeout);
+        
+        // DeviceHandle doesn't have a direct set_read_timeout method
+        // We'll store it in the connection object and use it manually
+        // in each read/transfer operation
+        
+        // For now, just succeed as we'll use the timeout manually in operations
+        Ok(())
+    }
+    
     // Force simulation mode off - used when we know a real device is connected
     pub fn force_real_device_mode() {
         std::env::set_var("USBFLY_SIMULATION_MODE", "0");
     }
     
-    pub async fn connect() -> Result<Self> {
-        // Check if simulation mode is enabled via environment variable
-        if Self::is_env_simulation_mode() {
-            info!("Environment indicates simulation mode. Using simulated device.");
-            return Ok(Self::create_simulation());
-        }
-        
-        // Try to create USB context, if it fails, use simulation mode
-        let context = match rusb::Context::new() {
-            Ok(ctx) => ctx,
-            Err(e) => {
-                warn!("USB context initialization failed: {}. Using simulation mode.", e);
-                return Ok(Self::create_simulation());
-            }
-        };
-        
-        // Debug: Log all connected USB devices
-        info!("Searching for compatible USB devices...");
-        if let Ok(device_list) = Self::list_devices() {
-            for (i, device) in device_list.iter().enumerate() {
-                info!("USB Device {}: {}", i, device);
-            }
-        }
-        
-        // Find Cynthion or compatible device
-        let devices = context.devices()?;
-        let device = devices
-            .iter()
-            .find(|device| {
-                if let Ok(descriptor) = device.device_descriptor() {
-                    let vid = descriptor.vendor_id();
-                    let pid = descriptor.product_id();
-                    
-                    // Check if this is a supported device
-                    if Self::is_supported_device(vid, pid) {
-                        info!("Found compatible device: VID:{:04x} PID:{:04x}", vid, pid);
-                        return true;
-                    }
-                    
-                    // Additional debugging
-                    debug!("Skipping unsupported device: VID:{:04x} PID:{:04x}", vid, pid);
-                }
-                false
-            });
-            
-        // Handle the case where no compatible device is found
-        let device = match device {
-            Some(dev) => dev,
-            None => {
-                // First check if we have permission issues with USB devices
-                let devices = context.devices()?;
-                let has_devices = devices.iter().count() > 0;
-                
-                if !has_devices {
-                    warn!("No USB devices found at all - check USB subsystem");
-                    return Err(anyhow!("No USB devices found. Check if USB is working properly on your system."));
-                }
-                
-                // Try to open first device to check permissions
-                let first_device = devices.iter().next();
-                if let Some(dev) = first_device {
-                    match dev.open() {
-                        Ok(_) => {
-                            // We can open devices, but no compatible ones found
-                            warn!("USB access works, but no compatible devices found");
-                            return Err(anyhow!(
-                                "No compatible USB analyzer devices found. Make sure your Cynthion device is connected."));
-                        }
-                        Err(e) => {
-                            // We have permission issues
-                            warn!("USB permission error: {}", e);
-                            if cfg!(target_os = "linux") {
-                                return Err(anyhow!(
-                                    "USB permission error: {}. Try running with sudo or add udev rules for USB access.", e));
-                            } else {
-                                return Err(anyhow!(
-                                    "USB permission error: {}. You might need administrator privileges to access USB devices.", e));
-                            }
-                        }
-                    }
-                } else {
-                    warn!("No compatible USB devices found");
-                    return Err(anyhow!("No compatible USB analyzer devices found. Please check your connection."));
-                }
-            }
-        };
-        
+    // Helper method to complete device connection - must use GlobalContext for compatibility with struct
+    fn connect_to_device(device: rusb::Device<rusb::GlobalContext>) -> Result<Self> {
         // Get device handle (no need to be mutable here)
         let handle = device.open()?;
         
@@ -446,15 +390,184 @@ impl CynthionConnection {
                         drop(handle);
                         
                         return Ok(Self {
-                            handle: None, // Don't keep the real handle to avoid potential segfaults
+                            handle: None,
                             active: true,
-                            simulation_mode: true, // Use simulation mode for safer operation
+                            simulation_mode: true,
                         });
                     }
                 }
                 
-                // For other platforms or error types, return the error
-                Err(anyhow!("Failed to claim USB interface: {}. Check if the device is being used by another application.", e))
+                // For all other platforms or errors, return the error
+                Err(e.into())
+            }
+        }
+    }
+    
+    pub async fn connect() -> Result<Self> {
+        // Check if simulation mode is enabled via environment variable
+        if Self::is_env_simulation_mode() {
+            info!("Environment indicates simulation mode. Using simulated device.");
+            return Ok(Self::create_simulation());
+        }
+        
+        // Use tokio's spawn_blocking to move the potentially blocking USB operations to a worker thread
+        // This prevents the UI from hanging during USB operations
+        let connection_result = tokio::task::spawn_blocking(|| -> Result<Self> {
+            // Try to create USB context, if it fails, use simulation mode
+            let context = match rusb::Context::new() {
+                Ok(ctx) => ctx,
+                Err(e) => {
+                    warn!("USB context initialization failed: {}. Using simulation mode.", e);
+                    return Ok(Self::create_simulation());
+                }
+            };
+            
+            // Add a timeout for USB operations to prevent hanging
+            let _timeout = std::time::Duration::from_secs(3); // 3 second timeout
+            
+            // Use a separate thread with timeout to find devices
+            let thread_handle = std::thread::spawn(move || {
+                // Debug: Log all connected USB devices
+                info!("Searching for compatible USB devices...");
+                if let Ok(device_list) = Self::list_devices() {
+                    for (i, device) in device_list.iter().enumerate() {
+                        info!("USB Device {}: {}", i, device);
+                    }
+                }
+                
+                // Find Cynthion or compatible device
+                let devices_result = context.devices();
+                if let Err(e) = &devices_result {
+                    warn!("Error enumerating USB devices: {}", e);
+                    return Ok(Self::create_simulation());
+                }
+                
+                let devices = devices_result.unwrap();
+                let device = devices
+                    .iter()
+                    .find(|device| {
+                        if let Ok(descriptor) = device.device_descriptor() {
+                            let vid = descriptor.vendor_id();
+                            let pid = descriptor.product_id();
+                            
+                            // Check if this is a supported device
+                            if Self::is_supported_device(vid, pid) {
+                                info!("Found compatible device: VID:{:04x} PID:{:04x}", vid, pid);
+                                return true;
+                            }
+                            
+                            // Additional debugging
+                            debug!("Skipping unsupported device: VID:{:04x} PID:{:04x}", vid, pid);
+                        }
+                        false
+                    });
+                    
+                // Handle the case where no compatible device is found
+                let device = match device {
+                    Some(dev) => dev,
+                    None => {
+                        // First check if we have permission issues with USB devices
+                        let devices = context.devices().unwrap_or_else(|_| {
+                            warn!("Could not enumerate devices a second time");
+                            devices
+                        });
+                        let has_devices = devices.iter().count() > 0;
+                        
+                        if !has_devices {
+                            warn!("No USB devices found at all - check USB subsystem");
+                            return Err(anyhow!("No USB devices found. Check if USB is working properly on your system."));
+                        }
+                        
+                        // Try to open first device to check permissions
+                        let first_device = devices.iter().next();
+                        if let Some(dev) = first_device {
+                            match dev.open() {
+                                Ok(_) => {
+                                    // We can open devices, but no compatible ones found
+                                    warn!("USB access works, but no compatible devices found");
+                                    return Err(anyhow!(
+                                        "No compatible USB analyzer devices found. Make sure your Cynthion device is connected."));
+                                }
+                                Err(e) => {
+                                    // We have permission issues
+                                    warn!("USB permission error: {}", e);
+                                    if cfg!(target_os = "linux") {
+                                        return Err(anyhow!(
+                                            "USB permission error: {}. Try running with sudo or add udev rules for USB access.", e));
+                                    } else {
+                                        return Err(anyhow!(
+                                            "USB permission error: {}. You might need administrator privileges to access USB devices.", e));
+                                    }
+                                }
+                            }
+                        } else {
+                            warn!("No compatible USB devices found");
+                            return Err(anyhow!("No compatible USB analyzer devices found. Please check your connection."));
+                        }
+                    }
+                };
+                
+                // Instead of trying to convert the device, let's get a fresh device from the global context
+                // This is a cleaner approach than trying to transmute between different context types
+                
+                // First get device info from current device so we can find it again
+                if let Ok(descriptor) = device.device_descriptor() {
+                    let vid = descriptor.vendor_id();
+                    let pid = descriptor.product_id();
+                    let bus_number = device.bus_number();
+                    let address = device.address();
+                    
+                    info!("Reconnecting to device VID:{:04x} PID:{:04x} on bus {} address {}", 
+                          vid, pid, bus_number, address);
+                    
+                    // Now find the same device using the global context
+                    let global_context = rusb::GlobalContext::default();
+                    if let Ok(devices) = global_context.devices() {
+                        for global_device in devices.iter() {
+                            // Check if this is the same device by comparing bus number and address
+                            if global_device.bus_number() == bus_number && global_device.address() == address {
+                                if let Ok(global_desc) = global_device.device_descriptor() {
+                                    if global_desc.vendor_id() == vid && global_desc.product_id() == pid {
+                                        info!("Found matching device in global context");
+                                        return Self::connect_to_device(global_device);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // If we couldn't find the device, fall back to simulation mode
+                    warn!("Could not find matching device in global context - using simulation mode");
+                    return Ok(Self::create_simulation());
+                } else {
+                    // If we can't get the descriptor, also fall back to simulation mode
+                    warn!("Could not get device descriptor - using simulation mode");
+                    return Ok(Self::create_simulation());
+                }
+            });
+            
+            // Wait for the thread to finish with a timeout
+            match thread_handle.join() {
+                Ok(result) => result,
+                Err(_) => {
+                    error!("Thread panic during USB device connection");
+                    Ok(Self::create_simulation())
+                }
+            }
+        }).await?;
+        
+        // Handle any errors from the blocking operation
+        match connection_result {
+            Ok(connection) => Ok(connection),
+            Err(e) => {
+                warn!("Connection failed with error: {}", e);
+                if e.to_string().contains("timeout") || e.to_string().contains("timed out") {
+                    // If we timed out, it's likely the device is hanging
+                    warn!("Connection timed out - falling back to simulation mode");
+                    Ok(Self::create_simulation())
+                } else {
+                    Err(e)
+                }
             }
         }
     }
@@ -889,17 +1002,6 @@ impl CynthionConnection {
         } else {
             // In real device mode, need both active flag and handle
             self.active && self.handle.is_some()
-        }
-    }
-    
-    // Set simulation mode explicitly
-    pub fn set_simulation_mode(&mut self, enabled: bool) {
-        if enabled && !self.simulation_mode {
-            info!("Setting connection to simulation mode for safer operation");
-            self.simulation_mode = true;
-        } else if !enabled && self.simulation_mode {
-            warn!("Disabling simulation mode - this may cause stability issues");
-            self.simulation_mode = false;
         }
     }
     

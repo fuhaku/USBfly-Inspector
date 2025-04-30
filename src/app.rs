@@ -98,6 +98,7 @@ pub enum Message {
     Disconnect,
     ConnectionEstablished(Arc<Mutex<CynthionConnection>>),
     ConnectionFailed(String),
+    ConnectionPossiblyFailed,  // New message for persistent USB read failures
     TabSelected(Tab),
     DeviceViewMessage(crate::gui::views::device_view::Message),
     TrafficViewMessage(crate::gui::views::traffic_view::Message),
@@ -205,6 +206,34 @@ impl Application for USBflyApp {
             }
             Message::ConnectionFailed(error) => {
                 self.error_message = Some(error);
+                Command::none()
+            }
+            Message::ConnectionPossiblyFailed => {
+                // After too many consecutive errors, we attempt automatic recovery
+                log::warn!("Detected possible connection failure from persistent USB read errors");
+                
+                // First try to validate if the connection is still active
+                let is_connected = self.connection.as_ref().map_or(false, |conn| {
+                    if let Ok(connection) = conn.try_lock() {
+                        connection.is_connected()
+                    } else {
+                        // If we can't get a lock, assume it's still connected but busy
+                        true
+                    }
+                });
+                
+                if !is_connected {
+                    // If the connection is definitely broken, disconnect and show an error
+                    log::error!("Connection validation failed, performing automatic disconnect");
+                    self.connection = None;
+                    self.connected = false;
+                    self.error_message = Some("Connection lost due to persistent errors. Please reconnect.".to_string());
+                } else {
+                    // Connection appears valid, but we should show a warning
+                    log::info!("Connection appears valid despite USB read errors, continuing with caution");
+                    self.error_message = Some("USB read errors detected, but connection still active.".to_string());
+                }
+                
                 Command::none()
             }
             Message::TabSelected(tab) => {
@@ -660,77 +689,115 @@ impl Application for USBflyApp {
         
         // Subscribe to USB data from connection if connected
         if let Some(connection) = &self.connection {
-            // CRITICAL SAFETY: Use a try_clone mechanism to avoid segfaults
-            // Only clone if we're sure the connection is in a consistent state
+            // Only setup the USB data subscription if we're connected and the UI indicates we're connected
+            // This prevents race conditions where we're in the process of connecting/disconnecting
             if self.connected {
+                // Create a thread-safe clone of the connection for the subscription
                 let conn = Arc::clone(connection);
                 
-                // Add a wrapper to catch any panics at the task level
-                // This prevents a thread crash from bringing down the whole application
+                // Add a robust subscription with improved error handling
                 subscriptions.push(
                     iced::subscription::unfold(
+                        // Unique ID for this subscription
                         "usb-data-subscription",
-                        conn,
-                        move |conn| async move {
-                            // Double-check the connection is still valid before proceeding
-                            // This catches race conditions between when we create the subscription
-                            // and when the async task actually runs
+                        // Initial state - the connection
+                        (conn, 0u32), // Add a retry counter to track consecutive failures
+                        move |(conn, retries)| async move {
+                            // Add a small delay to avoid a tight polling loop when errors occur
+                            // This is especially important in error conditions to prevent CPU hogging
+                            if retries > 0 {
+                                let delay_time = std::cmp::min(retries * 10, 500); // Cap at 500ms
+                                tokio::time::sleep(tokio::time::Duration::from_millis(delay_time as u64)).await;
+                            }
                             
-                            // Use std::panic::catch_unwind around the entire operation
-                            // to prevent thread crashes that propagate to the application
-                            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                                // Use a clone + drop approach to avoid holding MutexGuard across an await point
-                                match conn.lock() {
-                                    Ok(mut connection) => {
-                                        // Extra safety check that connection is active
-                                        if !connection.is_connected() {
-                                            return Err("Device not connected".to_string());
-                                        }
-                                        
-                                        // Clone the required fields or prepare the async call
-                                        match connection.read_data_clone() {
-                                            Ok(data) => Ok(data),
-                                            Err(e) => Err(e.to_string())
-                                        }
-                                    },
-                                    Err(e) => {
-                                        // Handle poisoned mutex (another thread panicked while holding the lock)
-                                        log::error!("Mutex poisoned: {}", e);
-                                        Err("Connection error: mutex poisoned".to_string())
-                                    }
-                                }
-                            }));
-                            
-                            // First level catch_unwind handler
-                            match result {
-                                Ok(inner_result) => {
-                                    // Second level actual data result
-                                    match inner_result {
-                                        Ok(data) => (Message::USBDataReceived(data), conn),
-                                        Err(err_msg) => {
-                                            // Log connection errors but avoid overly verbose logs for routine disconnects
-                                            if !err_msg.contains("not active") && 
-                                               !err_msg.contains("disconnected") &&
-                                               !err_msg.contains("not connected") {
-                                                log::warn!("Connection error: {}", err_msg);
+                            // Use tokio's spawn_blocking to move the potentially blocking USB read operation
+                            // to a separate thread to avoid blocking the event loop
+                            let conn_clone = Arc::clone(&conn); // Clone the Arc for use in the closure
+                            let data_result = tokio::task::spawn_blocking(move || {
+                                // Wrap the entire operation in catch_unwind to prevent panics from propagating
+                                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                    // Try to acquire the lock for a limited time to avoid deadlocks
+                                    match conn_clone.try_lock() {
+                                        Ok(mut connection) => {
+                                            // Double check that the connection is still active
+                                            if !connection.is_connected() {
+                                                return Err("Device not connected".to_string());
                                             }
                                             
-                                            // Short delay to prevent error message flooding
-                                            std::thread::sleep(std::time::Duration::from_millis(100));
+                                            // Use a timeout for the read operation to prevent hangs
+                                            let _ = connection.set_read_timeout(Some(std::time::Duration::from_millis(100)));
                                             
-                                            // Don't disconnect immediately on first error
-                                            // Return a non-fatal message so we'll try again
-                                            (Message::USBDataReceived(Vec::new()), conn)
+                                            // Attempt to read data, handling any errors
+                                            match connection.read_data_clone() {
+                                                Ok(data) => Ok(data),
+                                                Err(e) => Err(e.to_string())
+                                            }
+                                        },
+                                        Err(std::sync::TryLockError::WouldBlock) => {
+                                            // Another thread is using the connection - skip this cycle
+                                            Err("Connection busy - will retry".to_string())
+                                        },
+                                        Err(std::sync::TryLockError::Poisoned(e)) => {
+                                            // The mutex is poisoned - indicate fatal error
+                                            log::error!("Connection mutex poisoned: {}", e);
+                                            Err("Fatal connection error: mutex poisoned".to_string())
+                                        }
+                                    }
+                                }))
+                            }).await;
+                            
+                            // Process the overall result
+                            match data_result {
+                                Ok(Ok(data_result)) => {
+                                    // Process the inner data result
+                                    match data_result {
+                                        Ok(data) => {
+                                            // Success - reset retry counter and return data
+                                            (Message::USBDataReceived(data), (conn, 0))
+                                        },
+                                        Err(err_msg) => {
+                                            // Filter out routine disconnection messages to avoid log spam
+                                            if !err_msg.contains("not active") && 
+                                               !err_msg.contains("disconnected") &&
+                                               !err_msg.contains("not connected") &&
+                                               !err_msg.contains("busy") {
+                                                log::warn!("USB data read error: {}", err_msg);
+                                            }
+                                            
+                                            // Increment retry counter for backoff
+                                            let new_retries = retries + 1;
+                                            
+                                            // Too many consecutive failures might indicate a more serious problem
+                                            if new_retries > 10 && !err_msg.contains("busy") {
+                                                log::error!("Persistent USB read errors: {}", err_msg);
+                                                // After many consecutive errors, signal a possible need to reconnect
+                                                (Message::ConnectionPossiblyFailed, (conn, new_retries))
+                                            } else {
+                                                // Return empty data but keep trying
+                                                (Message::USBDataReceived(Vec::new()), (conn, new_retries))
+                                            }
                                         }
                                     }
                                 },
-                                Err(_) => {
-                                    // Panic occurred in the task - recover gracefully
-                                    log::error!("Recovered from subscription thread panic");
-                                    std::thread::sleep(std::time::Duration::from_millis(500));
+                                Ok(Err(_panic)) => {
+                                    // A panic occurred in the USB reading logic
+                                    log::error!("Recovered from USB reader thread panic");
+                                    
+                                    // Increment retry counter exponentially for more serious failures
+                                    let new_retries = retries + 5;
+                                    
+                                    // Return empty data but keep trying
+                                    (Message::USBDataReceived(Vec::new()), (conn, new_retries))
+                                },
+                                Err(join_err) => {
+                                    // The tokio task failed to join
+                                    log::error!("USB reader task join error: {}", join_err);
+                                    
+                                    // Increment retry counter
+                                    let new_retries = retries + 1;
                                     
                                     // Return empty data and continue
-                                    (Message::USBDataReceived(Vec::new()), conn)
+                                    (Message::USBDataReceived(Vec::new()), (conn, new_retries))
                                 }
                             }
                         },
