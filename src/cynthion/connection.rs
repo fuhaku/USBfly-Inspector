@@ -25,6 +25,21 @@ const CYNTHION_OUT_EP: u8 = 0x01; // Used in send_command method
 const CYNTHION_IN_EP: u8 = 0x81;
 const TIMEOUT_MS: Duration = Duration::from_millis(1000);
 
+// Cynthion Protocol Command Codes
+// These are the commands used to communicate with the Cynthion device
+const CMD_START_CAPTURE: u8 = 0x10;
+const CMD_STOP_CAPTURE: u8 = 0x11;
+const CMD_GET_CAPTURED_DATA: u8 = 0x12;
+const CMD_SET_FILTER: u8 = 0x13;
+const CMD_CLEAR_BUFFER: u8 = 0x14;
+const CMD_SET_CAPTURE_MODE: u8 = 0x15;
+
+// Capture modes
+const CAPTURE_MODE_ALL: u8 = 0x00;
+const CAPTURE_MODE_HOST_TO_DEVICE: u8 = 0x01;
+const CAPTURE_MODE_DEVICE_TO_HOST: u8 = 0x02;
+const CAPTURE_MODE_SETUP_ONLY: u8 = 0x03;
+
 // Device information structure for displaying in UI
 #[derive(Debug, Clone)]
 pub struct USBDeviceInfo {
@@ -150,7 +165,7 @@ impl CynthionConnection {
         }
         
         // Otherwise, check if we should use simulation mode
-        if Self::is_simulation_mode() && !force_refresh {
+        if Self::is_env_simulation_mode() && !force_refresh {
             info!("Using simulated device list (simulation mode enabled)");
             Ok(Self::get_simulated_devices())
         } else if !real_device_list.is_empty() {
@@ -159,7 +174,7 @@ impl CynthionConnection {
             Ok(real_device_list)
         } else {
             // No devices found at all, use simulation mode
-            if !Self::is_simulation_mode() {
+            if !Self::is_env_simulation_mode() {
                 info!("No real USB devices found, enabling simulation mode");
                 std::env::set_var("USBFLY_SIMULATION_MODE", "1");
             }
@@ -219,11 +234,16 @@ impl CynthionConnection {
     }
     
     // Check if we're in simulation mode based on environment variable
-    pub fn is_simulation_mode() -> bool {
+    pub fn is_env_simulation_mode() -> bool {
         match std::env::var("USBFLY_SIMULATION_MODE") {
             Ok(val) => val == "1",
             Err(_) => false,
         }
+    }
+    
+    // Check if this specific connection instance is in simulation mode
+    pub fn is_simulation_mode(&self) -> bool {
+        self.simulation_mode
     }
     
     // Force simulation mode off - used when we know a real device is connected
@@ -233,7 +253,7 @@ impl CynthionConnection {
     
     pub async fn connect() -> Result<Self> {
         // Check if simulation mode is enabled via environment variable
-        if Self::is_simulation_mode() {
+        if Self::is_env_simulation_mode() {
             info!("Environment indicates simulation mode. Using simulated device.");
             return Ok(Self::create_simulation());
         }
@@ -598,6 +618,174 @@ impl CynthionConnection {
         data
     }
     
+    // Generate simulated MitM USB traffic from a connected device through Cynthion
+    // This simulates what would be captured when Cynthion is placed between a host and device
+    pub fn get_simulated_mitm_traffic(&self) -> Vec<u8> {
+        // Track simulation state through a counter in the environment variable
+        let counter: u32 = match std::env::var("USBFLY_SIM_COUNTER") {
+            Ok(val) => val.parse().unwrap_or(0),
+            Err(_) => 0,
+        };
+        let next_counter = counter.wrapping_add(1);
+        std::env::set_var("USBFLY_SIM_COUNTER", next_counter.to_string());
+        
+        // Generate different types of transactions based on the counter
+        // This way we simulate a real capture session with different packet types
+        match counter % 12 {
+            0 => {
+                // Device Descriptor Request (Setup packet + Data stage)
+                debug!("Simulating Device Descriptor Request");
+                vec![
+                    // Setup packet (8 bytes): standard request for device descriptor
+                    0x80, 0x06, 0x00, 0x01, 0x00, 0x00, 0x12, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x00, 0x01, 0x00,
+                    
+                    // Device descriptor response (18 bytes)
+                    0x12, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x40, 
+                    0x50, 0x1d, 0x5c, 0x61, 0x00, 0x01, 0x01, 0x02, 
+                    0x03, 0x01
+                ]
+            },
+            1 => {
+                // Configuration Descriptor Request 
+                debug!("Simulating Configuration Descriptor Request");
+                vec![
+                    // Setup packet (8 bytes): standard request for config descriptor
+                    0x80, 0x06, 0x00, 0x02, 0x00, 0x00, 0x09, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x00, 0x02, 0x00,
+                    
+                    // Configuration descriptor (9 bytes)
+                    0x09, 0x02, 0x29, 0x00, 0x01, 0x01, 0x00, 0xC0, 0x32
+                ]
+            },
+            2 => {
+                // Interface Descriptor Request
+                debug!("Simulating Interface Descriptor");
+                vec![
+                    // Setup packet (8 bytes)
+                    0x80, 0x06, 0x00, 0x04, 0x00, 0x00, 0x09, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x00, 0x03, 0x00,
+                    
+                    // Interface descriptor (9 bytes)
+                    0x09, 0x04, 0x00, 0x00, 0x02, 0xFF, 0x42, 0x01, 0x04
+                ]
+            },
+            3 => {
+                // Bulk Transfer OUT (host to device)
+                debug!("Simulating Bulk Transfer OUT");
+                vec![
+                    // Endpoint OUT with 2 bytes: command code and parameter
+                    0x01, 0x02, 0x10, 0x01,
+                    
+                    // Transaction header
+                    0x00, 0x02, 0x04, 0x00,
+                ]
+            },
+            4 => {
+                // Bulk Transfer IN (device to host)
+                debug!("Simulating Bulk Transfer IN");
+                vec![
+                    // Endpoint IN with 4 bytes response
+                    0x81, 0x04, 0xAA, 0xBB, 0xCC, 0xDD,
+                    
+                    // Transaction header
+                    0x00, 0x02, 0x05, 0x00,
+                ]
+            },
+            5 => {
+                // Interrupt Transfer
+                debug!("Simulating Interrupt Transfer");
+                vec![
+                    // Interrupt endpoint with status data
+                    0x83, 0x02, 0x01, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x03, 0x06, 0x00,
+                ]
+            },
+            6 => {
+                // Control Transfer - Set Configuration
+                debug!("Simulating Control Transfer - Set Configuration");
+                vec![
+                    // Setup packet
+                    0x00, 0x09, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x00, 0x07, 0x00,
+                ]
+            },
+            7 => {
+                // Control Transfer - Get Status
+                debug!("Simulating Control Transfer - Get Status");
+                vec![
+                    // Setup packet
+                    0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x00, 0x08, 0x00,
+                    
+                    // Status response (2 bytes)
+                    0x01, 0x00
+                ]
+            },
+            8 => {
+                // Control Transfer - Set Address
+                debug!("Simulating Control Transfer - Set Address");
+                vec![
+                    // Setup packet
+                    0x00, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x00, 0x09, 0x00,
+                ]
+            },
+            9 => {
+                // Vendor-specific Request
+                debug!("Simulating Vendor-specific Request");
+                vec![
+                    // Setup packet with vendor-specific request code
+                    0xC0, 0x42, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x00, 0x0A, 0x00,
+                    
+                    // Vendor-specific response data
+                    0xDE, 0xAD, 0xBE, 0xEF
+                ]
+            },
+            10 => {
+                // Isochronous Transfer
+                debug!("Simulating Isochronous Transfer");
+                vec![
+                    // Isochronous IN endpoint with data
+                    0x82, 0x10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+                    0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
+                    0x0E, 0x0F,
+                    
+                    // Transaction header
+                    0x00, 0x01, 0x0B, 0x00,
+                ]
+            },
+            _ => {
+                // Class-specific Request
+                debug!("Simulating Class-specific Request");
+                vec![
+                    // Setup packet with class-specific request
+                    0x21, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    
+                    // Transaction header
+                    0x00, 0x00, 0x0C, 0x00,
+                ]
+            }
+        }
+    }
+    
     #[allow(dead_code)]
     pub async fn read_data(&mut self) -> Result<Vec<u8>> {
         if !self.active {
@@ -747,7 +935,7 @@ impl CynthionConnection {
         self.read_data_sync()
     }
     
-    #[allow(dead_code)]
+    // Send a command to the Cynthion device 
     pub fn send_command(&mut self, command: &[u8]) -> Result<()> {
         if !self.active {
             return Err(anyhow!("Not connected"));
@@ -771,6 +959,70 @@ impl CynthionConnection {
                 Err(anyhow!("Failed to send command: {}", e))
             }
         }
+    }
+    
+    // Start capturing USB traffic (MitM mode)
+    pub fn start_capture(&mut self) -> Result<()> {
+        info!("Starting USB traffic capture (MitM mode)");
+        
+        // Prepare the command to start capture
+        let command = [CMD_START_CAPTURE];
+        self.send_command(&command)
+    }
+    
+    // Stop capturing USB traffic
+    pub fn stop_capture(&mut self) -> Result<()> {
+        info!("Stopping USB traffic capture");
+        
+        // Prepare the command to stop capture
+        let command = [CMD_STOP_CAPTURE];
+        self.send_command(&command)
+    }
+    
+    // Clear the capture buffer
+    pub fn clear_capture_buffer(&mut self) -> Result<()> {
+        info!("Clearing capture buffer");
+        
+        // Prepare the command to clear buffer
+        let command = [CMD_CLEAR_BUFFER];
+        self.send_command(&command)
+    }
+    
+    // Set capture mode (all traffic, host-to-device only, etc)
+    pub fn set_capture_mode(&mut self, mode: u8) -> Result<()> {
+        info!("Setting capture mode to {}", match mode {
+            CAPTURE_MODE_ALL => "All Traffic",
+            CAPTURE_MODE_HOST_TO_DEVICE => "Host-to-Device Only",
+            CAPTURE_MODE_DEVICE_TO_HOST => "Device-to-Host Only",
+            CAPTURE_MODE_SETUP_ONLY => "Setup Packets Only",
+            _ => "Unknown Mode",
+        });
+        
+        // Prepare the command to set mode
+        let command = [CMD_SET_CAPTURE_MODE, mode];
+        self.send_command(&command)
+    }
+    
+    // Request captured USB traffic from the Cynthion device
+    pub async fn get_captured_traffic(&mut self) -> Result<Vec<u8>> {
+        debug!("Requesting captured USB traffic from Cynthion");
+        
+        // If in simulation mode, return simulated MitM traffic
+        if self.simulation_mode {
+            debug!("Returning simulated MitM USB traffic");
+            sleep(Duration::from_millis(50)).await;
+            return Ok(self.get_simulated_mitm_traffic());
+        }
+        
+        // Prepare the command to get captured data
+        let command = [CMD_GET_CAPTURED_DATA];
+        self.send_command(&command)?;
+        
+        // Wait a moment for the device to prepare data
+        sleep(Duration::from_millis(10)).await;
+        
+        // Read the captured data
+        self.read_data().await
     }
     
     // Additional methods for controlling the Cynthion device
@@ -802,6 +1054,7 @@ impl CynthionConnection {
             self.simulation_mode = false;
         }
     }
+
 }
 
 impl Drop for CynthionConnection {

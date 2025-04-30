@@ -77,6 +77,7 @@ pub struct TrafficView {
     tree_nodes: std::collections::HashMap<TreeNodeId, TreeNode>,
     root_nodes: Vec<TreeNodeId>,
     dark_mode: bool,
+    capture_active: bool, // Whether traffic capture is currently active
 }
 
 #[derive(Debug, Clone)]
@@ -101,7 +102,21 @@ impl TrafficView {
             tree_nodes: std::collections::HashMap::new(),
             root_nodes: Vec::new(),
             dark_mode: true, // Default to dark mode for hacker-friendly UI
+            capture_active: false, // Default to capture not active
         }
+    }
+    
+    // Add a method to set the capture active state
+    pub fn set_capture_active(&mut self, active: bool) {
+        self.capture_active = active;
+    }
+    
+    // Add a method to clear captured traffic
+    pub fn clear_traffic(&mut self) {
+        self.traffic_data.clear();
+        self.selected_item = None;
+        self.tree_nodes.clear();
+        self.root_nodes.clear();
     }
     
     pub fn update(&mut self, message: Message) -> Command<Message> {

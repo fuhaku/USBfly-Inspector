@@ -107,6 +107,14 @@ pub enum Message {
     LoadCapture,
     ClearCapture,
     ToggleDarkMode(bool),
+    // New message types for MitM capture functionality
+    StartCapture,           // Start USB traffic capture (MitM mode)
+    StopCapture,            // Stop USB traffic capture
+    FetchCaptureData,       // Fetch captured USB data from device
+    ClearCaptureBuffer,     // Clear capture buffer on device
+    CaptureStarted,         // Notification that capture has started successfully
+    CaptureStopped,         // Notification that capture has stopped successfully
+    CaptureError(String),   // Error message from capture operation
 }
 
 impl Application for USBflyApp {
@@ -296,6 +304,289 @@ impl Application for USBflyApp {
                 );
                 
                 Command::batch(commands)
+            }
+            Message::StartCapture => {
+                if let Some(connection) = &self.connection {
+                    let conn_clone = Arc::clone(connection);
+                    
+                    info!("Starting USB traffic capture...");
+                    
+                    // Update UI state to show capture is active
+                    self.traffic_view.set_capture_active(true);
+                    
+                    // First get the info we need under a short-lived lock
+                    let (is_simulation, start_result) = {
+                        match conn_clone.lock() {
+                            Ok(mut conn) => {
+                                let is_sim = conn.is_simulation_mode();
+                                
+                                // Try to start capture while we have the lock
+                                let result = if !is_sim {
+                                    // Only try to actually start capture for real devices
+                                    conn.start_capture()
+                                } else {
+                                    // For simulation mode, just pretend it succeeded
+                                    Ok(())
+                                };
+                                
+                                // Return values that we need after dropping lock
+                                (is_sim, result)
+                            },
+                            Err(_) => {
+                                // Lock failed
+                                error!("Failed to lock connection");
+                                self.error_message = Some("Failed to access USB device".to_string());
+                                return Command::none();
+                            }
+                        }
+                    }; // MutexGuard is dropped here
+                    
+                    // Now we can perform async operations without holding a lock
+                    Command::perform(
+                        async move {
+                            if is_simulation {
+                                // In simulation mode
+                                info!("Starting simulated USB traffic capture");
+                                
+                                // Simulate a delay for starting capture
+                                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                Message::CaptureStarted
+                            } else {
+                                // In real device mode, check the result of start_capture
+                                match start_result {
+                                    Ok(_) => {
+                                        info!("USB traffic capture started successfully");
+                                        Message::CaptureStarted
+                                    },
+                                    Err(e) => {
+                                        error!("Failed to start capture: {}", e);
+                                        Message::CaptureError(format!("Failed to start capture: {}", e))
+                                    }
+                                }
+                            }
+                        },
+                        |msg| msg
+                    )
+                } else {
+                    self.error_message = Some("No device connected".to_string());
+                    Command::none()
+                }
+            }
+            Message::StopCapture => {
+                if let Some(connection) = &self.connection {
+                    let conn_clone = Arc::clone(connection);
+                    
+                    info!("Stopping USB traffic capture...");
+                    
+                    // Update UI state to show capture is not active
+                    self.traffic_view.set_capture_active(false);
+                    
+                    // First get the info we need under a short-lived lock
+                    let (is_simulation, stop_result) = {
+                        match conn_clone.lock() {
+                            Ok(mut conn) => {
+                                let is_sim = conn.is_simulation_mode();
+                                
+                                // Try to stop capture while we have the lock
+                                let result = if !is_sim {
+                                    // Only try to actually stop capture for real devices
+                                    conn.stop_capture()
+                                } else {
+                                    // For simulation mode, just pretend it succeeded
+                                    Ok(())
+                                };
+                                
+                                // Return values that we need after dropping lock
+                                (is_sim, result)
+                            },
+                            Err(_) => {
+                                // Lock failed
+                                error!("Failed to lock connection");
+                                self.error_message = Some("Failed to access USB device".to_string());
+                                return Command::none();
+                            }
+                        }
+                    }; // MutexGuard is dropped here
+                    
+                    // Now we can perform async operations without holding a lock
+                    Command::perform(
+                        async move {
+                            if is_simulation {
+                                // In simulation mode
+                                info!("Stopping simulated USB traffic capture");
+                                
+                                // Simulate a delay for stopping capture
+                                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                Message::CaptureStopped
+                            } else {
+                                // In real device mode, check the result of stop_capture
+                                match stop_result {
+                                    Ok(_) => {
+                                        info!("USB traffic capture stopped successfully");
+                                        Message::CaptureStopped
+                                    },
+                                    Err(e) => {
+                                        error!("Failed to stop capture: {}", e);
+                                        Message::CaptureError(format!("Failed to stop capture: {}", e))
+                                    }
+                                }
+                            }
+                        },
+                        |msg| msg
+                    )
+                } else {
+                    self.error_message = Some("No device connected".to_string());
+                    Command::none()
+                }
+            }
+            Message::ClearCaptureBuffer => {
+                if let Some(connection) = &self.connection {
+                    let conn_clone = Arc::clone(connection);
+                    
+                    info!("Clearing capture buffer...");
+                    
+                    // First get the info we need under a short-lived lock
+                    let (is_simulation, clear_result) = {
+                        match conn_clone.lock() {
+                            Ok(mut conn) => {
+                                let is_sim = conn.is_simulation_mode();
+                                
+                                // Try to clear buffer while we have the lock
+                                let result = conn.clear_capture_buffer();
+                                
+                                // Return values that we need after dropping lock
+                                (is_sim, result)
+                            },
+                            Err(_) => {
+                                // Lock failed
+                                error!("Failed to lock connection");
+                                self.error_message = Some("Failed to access USB device".to_string());
+                                return Command::none();
+                            }
+                        }
+                    }; // MutexGuard is dropped here
+                    
+                    // Now we can perform async operations without holding a lock
+                    Command::perform(
+                        async move {
+                            // Process the result
+                            match clear_result {
+                                Ok(_) => {
+                                    info!("Capture buffer cleared successfully");
+                                    
+                                    // If we're in simulation mode, add a small delay for realism
+                                    if is_simulation {
+                                        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                                    }
+                                    
+                                    Message::TrafficViewMessage(crate::gui::views::traffic_view::Message::ClearTraffic)
+                                },
+                                Err(e) => {
+                                    error!("Failed to clear capture buffer: {}", e);
+                                    Message::CaptureError(format!("Failed to clear buffer: {}", e))
+                                }
+                            }
+                        },
+                        |msg| msg
+                    )
+                } else {
+                    // No device connected, just clear the UI
+                    self.traffic_view.clear_traffic();
+                    Command::none()
+                }
+            }
+            Message::CaptureStarted => {
+                info!("USB traffic capture started successfully");
+                self.error_message = None;
+                Command::none()
+            }
+            Message::CaptureStopped => {
+                info!("USB traffic capture stopped successfully");
+                self.error_message = None;
+                Command::none()
+            }
+            Message::CaptureError(error) => {
+                error!("USB traffic capture error: {}", error);
+                self.error_message = Some(format!("Capture error: {}", error));
+                // Reset capture state in UI
+                self.traffic_view.set_capture_active(false);
+                Command::none()
+            }
+            Message::FetchCaptureData => {
+                if let Some(connection) = &self.connection {
+                    let conn_clone = Arc::clone(connection);
+                    
+                    // Use a simulated capture data approach for safety
+                    // This avoids the Send/Sync issues with MutexGuard across await points
+                    // First get the info we need under a short-lived lock
+                    let (is_simulation, maybe_data) = {
+                        match conn_clone.lock() {
+                            Ok(conn) => {
+                                let is_sim = conn.is_simulation_mode();
+                                
+                                // Get simulated data while we have the lock if in simulation mode
+                                let data = if is_sim {
+                                    // Special simulated data function for MitM traffic
+                                    Some(conn.get_simulated_mitm_traffic())
+                                } else {
+                                    // For real device, we'll get data after dropping the lock
+                                    None
+                                };
+                                
+                                (is_sim, data)
+                            },
+                            Err(_) => {
+                                error!("Failed to lock connection");
+                                return Command::none();
+                            }
+                        }
+                    }; // MutexGuard is dropped here
+                    
+                    // Now we can perform async operations without holding a lock
+                    Command::perform(
+                        async move {
+                            // Generate a timestamp for the capture (used for logging)
+                            let _timestamp = std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_secs_f64();
+                            
+                            // If we have simulated data from the simulation mode, use it
+                            if let Some(data) = maybe_data {
+                                if !data.is_empty() {
+                                    info!("Received {} bytes of simulated MitM USB traffic", data.len());
+                                    return Message::USBDataReceived(data);
+                                }
+                            }
+                            
+                            // For real devices or when simulation didn't provide data, 
+                            // we use a polling approach with a delay
+                            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+                            
+                            if is_simulation {
+                                // Create fallback simulated MitM traffic
+                                let sim_data = vec![
+                                    // Control Transfer - Get Status
+                                    0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+                                    // Status response (2 bytes)
+                                    0x01, 0x00
+                                ];
+                                
+                                info!("Received {} bytes of fallback MitM USB traffic", sim_data.len());
+                                return Message::USBDataReceived(sim_data);
+                            } else {
+                                // For real device, we would attempt to get actual data here
+                                // But since we need to implement proper async handling for real devices,
+                                // we'll return an empty result for now
+                                info!("No MitM traffic data received from device");
+                                return Message::TrafficViewMessage(crate::gui::views::traffic_view::Message::NoOp);
+                            }
+                        },
+                        |msg| msg
+                    )
+                } else {
+                    Command::none()
+                }
             }
         }
     }
@@ -564,7 +855,56 @@ impl Application for USBflyApp {
         // Tab content
         let content = match self.active_tab {
             Tab::Devices => self.device_view.view().map(Message::DeviceViewMessage),
-            Tab::Traffic => self.traffic_view.view().map(Message::TrafficViewMessage),
+            Tab::Traffic => {
+                // Add capture control buttons when in Traffic tab and connected
+                let capture_controls = if self.connected {
+                    // Visibility based on connection status
+                    row![
+                        button("Start Capture")
+                            .on_press(Message::StartCapture)
+                            .style(if self.dark_mode {
+                                iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModePrimaryButton))
+                            } else {
+                                iced::theme::Button::Primary
+                            }),
+                        button("Stop Capture")
+                            .on_press(Message::StopCapture)
+                            .style(if self.dark_mode {
+                                iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModeSecondaryButton))
+                            } else {
+                                iced::theme::Button::Secondary
+                            }),
+                        button("Fetch Data")
+                            .on_press(Message::FetchCaptureData)
+                            .style(if self.dark_mode {
+                                iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModePrimaryButton))
+                            } else {
+                                iced::theme::Button::Primary
+                            }),
+                        button("Clear Buffer")
+                            .on_press(Message::ClearCaptureBuffer)
+                            .style(if self.dark_mode {
+                                iced::theme::Button::Custom(Box::new(crate::gui::styles::DarkModeDestructiveButton))
+                            } else {
+                                iced::theme::Button::Destructive
+                            })
+                    ]
+                    .spacing(10)
+                    .padding(5)
+                } else {
+                    row![
+                        text("Connect to a device to enable USB traffic capture").style(iced::theme::Text::Color(Color::from_rgb(0.7, 0.7, 0.7)))
+                    ]
+                    .padding(5)
+                };
+                
+                column![
+                    capture_controls,
+                    self.traffic_view.view().map(Message::TrafficViewMessage)
+                ]
+                .spacing(10)
+                .into()
+            },
             Tab::Descriptors => self.descriptor_view.view().map(Message::DescriptorViewMessage),
         };
 
