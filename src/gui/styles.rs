@@ -1,4 +1,4 @@
-use iced::{Background, Color, Theme};
+use iced::{Background, Color, Theme, widget};
 
 // Define a consistent color palette for the entire application
 pub mod color {
@@ -462,50 +462,53 @@ impl iced::widget::text_input::StyleSheet for DarkModeTextInput {
 // Dark mode scrollable style
 pub struct DarkModeScrollable;
 
-impl iced::widget::scrollable::StyleSheet for DarkModeScrollable {
+impl widget::scrollable::StyleSheet for DarkModeScrollable {
     type Style = Theme;
 
-    fn active(&self, _style: &Self::Style) -> iced::widget::scrollable::Appearance {
-        iced::widget::scrollable::Appearance {
-            scrollbar: iced::widget::scrollable::Scrollbar {
-                background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.0))),
+    fn active(&self, _style: &Self::Style) -> widget::scrollable::Scrollbar {
+        widget::scrollable::Scrollbar {
+            background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.0))),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            scroller: widget::scrollable::Scroller {
+                color: color::dark::TEXT_SECONDARY,
                 border_radius: BORDER_RADIUS.into(),
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
-                scroller: iced::widget::scrollable::Scroller {
-                    color: color::dark::TEXT_SECONDARY,
-                    border_radius: BORDER_RADIUS.into(),
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                },
-            },
-            container: iced::widget::scrollable::Container {
-                background: Some(Background::Color(color::dark::BACKGROUND)),
-                border_radius: 0.0.into(),
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
-            },
+            }
         }
     }
 
-    fn hovered(&self, style: &Self::Style, is_mouse_over_scrollbar: bool) -> iced::widget::scrollable::Appearance {
+    fn hovered(
+        &self, 
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> widget::scrollable::Scrollbar {
         let active = self.active(style);
         
         if is_mouse_over_scrollbar {
-            let scrollbar = iced::widget::scrollable::Scrollbar {
-                scroller: iced::widget::scrollable::Scroller {
+            widget::scrollable::Scrollbar {
+                scroller: widget::scrollable::Scroller {
                     color: color::dark::PRIMARY,
-                    ..active.scrollbar.scroller
+                    ..active.scroller
                 },
-                ..active.scrollbar
-            };
-            
-            iced::widget::scrollable::Appearance {
-                scrollbar,
                 ..active
             }
         } else {
             active
+        }
+    }
+
+    fn dragging(&self, style: &Self::Style) -> widget::scrollable::Scrollbar {
+        let active = self.active(style);
+        
+        widget::scrollable::Scrollbar {
+            scroller: widget::scrollable::Scroller {
+                color: color::dark::PRIMARY_DARK,
+                ..active.scroller
+            },
+            ..active
         }
     }
 }

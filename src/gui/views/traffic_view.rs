@@ -689,7 +689,7 @@ impl TrafficView {
                 );
                 
                 // Create a collapsible tree view of descriptors
-                let tree_view = if !self.root_nodes.is_empty() {
+                let tree_view: Element<Message> = if !self.root_nodes.is_empty() {
                     let mut elements = Vec::new();
                     for root_id in &self.root_nodes {
                         elements.push(self.render_tree_node(root_id, 0));

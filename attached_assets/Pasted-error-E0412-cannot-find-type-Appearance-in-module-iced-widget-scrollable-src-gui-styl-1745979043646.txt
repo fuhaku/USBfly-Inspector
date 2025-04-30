@@ -1,0 +1,153 @@
+error[E0412]: cannot find type `Appearance` in module `iced::widget::scrollable`
+   --> src/gui/styles.rs:468:73
+    |
+468 |     fn active(&self, _style: &Self::Style) -> iced::widget::scrollable::Appearance {
+    |                                                                         ^^^^^^^^^^ not found in `iced::widget::scrollable`
+    |
+help: consider importing one of these structs
+    |
+1   + use iced::application::Appearance;
+    |
+1   + use iced::widget::button::Appearance;
+    |
+1   + use iced::widget::checkbox::Appearance;
+    |
+1   + use iced::widget::container::Appearance;
+    |
+      and 25 other candidates
+help: if you import `Appearance`, refer to it directly
+    |
+468 -     fn active(&self, _style: &Self::Style) -> iced::widget::scrollable::Appearance {
+468 +     fn active(&self, _style: &Self::Style) -> Appearance {
+    |
+
+error[E0422]: cannot find struct, variant or union type `Appearance` in module `iced::widget::scrollable`
+   --> src/gui/styles.rs:469:35
+    |
+469 |         iced::widget::scrollable::Appearance {
+    |                                   ^^^^^^^^^^ not found in `iced::widget::scrollable`
+    |
+help: consider importing one of these structs
+    |
+1   + use iced::application::Appearance;
+    |
+1   + use iced::widget::button::Appearance;
+    |
+1   + use iced::widget::checkbox::Appearance;
+    |
+1   + use iced::widget::container::Appearance;
+    |
+      and 25 other candidates
+help: if you import `Appearance`, refer to it directly
+    |
+469 -         iced::widget::scrollable::Appearance {
+469 +         Appearance {
+    |
+
+error[E0422]: cannot find struct, variant or union type `Container` in module `iced::widget::scrollable`
+   --> src/gui/styles.rs:482:50
+    |
+482 |             container: iced::widget::scrollable::Container {
+    |                                                  ^^^^^^^^^ not found in `iced::widget::scrollable`
+    |
+help: consider importing one of these structs
+    |
+1   + use iced::widget::Container;
+    |
+1   + use iced_native::widget::Container;
+    |
+help: if you import `Container`, refer to it directly
+    |
+482 -             container: iced::widget::scrollable::Container {
+482 +             container: Container {
+    |
+
+error[E0412]: cannot find type `Appearance` in module `iced::widget::scrollable`
+   --> src/gui/styles.rs:491:104
+    |
+491 | ...dget::scrollable::Appearance {
+    |                      ^^^^^^^^^^ not found in `iced::widget::scrollable`
+    |
+help: consider importing one of these structs
+    |
+1   + use iced::application::Appearance;
+    |
+1   + use iced::widget::button::Appearance;
+    |
+1   + use iced::widget::checkbox::Appearance;
+    |
+1   + use iced::widget::container::Appearance;
+    |
+      and 25 other candidates
+help: if you import `Appearance`, refer to it directly
+    |
+491 -     fn hovered(&self, style: &Self::Style, is_mouse_over_scrollbar: bool) -> iced::widget::scrollable::Appearance {
+491 +     fn hovered(&self, style: &Self::Style, is_mouse_over_scrollbar: bool) -> Appearance {
+    |
+
+error[E0422]: cannot find struct, variant or union type `Appearance` in module `iced::widget::scrollable`
+   --> src/gui/styles.rs:503:39
+    |
+503 |             iced::widget::scrollable::Appearance {
+    |                                       ^^^^^^^^^^ not found in `iced::widget::scrollable`
+    |
+help: consider importing one of these structs
+    |
+1   + use iced::application::Appearance;
+    |
+1   + use iced::widget::button::Appearance;
+    |
+1   + use iced::widget::checkbox::Appearance;
+    |
+1   + use iced::widget::container::Appearance;
+    |
+      and 25 other candidates
+help: if you import `Appearance`, refer to it directly
+    |
+503 -             iced::widget::scrollable::Appearance {
+503 +             Appearance {
+    |
+
+error[E0283]: type annotations needed
+   --> src/gui/views/traffic_view.rs:692:21
+    |
+692 |                 let tree_view = if !self.root_nodes.is_empty() {
+    |                     ^^^^^^^^^
+...
+697 |                     Column::with_children(elements).into()
+    |                                                     ---- type must be known at this point
+    |
+    = note: cannot satisfy `_: From<Column<'_, traffic_view::Message>>`
+    = note: required for `Column<'_, traffic_view::Message>` to implement `Into<_>`
+help: consider giving `tree_view` an explicit type
+    |
+692 |                 let tree_view: /* Type */ = if !self.root_nodes.is_empty() {
+    |                              ++++++++++++
+
+error[E0609]: no field `scrollbar` on type `Scrollbar`
+   --> src/gui/styles.rs:498:30
+    |
+498 |                     ..active.scrollbar.scroller
+    |                              ^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+498 -                     ..active.scrollbar.scroller
+498 +                     ..active.scroller.scroller
+    |
+
+error[E0609]: no field `scrollbar` on type `Scrollbar`
+   --> src/gui/styles.rs:500:26
+    |
+500 |                 ..active.scrollbar
+    |                          ^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+500 -                 ..active.scrollbar
+500 +                 ..active.scroller
+    |
+
+Some errors have detailed explanations: E0283, E0412, E0422, E0609.
+For more information about an error, try `rustc --explain E0283`.
+error: could not compile `usbfly` (bin "usbfly") due to 8 previous errors
