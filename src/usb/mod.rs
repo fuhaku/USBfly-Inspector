@@ -9,7 +9,7 @@ pub use self::descriptor_types::{
     UsbDeviceClass,
     UsbEndpointType,
     UsbIsoSyncType,
-    UsbIsoUsageType,
+    // UsbIsoUsageType removed as it wasn't used
 };
 
 pub use self::descriptors::{
@@ -19,8 +19,7 @@ pub use self::descriptors::{
     EndpointDescriptor,
     UsbDevice,
     USBDescriptor,
-    StringDescriptor,
-    DeviceQualifierDescriptor,
+    // StringDescriptor and DeviceQualifierDescriptor are still available directly from descriptors module
 };
 
 pub use self::decoder::{DecodedUSBData, UsbDecoder};

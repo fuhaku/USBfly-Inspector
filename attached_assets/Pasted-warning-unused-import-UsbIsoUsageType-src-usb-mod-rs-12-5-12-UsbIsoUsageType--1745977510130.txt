@@ -1,0 +1,59 @@
+warning: unused import: `UsbIsoUsageType`
+  --> src/usb/mod.rs:12:5
+   |
+12 |     UsbIsoUsageType,
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `DeviceQualifierDescriptor` and `StringDescriptor`
+  --> src/usb/mod.rs:22:5
+   |
+22 |     StringDescriptor,
+   |     ^^^^^^^^^^^^^^^^
+23 |     DeviceQualifierDescriptor,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> src/cynthion/connection.rs:322:13
+    |
+322 |         let mut handle = device.open()?;
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `handle`
+   --> src/cynthion/connection.rs:677:33
+    |
+677 |                     if let Some(handle) = self.handle.take() {
+    |                                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_handle`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: associated functions `for_endpoint_type`, `for_device_descriptor`, `for_configuration_descriptor`, `for_interface_descriptor`, and `for_endpoint_descriptor` are never used
+   --> src/usb/hints.rs:184:12
+    |
+16  | impl UsbHints {
+    | ------------- associated functions in this implementation
+...
+184 |     pub fn for_endpoint_type(endpoint_type: &UsbEndpointType) -> String {
+    |            ^^^^^^^^^^^^^^^^^
+...
+211 |     pub fn for_device_descriptor(desc: &DeviceDescriptor) -> Vec<String> {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+...
+242 |     pub fn for_configuration_descriptor(desc: &ConfigurationDescriptor) -> Vec<String> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+272 |     pub fn for_interface_descriptor(desc: &InterfaceDescriptor) -> Vec<String> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+308 |     pub fn for_endpoint_descriptor(desc: &EndpointDescriptor) -> Vec<String> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: `usbfly` (bin "usbfly") generated 5 warnings (run `cargo fix --bin "usbfly"` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 2m 20s

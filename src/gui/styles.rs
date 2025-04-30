@@ -36,6 +36,46 @@ pub mod color {
     pub const SIGNAL_BLUE: Color = Color::from_rgb(0.1, 0.6, 0.9);   // Signal trace blue
     #[allow(dead_code)]
     pub const COPPER: Color = Color::from_rgb(0.8, 0.5, 0.2);        // Copper traces
+    
+    // Cyberpunk/Hacker-themed dark mode colors
+    pub mod dark {
+        use iced::Color;
+        
+        // Main dark theme colors
+        pub const PRIMARY: Color = Color::from_rgb(0.0, 0.8, 0.6);       // Cyan - Neon primary
+        pub const PRIMARY_LIGHT: Color = Color::from_rgb(0.4, 0.9, 0.8); // Light cyan for highlights
+        pub const PRIMARY_DARK: Color = Color::from_rgb(0.0, 0.5, 0.4);  // Dark cyan for active states
+        
+        // Secondary dark theme colors
+        pub const SECONDARY: Color = Color::from_rgb(0.8, 0.2, 0.8);     // Magenta - Secondary neon
+        pub const SECONDARY_LIGHT: Color = Color::from_rgb(0.9, 0.5, 0.9); // Light magenta highlights
+        
+        // Accent colors
+        pub const ACCENT: Color = Color::from_rgb(1.0, 0.8, 0.0);        // Yellow - accent for warnings
+        pub const ERROR: Color = Color::from_rgb(1.0, 0.2, 0.3);         // Red - for errors
+        
+        // Neutral colors
+        pub const BACKGROUND: Color = Color::from_rgb(0.08, 0.08, 0.1);  // Very dark blue/black
+        pub const SURFACE: Color = Color::from_rgb(0.13, 0.14, 0.18);    // Dark gray for surfaces
+        pub const TEXT: Color = Color::from_rgb(0.9, 0.9, 0.95);         // Almost white
+        pub const TEXT_SECONDARY: Color = Color::from_rgb(0.7, 0.7, 0.75); // Lighter text
+        
+        // Status colors
+        pub const SUCCESS: Color = Color::from_rgb(0.2, 0.9, 0.4);       // Green - success indicators
+        pub const WARNING: Color = ACCENT;                               // Yellow - warning indicators
+        pub const INFO: Color = PRIMARY;                                 // Cyan - information
+        
+        // Electronics-themed colors
+        pub const USB_GREEN: Color = Color::from_rgb(0.2, 1.0, 0.6);     // Brighter USB logo green
+        pub const PCB_GREEN: Color = Color::from_rgb(0.1, 0.6, 0.4);     // PCB color
+        pub const SIGNAL_BLUE: Color = Color::from_rgb(0.3, 0.7, 1.0);   // Signal trace blue
+        pub const COPPER: Color = Color::from_rgb(0.9, 0.6, 0.3);        // Copper traces
+        
+        // Special dark mode colors
+        pub const GRID_LINES: Color = Color::from_rgba(0.3, 0.9, 0.8, 0.15); // Cyan grid lines
+        pub const GLOW: Color = Color::from_rgba(0.0, 0.8, 0.8, 0.3);    // Cyan glow effect
+        pub const CODE_GREEN: Color = Color::from_rgb(0.0, 0.8, 0.3);    // Matrix-like green text
+    }
 }
 
 // Consistent border radius throughout the app
@@ -283,4 +323,308 @@ impl iced::widget::button::StyleSheet for GhostButton {
     }
 }
 
-// HintCategoryContainer is defined above
+// Dark mode containers
+pub struct DarkModeContainer;
+
+impl iced::widget::container::StyleSheet for DarkModeContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(color::dark::TEXT),
+            background: Some(Background::Color(color::dark::SURFACE)),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 1.0,
+            border_color: Color::from_rgba(1.0, 1.0, 1.0, 0.1),
+        }
+    }
+}
+
+pub struct DarkModeSelectedContainer;
+
+impl iced::widget::container::StyleSheet for DarkModeSelectedContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(Color::WHITE),
+            background: Some(Background::Color(color::dark::PRIMARY)),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+pub struct DarkModeTreeNodeContainer;
+
+impl iced::widget::container::StyleSheet for DarkModeTreeNodeContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(color::dark::TEXT),
+            background: Some(Background::Color(Color::from_rgba(0.2, 0.9, 0.7, 0.1))),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+// Dark mode buttons
+pub struct DarkModePrimaryButton;
+
+impl iced::widget::button::StyleSheet for DarkModePrimaryButton {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced::widget::button::Appearance {
+        iced::widget::button::Appearance {
+            shadow_offset: iced::Vector::new(0.0, 1.0),
+            background: Some(Background::Color(color::dark::PRIMARY)),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            text_color: Color::WHITE,
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(color::dark::PRIMARY_LIGHT)),
+            shadow_offset: iced::Vector::new(0.0, 2.0),
+            ..active
+        }
+    }
+
+    fn pressed(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(color::dark::PRIMARY_DARK)),
+            shadow_offset: iced::Vector::new(0.0, 0.0),
+            ..active
+        }
+    }
+}
+
+// Dark mode text input style
+pub struct DarkModeTextInput;
+
+impl iced::widget::text_input::StyleSheet for DarkModeTextInput {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced::widget::text_input::Appearance {
+        iced::widget::text_input::Appearance {
+            background: Background::Color(color::dark::SURFACE),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 1.0,
+            border_color: color::dark::PRIMARY,
+            icon_color: color::dark::TEXT,
+        }
+    }
+
+    fn focused(&self, style: &Self::Style) -> iced::widget::text_input::Appearance {
+        let active = self.active(style);
+        iced::widget::text_input::Appearance {
+            border_color: color::dark::PRIMARY_LIGHT,
+            ..active
+        }
+    }
+
+    fn placeholder_color(&self, _style: &Self::Style) -> iced::Color {
+        color::dark::TEXT_SECONDARY
+    }
+
+    fn value_color(&self, _style: &Self::Style) -> iced::Color {
+        color::dark::TEXT
+    }
+
+    fn selection_color(&self, _style: &Self::Style) -> iced::Color {
+        color::dark::PRIMARY_DARK
+    }
+
+    fn disabled(&self, _style: &Self::Style) -> iced::widget::text_input::Appearance {
+        iced::widget::text_input::Appearance {
+            background: Background::Color(Color::from_rgb(0.15, 0.15, 0.2)),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 1.0,
+            border_color: Color::from_rgb(0.2, 0.2, 0.25),
+            icon_color: Color::from_rgb(0.4, 0.4, 0.5),
+        }
+    }
+
+    fn disabled_color(&self, _style: &Self::Style) -> iced::Color {
+        Color::from_rgb(0.4, 0.4, 0.5)
+    }
+}
+
+// Dark mode scrollable style
+pub struct DarkModeScrollable;
+
+impl iced::widget::scrollable::StyleSheet for DarkModeScrollable {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced::widget::scrollable::Appearance {
+        iced::widget::scrollable::Appearance {
+            scrollbar: iced::widget::scrollable::Scrollbar {
+                background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.0))),
+                border_radius: BORDER_RADIUS.into(),
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+                scroller: iced::widget::scrollable::Scroller {
+                    color: color::dark::TEXT_SECONDARY,
+                    border_radius: BORDER_RADIUS.into(),
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                },
+            },
+            container: iced::widget::scrollable::Container {
+                background: Some(Background::Color(color::dark::BACKGROUND)),
+                border_radius: 0.0.into(),
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            },
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style, is_mouse_over_scrollbar: bool) -> iced::widget::scrollable::Appearance {
+        let active = self.active(style);
+        
+        if is_mouse_over_scrollbar {
+            let scrollbar = iced::widget::scrollable::Scrollbar {
+                scroller: iced::widget::scrollable::Scroller {
+                    color: color::dark::PRIMARY,
+                    ..active.scrollbar.scroller
+                },
+                ..active.scrollbar
+            };
+            
+            iced::widget::scrollable::Appearance {
+                scrollbar,
+                ..active
+            }
+        } else {
+            active
+        }
+    }
+}
+
+// Dark mode application container
+pub struct DarkModeApplicationContainer;
+
+impl iced::widget::container::StyleSheet for DarkModeApplicationContainer {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            text_color: Some(color::dark::TEXT),
+            background: Some(Background::Color(color::dark::BACKGROUND)),
+            border_radius: 0.0.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+pub struct DarkModeSecondaryButton;
+
+impl iced::widget::button::StyleSheet for DarkModeSecondaryButton {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced::widget::button::Appearance {
+        iced::widget::button::Appearance {
+            shadow_offset: iced::Vector::new(0.0, 1.0),
+            background: Some(Background::Color(color::dark::SECONDARY)),
+            border_radius: BORDER_RADIUS.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            text_color: Color::WHITE,
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgb(0.9, 0.3, 0.9))),
+            shadow_offset: iced::Vector::new(0.0, 2.0),
+            ..active
+        }
+    }
+
+    fn pressed(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgb(0.7, 0.1, 0.7))),
+            shadow_offset: iced::Vector::new(0.0, 0.0),
+            ..active
+        }
+    }
+}
+
+// TreeNode helper styles
+pub struct TreeNodeButton;
+
+impl iced::widget::button::StyleSheet for TreeNodeButton {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced::widget::button::Appearance {
+        iced::widget::button::Appearance {
+            shadow_offset: iced::Vector::new(0.0, 0.0),
+            background: Some(Background::Color(Color::TRANSPARENT)),
+            border_radius: 0.0.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            text_color: color::TEXT,
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.05))),
+            ..active
+        }
+    }
+
+    fn pressed(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.1))),
+            ..active
+        }
+    }
+}
+
+pub struct DarkModeTreeNodeButton;
+
+impl iced::widget::button::StyleSheet for DarkModeTreeNodeButton {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced::widget::button::Appearance {
+        iced::widget::button::Appearance {
+            shadow_offset: iced::Vector::new(0.0, 0.0),
+            background: Some(Background::Color(Color::TRANSPARENT)),
+            border_radius: 0.0.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            text_color: color::dark::TEXT,
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgba(0.0, 0.8, 0.8, 0.15))),
+            ..active
+        }
+    }
+
+    fn pressed(&self, style: &Self::Style) -> iced::widget::button::Appearance {
+        let active = self.active(style);
+        iced::widget::button::Appearance {
+            background: Some(Background::Color(Color::from_rgba(0.0, 0.8, 0.8, 0.25))),
+            ..active
+        }
+    }
+}

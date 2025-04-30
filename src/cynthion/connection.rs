@@ -319,7 +319,7 @@ impl CynthionConnection {
         };
         
         // Get device handle
-        let mut handle = device.open()?;
+        let handle = device.open()?;
         
         // Get device descriptor for logging
         if let Ok(descriptor) = device.device_descriptor() {
@@ -674,9 +674,9 @@ impl CynthionConnection {
                     self.active = false;
                     
                     // This will help prevent hanging on close by cleaning up resources
-                    if let Some(handle) = self.handle.take() {
+                    if let Some(_handle) = self.handle.take() {
                         #[cfg(not(target_os = "macos"))]
-                        let _ = handle.release_interface(CYNTHION_INTERFACE);
+                        let _ = _handle.release_interface(CYNTHION_INTERFACE);
                     }
                     
                     return Err(anyhow!("Device disconnected"));

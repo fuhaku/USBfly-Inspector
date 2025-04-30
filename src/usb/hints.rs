@@ -13,6 +13,7 @@ pub fn get_descriptor_hints(descriptor_type: &UsbDescriptorType) -> String {
     UsbHints::for_descriptor_type(descriptor_type)
 }
 
+#[allow(dead_code)]
 impl UsbHints {
     // Get a hint for a descriptor type
     pub fn for_descriptor_type(descriptor_type: &UsbDescriptorType) -> String {
