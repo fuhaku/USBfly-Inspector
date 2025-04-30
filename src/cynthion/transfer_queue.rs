@@ -7,7 +7,7 @@ use std::time::Duration;
 use anyhow::{Context, Error};
 use futures_channel::oneshot;
 use futures_util::{future::FusedFuture, FutureExt, select_biased};
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use nusb::{Interface, transfer::{Queue, RequestBuffer, TransferError}};
 
 // Constants

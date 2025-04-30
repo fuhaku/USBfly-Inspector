@@ -6,7 +6,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use anyhow::{Result, bail, Context as AnyhowContext, Error};
-use log::{info, error, warn, debug};
+use log::{info, error, warn};
 use nusb::{
     self,
     transfer::{
@@ -218,7 +218,7 @@ pub struct CynthionHandle {
 impl Clone for CynthionHandle {
     fn clone(&self) -> Self {
         // We can clone the interface and device_info
-        let cloned = CynthionHandle {
+        let mut cloned = CynthionHandle {
             interface: self.interface.clone(),
             device_info: self.device_info.clone(),
             transfer_queue: None, // Can't directly clone the transfer queue
@@ -230,7 +230,7 @@ impl Clone for CynthionHandle {
             let info = queue.get_info();
             
             // Create a new channel
-            let (tx, rx) = mpsc::channel();
+            let (_tx, rx) = mpsc::channel();
             
             // Create a new TransferQueue for the clone
             // This won't be fully functional for transfers but will have the
@@ -547,7 +547,9 @@ impl CynthionHandle {
             let transfer_info = queue.get_info();
             
             // Create a oneshot channel for signaling stopping
-            let (stop_tx, stop_rx) = futures_channel::oneshot::channel();
+            // The stop_tx is stored for future use when we want to stop the transfer
+            // For now it's unused but we'll need it when implementing proper shutdown
+            let (_stop_tx, stop_rx) = futures_channel::oneshot::channel();
             
             // Create a new transfer queue with the same properties
             std::thread::spawn(move || {
