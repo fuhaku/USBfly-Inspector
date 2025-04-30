@@ -209,6 +209,32 @@ impl DeviceView {
                             }
                         }
                         
+                        // Update selected device with more complete information if it's in the new list
+                        if let Some(selected) = &mut self.selected_device {
+                            // The selected device may have more complete information in the new list
+                            for dev in &devices {
+                                if dev.vendor_id == selected.vendor_id && 
+                                   dev.product_id == selected.product_id {
+                                   
+                                    // Update the selected device with more complete information
+                                    // Only if it's missing information and the new device has it
+                                    if selected.manufacturer.is_none() && dev.manufacturer.is_some() {
+                                        selected.manufacturer = dev.manufacturer.clone();
+                                    }
+                                    if selected.product.is_none() && dev.product.is_some() {
+                                        selected.product = dev.product.clone();
+                                    }
+                                    if selected.serial_number.is_none() && dev.serial_number.is_some() {
+                                        selected.serial_number = dev.serial_number.clone();
+                                    }
+                                    
+                                    // Log the update
+                                    debug!("Updated selected device information");
+                                    break;
+                                }
+                            }
+                        }
+                        
                         self.connected_devices = devices;
                         self.last_error = None;
                     },

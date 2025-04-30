@@ -906,7 +906,7 @@ impl CynthionConnection {
     // Process MitM traffic and decode USB transactions
     pub fn process_mitm_traffic(&self, raw_data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
         let mut transactions = Vec::new();
-        let mut counter: u64 = 0;
+        let counter: u64 = 0;
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
