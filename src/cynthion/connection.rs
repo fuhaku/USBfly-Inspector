@@ -963,10 +963,24 @@ impl CynthionConnection {
         // Special handling for macOS to prevent segfaults - AFTER buffer declaration
         #[cfg(target_os = "macos")]
         {
-            // On macOS, we use an extra layer of protection by returning simulated data
-            // if we're doing real device operations, to avoid the segfault issues
-            info!("Using safe fallback mode on macOS to prevent potential crashes");
-            return Ok(self.get_simulated_data());
+            // Only return simulated data if USBFLY_FORCE_HARDWARE is not set
+            // This environment variable is our safety override that indicates we've tested
+            // and hardware operations are safe on this particular macOS machine
+            let force_hardware = std::env::var("USBFLY_FORCE_HARDWARE")
+                .unwrap_or_else(|_| "0".to_string()) == "1";
+                
+            if !force_hardware {
+                // In safe mode, use simulated data to avoid potential crashes
+                info!("macOS safe mode active - using simulated data instead of hardware access");
+                // Log the current state of all related environment variables for debugging
+                info!("Environment variables: USBFLY_FORCE_HARDWARE={}, USBFLY_SIMULATION_MODE={}", 
+                     std::env::var("USBFLY_FORCE_HARDWARE").unwrap_or_else(|_| "not set".to_string()),
+                     std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "not set".to_string()));
+                return Ok(self.get_simulated_data());
+            } else {
+                info!("⚠️ macOS HARDWARE MODE ACTIVE ⚠️ Using actual device for USB operations");
+                // Continue to the real device operations below
+            }
         }
         
         // Safely access the handle reference with panic protection
