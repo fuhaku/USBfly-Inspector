@@ -4,10 +4,10 @@
 use std::sync::mpsc;
 use std::time::Duration;
 
-use anyhow::{Context, Error};
+use anyhow::{Context, Error, anyhow};
 use futures_channel::oneshot;
 use futures_util::{future::FusedFuture, FutureExt, select_biased};
-use log::{debug, error, info, warn};
+use log::{debug, error, info, warn, trace};
 use nusb::{Interface, transfer::{Queue, RequestBuffer, TransferError}}; // Removed unused Completion
 
 // Import only what we need from Packetry's approach
@@ -149,7 +149,7 @@ impl TransferQueue {
                                 // Send the data to the processing channel
                                 match self.data_tx.send(completion.data) {
                                     Ok(_) => trace!("Successfully sent {} bytes to data channel", data_len),
-                                    Err(e) => return Err(Error::new(e, "Failed sending capture data to channel")),
+                                    Err(e) => return Err(anyhow!("Failed sending capture data to channel: {}", e)),
                                 };
                             }
                             

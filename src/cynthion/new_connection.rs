@@ -6,7 +6,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use anyhow::{Result, bail, Context as AnyhowContext, Error};
-use log::{info, error, warn, debug};
+use log::{info, error, warn, debug, trace};
 use nusb::{
     self,
     transfer::{
