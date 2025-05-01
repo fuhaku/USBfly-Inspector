@@ -195,11 +195,25 @@ impl TransferQueue {
                                     false
                                 }
                                 
-                                // Send the data to the processing channel
-                                match self.data_tx.send(completion.data) {
-                                    Ok(_) => debug!("Successfully sent {} bytes to data channel", data_len),
-                                    Err(e) => return Err(anyhow!("Failed sending capture data to channel: {}", e)),
-                                };
+                                // Send the data to the processing channel with improved error handling
+                                // Only try to send if there's actual data to send
+                                if data_len > 0 {
+                                    match self.data_tx.send(completion.data) {
+                                        Ok(_) => {
+                                            debug!("Successfully sent {} bytes to data channel", data_len);
+                                            // Add a debug flag to verify data was sent successfully
+                                            info!("✓ USB packet data ({}b) successfully sent to decoder", data_len);
+                                        },
+                                        Err(e) => {
+                                            error!("Channel error: Failed sending capture data: {}", e);
+                                            // Don't exit immediately, try to recover by continuing
+                                            warn!("Trying to continue despite channel error");
+                                        }
+                                    };
+                                } else {
+                                    // Simply drop empty data packets - they don't provide useful information
+                                    debug!("Skipping sending zero-length packet to data channel");
+                                }
                             }
                             
                             if !stop_rx.is_terminated() {

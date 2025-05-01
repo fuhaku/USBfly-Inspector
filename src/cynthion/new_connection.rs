@@ -1117,39 +1117,67 @@ impl CynthionHandle {
             return Ok(Vec::new());
         }
         
-        // For our new approach, we don't need to manually process transfers
-        // They're handled by the async processing thread
-        // Just check if there's data available in the channel
+        // Enhanced data retrieval with better error handling and diagnostics
         if let Some(queue) = &self.transfer_queue {
             if let Some(receiver) = queue.get_receiver() {
+                // Try to receive data with improved logging
                 match receiver.try_recv() {
                     Ok(data) => {
-                        // Log data size with additional details for debugging
                         if data.is_empty() {
-                            warn!("Received empty USB data packet from transfer queue");
+                            warn!("Received empty USB data packet from transfer queue - this isn't expected");
+                            // Even though it's empty, return it so we have the chance to investigate
+                            return Ok(data);
                         } else {
-                            debug!("Received {} bytes of USB data from transfer queue", data.len());
-                            if data.len() > 4 {
-                                trace!("USB data starts with: {:02X?}", &data[0..4]);
+                            // Enhanced successful data receipt logging
+                            let data_len = data.len();
+                            info!("✓ Received {} bytes of USB data from transfer queue", data_len);
+                            
+                            // Detailed packet header logging
+                            if data_len >= 4 {
+                                let packet_type = data[0];
+                                let endpoint = data[1];
+                                let device_addr = data[2];
+                                let length_field = data[3];
+                                
+                                debug!("Packet header: type=0x{:02X}, ep=0x{:02X}, dev=0x{:02X}, len={}",
+                                       packet_type, endpoint, device_addr, length_field);
+                                
+                                // Show first 16 bytes of data for detailed debugging
+                                let display_len = std::cmp::min(16, data_len);
+                                let hex_dump = data[0..display_len].iter()
+                                    .map(|b| format!("{:02X}", b))
+                                    .collect::<Vec<String>>()
+                                    .join(" ");
+                                    
+                                debug!("Data begins with: {}", hex_dump);
                             }
+                            
+                            // Return the data for further processing
+                            return Ok(data);
                         }
-                        return Ok(data);
                     },
                     Err(mpsc::TryRecvError::Empty) => {
-                        // No data available yet, return empty vector
-                        trace!("No USB data available from queue");
+                        // No data available yet - this is normal
+                        trace!("No USB data available from queue (normal polling state)");
                         return Ok(Vec::new());
                     },
                     Err(mpsc::TryRecvError::Disconnected) => {
-                        // Channel is disconnected, possibly device disconnected
-                        warn!("Transfer queue channel disconnected - device may have been unplugged");
-                        // Reset the transfer queue to force re-initialization
+                        // Channel disconnected - this indicates a problem
+                        error!("⚠ Transfer queue channel disconnected - trying to recover");
+                        
+                        // Try to reinitialize the queue with the same device
+                        warn!("Attempting to reinitialize transfer queue for recovery");
+                        
+                        // Reset the transfer queue to force re-initialization on next call
                         self.transfer_queue = None;
+                        
+                        // Return empty data for this cycle
                         return Ok(Vec::new());
                     }
                 }
             } else {
-                // No receiver available (can happen for cloned connections)
+                // No receiver available - this is a configuration issue
+                warn!("No receiver configured in transfer queue - cloned connection may be incomplete");
                 return Ok(Vec::new());
             }
         }
