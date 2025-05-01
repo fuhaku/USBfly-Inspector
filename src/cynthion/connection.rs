@@ -13,10 +13,10 @@ use tokio::time::sleep;
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum Speed {
-    Auto = 0,
     High = 1,
     Full = 2,
     Low = 3,
+    // Auto = 0 variant has been removed to require explicit speed selection
 }
 
 impl Speed {

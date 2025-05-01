@@ -373,8 +373,8 @@ impl CynthionHandle {
         
         let mut speeds = Vec::new();
         // Each speed corresponds to a bit in the response
-        // Auto = bit 0, High = bit 1, Full = bit 2, Low = bit 3
-        if buf[0] & 0x01 != 0 { speeds.push(Auto); }
+        // High = bit 1, Full = bit 2, Low = bit 3 (bit 0 was Auto, now removed)
+        // Skip bit 0 (Auto) which is no longer used
         if buf[0] & 0x02 != 0 { speeds.push(High); }
         if buf[0] & 0x04 != 0 { speeds.push(Full); }
         if buf[0] & 0x08 != 0 { speeds.push(Low); }
@@ -451,8 +451,8 @@ impl CynthionHandle {
     
     // Enhanced method for capturing USB traffic from devices connected to Cynthion
     pub fn start_capture(&mut self) -> Result<()> {
-        // Use Auto speed by default
-        self.start_capture_with_speed(Speed::Auto)
+        // Default to High speed - Auto speed option has been removed
+        self.start_capture_with_speed(Speed::High)
     }
     
     // Start capture with a specific speed setting
@@ -575,14 +575,12 @@ impl CynthionHandle {
                 // but will fall back to alternatives if it fails
                 let mut speeds_to_try = vec![speed];
                 
-                // Add fallback speeds if needed, but avoid duplicates
-                if speed != Speed::Auto {
-                    speeds_to_try.push(Speed::Auto);
-                }
+                // Add fallback speeds if needed, but avoid duplicates (Auto is no longer supported)
+                // Use High speed as primary fallback
                 if speed != Speed::High {
                     speeds_to_try.push(Speed::High);
                 }
-                if speed != Speed::Full && speed != Speed::Auto && speed != Speed::High {
+                if speed != Speed::Full && speed != Speed::High {
                     speeds_to_try.push(Speed::Full);
                 }
                 
@@ -883,7 +881,7 @@ impl CynthionHandle {
                 match self.write_request(2, 0) {
                     Ok(_) => {
                         info!("Alternative speed query succeeded - using default speeds");
-                        vec![crate::usb::Speed::Auto, crate::usb::Speed::High] 
+                        vec![crate::usb::Speed::High, crate::usb::Speed::Full] // Removed Auto, replaced with High and Full 
                     },
                     Err(e2) => {
                         warn!("All speed query methods failed: {} (using conservative defaults)", e2);
@@ -894,10 +892,9 @@ impl CynthionHandle {
         };
         
         // Determine optimal speed configuration based on device capabilities
+        // Auto speed option has been removed
         let best_speed = if speeds.contains(&crate::usb::Speed::High) {
             crate::usb::Speed::High // Prefer High Speed for best capture quality
-        } else if speeds.contains(&crate::usb::Speed::Auto) {
-            crate::usb::Speed::Auto // Auto speed as second preference
         } else if speeds.contains(&crate::usb::Speed::Full) {
             crate::usb::Speed::Full // Full speed as fallback
         } else {
@@ -975,8 +972,8 @@ impl CynthionHandle {
             Err(e) => {
                 warn!("Failed to set optimal speed configuration: {} (trying alternative speeds)", e);
                 
-                // If we failed with the best speed, try alternatives in sequence
-                let fallback_speeds = vec![crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full];
+                // If we failed with the best speed, try alternatives in sequence (Auto is removed)
+                let fallback_speeds = vec![crate::usb::Speed::High, crate::usb::Speed::Full];
                 let mut success = false;
                 
                 for speed in fallback_speeds {
@@ -1088,8 +1085,8 @@ impl CynthionHandle {
                 for attempt in 1..=max_attempts {
                     info!("Starting capture on newly connected device (attempt {}/{})", attempt, max_attempts);
                     
-                    // Try both Auto and High speed settings
-                    let speeds = [Speed::High, Speed::Auto, Speed::Full];
+                    // Try High and Full speed settings (Auto is removed)
+                    let speeds = [Speed::High, Speed::Full];
                     
                     for speed in &speeds {
                         info!("Trying with speed mode: {:?}", speed);
@@ -1174,8 +1171,8 @@ impl CynthionHandle {
             // Store the transfer queue
             self.transfer_queue = Some(transfer_queue);
             
-            // Start the capture with proper error handling and support for multiple speeds
-            let speeds = [Speed::High, Speed::Auto, Speed::Full];
+            // Start the capture with proper error handling and support for multiple speeds (Auto removed)
+            let speeds = [Speed::High, Speed::Full];
             let mut capture_success = false;
             
             for speed in &speeds {

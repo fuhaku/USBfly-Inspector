@@ -43,7 +43,7 @@ pub enum SpeedValue {
     HighSpeed = 0x03,
     FullSpeed = 0x02,
     LowSpeed = 0x01,
-    AutoSpeed = 0x00,
+    // AutoSpeed = 0x00 variant removed to require explicit speed selection
 }
 
 /// Represents device detection settings

@@ -1050,7 +1050,7 @@ impl TrafficView {
         
         // Create the speed selection dialog if it's open
         let content = if self.speed_selection_open {
-            let speeds = [crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low];
+            let speeds = [crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low, crate::usb::Speed::Super, crate::usb::Speed::SuperPlus];
             
             // Create the dialog content with explanation text
             let dialog_content = column![

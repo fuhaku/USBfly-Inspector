@@ -252,12 +252,10 @@ impl Application for USBflyApp {
                                         info!("Successfully opened Cynthion device");
                                         info!("Setting connection speed to: {:?}", speed);
                                         
-                                        // Configure the device with the selected speed
-                                        if speed != crate::usb::Speed::Auto {
-                                            match handle.set_speed(speed) {
-                                                Ok(_) => info!("✓ Successfully set USB speed to: {:?}", speed),
-                                                Err(e) => warn!("Failed to set USB speed: {} (continuing anyway)", e)
-                                            }
+                                        // Configure the device with the selected speed (Auto is no longer an option)
+                                        match handle.set_speed(speed) {
+                                            Ok(_) => info!("✓ Successfully set USB speed to: {:?}", speed),
+                                            Err(e) => warn!("Failed to set USB speed: {} (continuing anyway)", e)
                                         }
                                         
                                         let handle = Arc::new(Mutex::new(handle));
@@ -277,12 +275,10 @@ impl Application for USBflyApp {
                                                 info!("Second attempt successful - opened Cynthion device");
                                                 info!("Setting connection speed to: {:?}", speed);
                                                 
-                                                // Configure the device with the selected speed
-                                                if speed != crate::usb::Speed::Auto {
-                                                    match handle.set_speed(speed) {
-                                                        Ok(_) => info!("✓ Successfully set USB speed to: {:?}", speed),
-                                                        Err(e) => warn!("Failed to set USB speed: {} (continuing anyway)", e)
-                                                    }
+                                                // Configure the device with the selected speed (Auto is no longer an option)
+                                                match handle.set_speed(speed) {
+                                                    Ok(_) => info!("✓ Successfully set USB speed to: {:?}", speed),
+                                                    Err(e) => warn!("Failed to set USB speed: {} (continuing anyway)", e)
                                                 }
                                                 
                                                 let handle = Arc::new(Mutex::new(handle));

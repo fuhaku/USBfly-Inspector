@@ -83,8 +83,8 @@ impl DeviceView {
             last_refresh_time: std::time::Instant::now(),
             // Auto-refresh every 2 seconds by default - this can be tuned for better experience
             auto_refresh_interval: std::time::Duration::from_secs(2),
-            // Default to Auto speed setting
-            selected_speed: crate::usb::Speed::Auto,
+            // Default to High speed setting (Auto is no longer supported)
+            selected_speed: crate::usb::Speed::High,
         }
     }
     
@@ -500,7 +500,7 @@ impl DeviceView {
                                     // Use different elements based on our show_speed_selection flag
                                     {let speed_control = if show_speed_selection {
                                         let pick_list = iced::widget::pick_list(
-                                            &[crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low] as &[_],
+                                            &[crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low, crate::usb::Speed::Super, crate::usb::Speed::SuperPlus] as &[_],
                                             Some(self.selected_speed),
                                             Message::SpeedSelected
                                         )
@@ -527,7 +527,7 @@ impl DeviceView {
                             
                             // Add explanatory text about speed selection importance
                             container(
-                                text("IMPORTANT: Select the speed of the USB device connected to Cynthion.\nThis setting configures Cynthion to match the attached device's speed.\nUse Auto for automatic detection, or select specific speed for better reliability.")
+                                text("IMPORTANT: Select the speed of the USB device connected to Cynthion.\nThis setting configures Cynthion to match the attached device's speed.\nYou must select the correct speed before connecting for proper functionality.")
                                     .size(14)
                                     .width(Length::Fill)
                                     .style(iced::theme::Text::Color(crate::gui::styles::color::INFO))

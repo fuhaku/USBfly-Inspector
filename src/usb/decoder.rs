@@ -9,12 +9,12 @@ use serde_json;
 // Speed enum from the previous decoder/mod.rs
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Speed {
-    Auto = 0,
     High = 1,
     Full = 2,
     Low = 3,
     Super = 4,
     SuperPlus = 5,
+    // Auto = 0 variant has been removed to require explicit speed selection
 }
 
 impl Speed {
@@ -27,7 +27,6 @@ impl Speed {
 impl std::fmt::Display for Speed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Speed::Auto => write!(f, "Auto"),
             Speed::High => write!(f, "High Speed"),
             Speed::Full => write!(f, "Full Speed"),
             Speed::Low => write!(f, "Low Speed"),
@@ -79,7 +78,7 @@ impl UsbDecoder {
             transaction_counter: 0,
             vendor_names: Self::load_vendor_database(),
             device_names: Self::load_device_database(),
-            current_speed: Speed::Auto, // Default to Auto speed
+            current_speed: Speed::High, // Default to High speed instead of Auto
             initialized: false,
         }
     }
@@ -142,8 +141,6 @@ impl UsbDecoder {
                 // Super speed has the largest packet sizes
                 data.len() <= 1024
             },
-            // Auto adapts based on content
-            Speed::Auto => true,
         };
         
         if !packet_size_valid && data.len() > 0 {
@@ -281,7 +278,7 @@ impl UsbDecoder {
             Speed::Full => 64,
             Speed::High => 512,
             Speed::Super | Speed::SuperPlus => 1024,
-            Speed::Auto => 1024, // Auto uses the largest allowed
+            // Auto variant is no longer supported - explicit speed selection is required
         };
         
         // Log packet size compatibility information
