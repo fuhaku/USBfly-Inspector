@@ -749,39 +749,39 @@ impl UsbDecoder {
         decoded.fields.insert("Direction".to_string(), direction.to_string());
         
         // Identify transfer type with enhanced Cynthion packet support
-        let transfer_type = match packet_type {
+        let transfer_type_str = match packet_type {
             // Standard USB packet types
-            0xD0 => "Control (SETUP)",
-            0x90 => "Bulk (IN)",
-            0xC0 => "Interrupt (IN)",
-            0x10 => "Bulk (OUT)",
-            0x40 => "Interrupt (OUT)",
-            0xA0 => "Isochronous (IN)",
-            0x20 => "Isochronous (OUT)",
-            0xE0 => "Control (Status)",
+            0xD0 => "Control (SETUP)".to_string(),
+            0x90 => "Bulk (IN)".to_string(),
+            0xC0 => "Interrupt (IN)".to_string(),
+            0x10 => "Bulk (OUT)".to_string(),
+            0x40 => "Interrupt (OUT)".to_string(),
+            0xA0 => "Isochronous (IN)".to_string(),
+            0x20 => "Isochronous (OUT)".to_string(),
+            0xE0 => "Control (Status)".to_string(),
             
             // Cynthion-specific packet types seen in logs
-            0x5A => "Cynthion Traffic (Data)",
-            0x83 => "Cynthion Bulk/Interrupt",
-            0xAA => "Cynthion Control",
-            0xEC => "Cynthion Status",
-            0x0C => "Cynthion Special",
-            0x58 => "Cynthion Enumeration",
-            0xB7 => "Cynthion Transfer",
+            0x5A => "Cynthion Traffic (Data)".to_string(),
+            0x83 => "Cynthion Bulk/Interrupt".to_string(),
+            0xAA => "Cynthion Control".to_string(),
+            0xEC => "Cynthion Status".to_string(),
+            0x0C => "Cynthion Special".to_string(),
+            0x58 => "Cynthion Enumeration".to_string(),
+            0xB7 => "Cynthion Transfer".to_string(),
             
             // Alternative packet types
-            0xA5 => "Alternative Control",
-            0x00 => "Alternative Bulk",
-            0x23 => "Alternative Interrupt",
-            0x69 => "Alternative Bulk",
-            0x24 => "GreatFET Special",
-            0x1C => "GreatFET Control",
-            0x04 => "Cynthion MitM",
+            0xA5 => "Alternative Control".to_string(),
+            0x00 => "Alternative Bulk".to_string(),
+            0x23 => "Alternative Interrupt".to_string(),
+            0x69 => "Alternative Bulk".to_string(),
+            0x24 => "GreatFET Special".to_string(),
+            0x1C => "GreatFET Control".to_string(),
+            0x04 => "Cynthion MitM".to_string(),
             
             // Fallback for unknown types
-            _ => format!("Unknown (0x{:02X})", packet_type).as_str(),
+            _ => format!("Unknown (0x{:02X})", packet_type),
         };
-        decoded.fields.insert("Transfer Type".to_string(), transfer_type.to_string());
+        decoded.fields.insert("Transfer Type".to_string(), transfer_type_str);
         
         // Check if we have payload data
         if data.len() >= 4 + data_len && data_len > 0 {
