@@ -12,6 +12,18 @@ pub enum USBDescriptor {
     String(StringDescriptor),
     HID(Vec<u8>), // Raw HID descriptor data
     DeviceQualifier(DeviceQualifierDescriptor),
+    // USB 3.0+ specific descriptors
+    BOS(BOSDescriptor),
+    DeviceCapability(DeviceCapabilityDescriptor),
+    SuperSpeedEndpointCompanion(SuperSpeedEndpointCompanionDescriptor),
+    // Additional class-specific descriptors
+    CDC(CDCDescriptor),
+    MSC(MSCDescriptor),
+    AudioControl(AudioControlDescriptor),
+    AudioStreaming(AudioStreamingDescriptor),
+    VideoControl(VideoControlDescriptor),
+    VideoStreaming(VideoStreamingDescriptor),
+    // Handle unknown descriptors
     Unknown { 
         descriptor_type: UsbDescriptorType,
         data: Vec<u8>,
@@ -28,6 +40,18 @@ impl fmt::Display for USBDescriptor {
             USBDescriptor::String(desc) => write!(f, "{}", desc),
             USBDescriptor::HID(data) => write!(f, "HID Descriptor: {} bytes", data.len()),
             USBDescriptor::DeviceQualifier(desc) => write!(f, "{}", desc),
+            // USB 3.0+ specific descriptors
+            USBDescriptor::BOS(desc) => write!(f, "{}", desc),
+            USBDescriptor::DeviceCapability(desc) => write!(f, "{}", desc),
+            USBDescriptor::SuperSpeedEndpointCompanion(desc) => write!(f, "{}", desc),
+            // Class-specific descriptors
+            USBDescriptor::CDC(desc) => write!(f, "{}", desc),
+            USBDescriptor::MSC(desc) => write!(f, "{}", desc),
+            USBDescriptor::AudioControl(desc) => write!(f, "{}", desc),
+            USBDescriptor::AudioStreaming(desc) => write!(f, "{}", desc),
+            USBDescriptor::VideoControl(desc) => write!(f, "{}", desc),
+            USBDescriptor::VideoStreaming(desc) => write!(f, "{}", desc),
+            // Unknown descriptors
             USBDescriptor::Unknown { descriptor_type, data } => {
                 writeln!(f, "Unknown Descriptor:")?;
                 writeln!(f, "  Type: 0x{:02X} ({})", descriptor_type.get_value(), descriptor_type.name())?;
@@ -583,6 +607,324 @@ impl fmt::Display for DeviceQualifierDescriptor {
     }
 }
 
+// Binary Device Object Store (BOS) Descriptor - for USB 3.0 and above
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BOSDescriptor {
+    pub length: u8,                    // Descriptor size in bytes (5)
+    pub descriptor_type: UsbDescriptorType, // BOS descriptor type (0x0F)
+    pub total_length: u16,             // Total length of BOS block including device capability descriptors
+    pub num_device_caps: u8,           // Number of device capability descriptors
+    
+    // Device capability descriptors
+    pub device_capabilities: Vec<DeviceCapabilityDescriptor>,
+}
+
+impl fmt::Display for BOSDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Binary Device Object Store (BOS) Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        writeln!(f, "  wTotalLength: {} bytes", self.total_length)?;
+        writeln!(f, "  bNumDeviceCapabilities: {}", self.num_device_caps)?;
+        
+        // Display device capabilities
+        for (i, cap) in self.device_capabilities.iter().enumerate() {
+            writeln!(f, "  Device Capability #{}: {}", i+1, cap)?;
+        }
+        
+        Ok(())
+    }
+}
+
+// Device Capability Descriptor - for USB 3.0 and above
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceCapabilityDescriptor {
+    pub length: u8,                    // Descriptor size in bytes (varies)
+    pub descriptor_type: UsbDescriptorType, // DEVICE_CAPABILITY descriptor type (0x10)
+    pub capability_type: u8,           // Capability type code
+    pub capability_data: Vec<u8>,      // Capability-specific data
+}
+
+impl fmt::Display for DeviceCapabilityDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Device Capability Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        writeln!(f, "  bDevCapabilityType: 0x{:02X}", self.capability_type)?;
+        
+        // Decode capability type
+        let cap_type_name = match self.capability_type {
+            1 => "USB 2.0 Extension",
+            2 => "SuperSpeed USB Device",
+            3 => "Container ID",
+            4 => "Platform",
+            5 => "Power Delivery",
+            6 => "Battery Info",
+            7 => "PD Consumer Port",
+            8 => "PD Provider Port",
+            9 => "SuperSpeed Plus",
+            10 => "Precision Time Measurement",
+            11 => "Wireless USB Extension",
+            _ => "Unknown",
+        };
+        writeln!(f, "    Capability Type: {}", cap_type_name)?;
+        
+        // Display capability data in hex format
+        write!(f, "    Capability Data: ")?;
+        for (i, byte) in self.capability_data.iter().enumerate() {
+            if i > 0 && i % 8 == 0 {
+                write!(f, "\n                    ")?;
+            }
+            write!(f, "{:02X} ", byte)?;
+        }
+        writeln!(f)?;
+        
+        Ok(())
+    }
+}
+
+// SuperSpeed USB Endpoint Companion Descriptor - for USB 3.0 and above
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SuperSpeedEndpointCompanionDescriptor {
+    pub length: u8,                    // Descriptor size in bytes (6)
+    pub descriptor_type: UsbDescriptorType, // SS_ENDPOINT_COMPANION descriptor type (0x30)
+    pub max_burst: u8,                 // Maximum number of packets within a burst - 1
+    pub attributes: u8,                // Various attributes
+    pub bytes_per_interval: u16,       // Periodic endpoints only - bytes per service interval
+}
+
+impl fmt::Display for SuperSpeedEndpointCompanionDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "SuperSpeed Endpoint Companion Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        writeln!(f, "  bMaxBurst: {} (max {} packets per burst)", self.max_burst, self.max_burst as u16 + 1)?;
+        writeln!(f, "  bmAttributes: 0x{:02X}", self.attributes)?;
+        
+        // Decode attributes
+        let bulk_max_streams = match self.attributes & 0x1F {
+            0 => "No streams".to_string(),
+            n => format!("Max {} streams", 1 << n),
+        };
+        
+        let mult = match (self.attributes >> 4) & 0x3 {
+            0 => 1,
+            1 => 2,
+            2 => 3,
+            _ => 0, // Reserved
+        };
+        
+        writeln!(f, "    Bulk: {}", bulk_max_streams)?;
+        writeln!(f, "    Mult: {} (max {} transactions per service interval)", (self.attributes >> 4) & 0x3, mult)?;
+        writeln!(f, "  wBytesPerInterval: {} bytes", self.bytes_per_interval)?;
+        
+        Ok(())
+    }
+}
+
+// Now add common class-specific descriptors:
+
+// Communications Device Class (CDC) Descriptor
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CDCDescriptor {
+    pub length: u8,                    // Descriptor size in bytes
+    pub descriptor_type: UsbDescriptorType, // CS_INTERFACE descriptor type (0x24)
+    pub descriptor_subtype: u8,        // CDC descriptor subtype
+    pub data: Vec<u8>,                 // Class-specific data
+}
+
+impl fmt::Display for CDCDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "CDC Class Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        writeln!(f, "  bDescriptorSubtype: 0x{:02X}", self.descriptor_subtype)?;
+        
+        // Decode CDC subtype
+        let subtype_name = match self.descriptor_subtype {
+            0 => "Header",
+            1 => "Call Management",
+            2 => "Abstract Control Management",
+            3 => "Direct Line Management",
+            4 => "Telephone Ringer",
+            5 => "Telephone Call and Line State Reporting",
+            6 => "Union",
+            7 => "Country Selection",
+            8 => "Telephone Operational Modes",
+            9 => "USB Terminal",
+            10 => "Network Channel Terminal",
+            11 => "Protocol Unit",
+            12 => "Extension Unit",
+            13 => "Multi-Channel Management",
+            14 => "CAPI Control Management",
+            15 => "Ethernet Networking",
+            16 => "ATM Networking",
+            _ => "Unknown",
+        };
+        writeln!(f, "    Subtype: {}", subtype_name)?;
+        
+        // Display data in hex format
+        write!(f, "    Data: ")?;
+        for (i, byte) in self.data.iter().enumerate() {
+            if i > 0 && i % 8 == 0 {
+                write!(f, "\n          ")?;
+            }
+            write!(f, "{:02X} ", byte)?;
+        }
+        writeln!(f)?;
+        
+        Ok(())
+    }
+}
+
+// Mass Storage Class (MSC) Descriptor
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MSCDescriptor {
+    pub length: u8,                    // Descriptor size in bytes
+    pub descriptor_type: UsbDescriptorType, // CS_INTERFACE descriptor type
+    pub data: Vec<u8>,                 // Class-specific data
+}
+
+impl fmt::Display for MSCDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Mass Storage Class Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        
+        // Display data in hex format
+        write!(f, "  Data: ")?;
+        for (i, byte) in self.data.iter().enumerate() {
+            if i > 0 && i % 8 == 0 {
+                write!(f, "\n         ")?;
+            }
+            write!(f, "{:02X} ", byte)?;
+        }
+        writeln!(f)?;
+        
+        Ok(())
+    }
+}
+
+// USB Audio Class Descriptors - Control Interface
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioControlDescriptor {
+    pub length: u8,                    // Descriptor size in bytes
+    pub descriptor_type: UsbDescriptorType, // CS_INTERFACE descriptor type
+    pub descriptor_subtype: u8,        // Audio descriptor subtype
+    pub data: Vec<u8>,                 // Class-specific data
+}
+
+impl fmt::Display for AudioControlDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Audio Control Interface Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        writeln!(f, "  bDescriptorSubtype: 0x{:02X}", self.descriptor_subtype)?;
+        
+        // Display data in hex format
+        write!(f, "  Data: ")?;
+        for (i, byte) in self.data.iter().enumerate() {
+            if i > 0 && i % 8 == 0 {
+                write!(f, "\n         ")?;
+            }
+            write!(f, "{:02X} ", byte)?;
+        }
+        writeln!(f)?;
+        
+        Ok(())
+    }
+}
+
+// USB Audio Class Descriptors - Streaming Interface
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioStreamingDescriptor {
+    pub length: u8,                    // Descriptor size in bytes
+    pub descriptor_type: UsbDescriptorType, // CS_INTERFACE descriptor type
+    pub descriptor_subtype: u8,        // Audio descriptor subtype
+    pub data: Vec<u8>,                 // Class-specific data
+}
+
+impl fmt::Display for AudioStreamingDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Audio Streaming Interface Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        writeln!(f, "  bDescriptorSubtype: 0x{:02X}", self.descriptor_subtype)?;
+        
+        // Display data in hex format
+        write!(f, "  Data: ")?;
+        for (i, byte) in self.data.iter().enumerate() {
+            if i > 0 && i % 8 == 0 {
+                write!(f, "\n         ")?;
+            }
+            write!(f, "{:02X} ", byte)?;
+        }
+        writeln!(f)?;
+        
+        Ok(())
+    }
+}
+
+// USB Video Class Descriptors - Control Interface
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoControlDescriptor {
+    pub length: u8,                    // Descriptor size in bytes
+    pub descriptor_type: UsbDescriptorType, // CS_INTERFACE descriptor type
+    pub descriptor_subtype: u8,        // Video descriptor subtype
+    pub data: Vec<u8>,                 // Class-specific data
+}
+
+impl fmt::Display for VideoControlDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Video Control Interface Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        writeln!(f, "  bDescriptorSubtype: 0x{:02X}", self.descriptor_subtype)?;
+        
+        // Display data in hex format
+        write!(f, "  Data: ")?;
+        for (i, byte) in self.data.iter().enumerate() {
+            if i > 0 && i % 8 == 0 {
+                write!(f, "\n         ")?;
+            }
+            write!(f, "{:02X} ", byte)?;
+        }
+        writeln!(f)?;
+        
+        Ok(())
+    }
+}
+
+// USB Video Class Descriptors - Streaming Interface
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoStreamingDescriptor {
+    pub length: u8,                    // Descriptor size in bytes
+    pub descriptor_type: UsbDescriptorType, // CS_INTERFACE descriptor type
+    pub descriptor_subtype: u8,        // Video descriptor subtype
+    pub data: Vec<u8>,                 // Class-specific data
+}
+
+impl fmt::Display for VideoStreamingDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Video Streaming Interface Descriptor:")?;
+        writeln!(f, "  bLength: {} bytes", self.length)?;
+        writeln!(f, "  bDescriptorType: {} ({})", self.descriptor_type.name(), self.descriptor_type.get_value())?;
+        writeln!(f, "  bDescriptorSubtype: 0x{:02X}", self.descriptor_subtype)?;
+        
+        // Display data in hex format
+        write!(f, "  Data: ")?;
+        for (i, byte) in self.data.iter().enumerate() {
+            if i > 0 && i % 8 == 0 {
+                write!(f, "\n         ")?;
+            }
+            write!(f, "{:02X} ", byte)?;
+        }
+        writeln!(f)?;
+        
+        Ok(())
+    }
+}
+
 // Main structure to hold all parsed USB descriptors
 #[derive(Debug, Clone)]
 pub struct UsbDevice {
@@ -590,6 +932,19 @@ pub struct UsbDevice {
     pub configurations: Vec<ConfigurationDescriptor>,
     pub strings: Vec<StringDescriptor>,
     pub device_qualifier: Option<DeviceQualifierDescriptor>,
+    
+    // USB 3.0+ specific descriptors
+    pub bos: Option<BOSDescriptor>,
+    pub device_capabilities: Vec<DeviceCapabilityDescriptor>,
+    pub ss_endpoint_companions: Vec<SuperSpeedEndpointCompanionDescriptor>,
+    
+    // Class-specific descriptors
+    pub cdc_descriptors: Vec<CDCDescriptor>,
+    pub msc_descriptors: Vec<MSCDescriptor>,
+    pub audio_control_descriptors: Vec<AudioControlDescriptor>,
+    pub audio_streaming_descriptors: Vec<AudioStreamingDescriptor>,
+    pub video_control_descriptors: Vec<VideoControlDescriptor>,
+    pub video_streaming_descriptors: Vec<VideoStreamingDescriptor>,
     
     // Raw descriptor data
     pub raw_descriptors: Vec<Vec<u8>>,
@@ -602,6 +957,20 @@ impl UsbDevice {
             configurations: Vec::new(),
             strings: Vec::new(),
             device_qualifier: None,
+            
+            // USB 3.0+ specific descriptors
+            bos: None,
+            device_capabilities: Vec::new(),
+            ss_endpoint_companions: Vec::new(),
+            
+            // Class-specific descriptors
+            cdc_descriptors: Vec::new(),
+            msc_descriptors: Vec::new(),
+            audio_control_descriptors: Vec::new(),
+            audio_streaming_descriptors: Vec::new(),
+            video_control_descriptors: Vec::new(),
+            video_streaming_descriptors: Vec::new(),
+            
             raw_descriptors: Vec::new(),
         }
     }
@@ -620,6 +989,16 @@ impl UsbDevice {
             descriptors.push(USBDescriptor::DeviceQualifier(qualifier.clone()));
         }
         
+        // Add BOS descriptor if available
+        if let Some(bos) = &self.bos {
+            descriptors.push(USBDescriptor::BOS(bos.clone()));
+        }
+        
+        // Add device capabilities
+        for cap in &self.device_capabilities {
+            descriptors.push(USBDescriptor::DeviceCapability(cap.clone()));
+        }
+        
         // Add configurations and their interfaces/endpoints
         for config in &self.configurations {
             descriptors.push(USBDescriptor::Configuration(config.clone()));
@@ -631,6 +1010,36 @@ impl UsbDevice {
                     descriptors.push(USBDescriptor::Endpoint(endpoint.clone()));
                 }
             }
+        }
+        
+        // Add SuperSpeed endpoint companions
+        for companion in &self.ss_endpoint_companions {
+            descriptors.push(USBDescriptor::SuperSpeedEndpointCompanion(companion.clone()));
+        }
+        
+        // Add class-specific descriptors
+        for desc in &self.cdc_descriptors {
+            descriptors.push(USBDescriptor::CDC(desc.clone()));
+        }
+        
+        for desc in &self.msc_descriptors {
+            descriptors.push(USBDescriptor::MSC(desc.clone()));
+        }
+        
+        for desc in &self.audio_control_descriptors {
+            descriptors.push(USBDescriptor::AudioControl(desc.clone()));
+        }
+        
+        for desc in &self.audio_streaming_descriptors {
+            descriptors.push(USBDescriptor::AudioStreaming(desc.clone()));
+        }
+        
+        for desc in &self.video_control_descriptors {
+            descriptors.push(USBDescriptor::VideoControl(desc.clone()));
+        }
+        
+        for desc in &self.video_streaming_descriptors {
+            descriptors.push(USBDescriptor::VideoStreaming(desc.clone()));
         }
         
         // Add string descriptors

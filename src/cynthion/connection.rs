@@ -11,6 +11,7 @@ use tokio::time::sleep;
 
 // Use decoder::Speed type from our USB decoder module
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum Speed {
     Auto = 0,
     High = 1,
@@ -19,6 +20,7 @@ pub enum Speed {
 }
 
 impl Speed {
+    #[allow(dead_code)]
     pub fn mask(&self) -> u8 {
         1 << (*self as u8)
     }
@@ -30,6 +32,7 @@ impl Speed {
 // Copied from Packetry codebase
 pub const CYNTHION_VID: u16 = 0x1d50;
 pub const CYNTHION_PID: u16 = 0x615b;    // Cynthion firmware VID/PID
+#[allow(dead_code)]
 const CLASS: u8 = 0xff;                  // Vendor-specific class
 #[allow(dead_code)]
 const SUBCLASS: u8 = 0x10;               // USB analysis subclass 

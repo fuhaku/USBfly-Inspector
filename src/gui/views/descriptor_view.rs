@@ -120,6 +120,15 @@ impl DescriptorView {
                             USBDescriptor::String(_) => "String Descriptor",
                             USBDescriptor::HID(_) => "HID Descriptor",
                             USBDescriptor::DeviceQualifier(_) => "Device Qualifier Descriptor",
+                            USBDescriptor::BOS(_) => "BOS Descriptor",
+                            USBDescriptor::DeviceCapability(_) => "Device Capability Descriptor",
+                            USBDescriptor::SuperSpeedEndpointCompanion(_) => "SuperSpeed Endpoint Companion",
+                            USBDescriptor::CDC(_) => "CDC Class Descriptor",
+                            USBDescriptor::MSC(_) => "Mass Storage Class Descriptor",
+                            USBDescriptor::AudioControl(_) => "Audio Control Descriptor",
+                            USBDescriptor::AudioStreaming(_) => "Audio Streaming Descriptor",
+                            USBDescriptor::VideoControl(_) => "Video Control Descriptor",
+                            USBDescriptor::VideoStreaming(_) => "Video Streaming Descriptor",
                             USBDescriptor::Unknown { descriptor_type, .. } => 
                                 return text(format!("Unknown Descriptor (0x{:02X})", descriptor_type))
                                     .width(Length::Fill)
@@ -186,8 +195,17 @@ impl DescriptorView {
                     USBDescriptor::Endpoint(desc) => &desc.descriptor_type,
                     USBDescriptor::String(desc) => &desc.descriptor_type,
                     USBDescriptor::DeviceQualifier(desc) => &desc.descriptor_type,
+                    USBDescriptor::BOS(desc) => &desc.descriptor_type,
+                    USBDescriptor::DeviceCapability(desc) => &desc.descriptor_type,
+                    USBDescriptor::SuperSpeedEndpointCompanion(desc) => &desc.descriptor_type,
+                    USBDescriptor::CDC(desc) => &desc.descriptor_type,
+                    USBDescriptor::MSC(desc) => &desc.descriptor_type,
+                    USBDescriptor::AudioControl(desc) => &desc.descriptor_type,
+                    USBDescriptor::AudioStreaming(desc) => &desc.descriptor_type,
+                    USBDescriptor::VideoControl(desc) => &desc.descriptor_type,
+                    USBDescriptor::VideoStreaming(desc) => &desc.descriptor_type,
+                    USBDescriptor::HID(_) => &UsbDescriptorType::Hid,
                     USBDescriptor::Unknown { descriptor_type, .. } => descriptor_type,
-                    _ => &UsbDescriptorType::Unknown(0),
                 };
                 
                 // Create structured hints with categories
@@ -203,6 +221,7 @@ impl DescriptorView {
                 }
                 
                 match descriptor {
+                    // Handle all descriptor types with a dedicated match arm for each
                     // Device descriptor special handling
                     USBDescriptor::Device(device_desc) => {
                         // Basic device information for general category
@@ -523,7 +542,127 @@ impl DescriptorView {
                         
                         specs_hints.push("This is a vendor-specific or class-specific descriptor not recognized by standard USB specifications".to_string());
                         specs_hints.push("It may contain specialized functionality for this particular device".to_string());
-                    }
+                    },
+                    
+                    // USB 3.0+ specific descriptors
+                    USBDescriptor::BOS(bos_desc) => {
+                        general_hints.push("Binary Device Object Store (BOS) Descriptor".to_string());
+                        general_hints.push("Used in USB 3.0+ devices to describe device capabilities".to_string());
+                        details_hints.push(format!("Total Length: {} bytes", bos_desc.total_length));
+                        details_hints.push(format!("Device Capabilities: {}", bos_desc.num_device_caps));
+                        
+                        specs_hints.push("BOS descriptors are used in USB 3.0+ to describe device-level capabilities".to_string());
+                        specs_hints.push("It contains information about supported USB versions and features".to_string());
+                    },
+                    
+                    USBDescriptor::DeviceCapability(cap_desc) => {
+                        general_hints.push("Device Capability Descriptor".to_string());
+                        
+                        // Decode capability type
+                        let cap_type_name = match cap_desc.capability_type {
+                            1 => "USB 2.0 Extension",
+                            2 => "SuperSpeed USB Device",
+                            3 => "Container ID",
+                            4 => "Platform",
+                            5 => "Power Delivery",
+                            6 => "Battery Info",
+                            7 => "PD Consumer Port",
+                            8 => "PD Provider Port",
+                            9 => "SuperSpeed Plus",
+                            10 => "Precision Time Measurement",
+                            11 => "Wireless USB Extension",
+                            _ => "Unknown",
+                        };
+                        general_hints.push(format!("Capability Type: {}", cap_type_name));
+                        details_hints.push(format!("Data Length: {} bytes", cap_desc.capability_data.len()));
+                        
+                        // Add more specific hints based on the capability type
+                        match cap_desc.capability_type {
+                            1 => { // USB 2.0 Extension
+                                specs_hints.push("USB 2.0 Extension capability indicates LPM (Link Power Management) support".to_string());
+                            },
+                            2 => { // SuperSpeed USB Device
+                                specs_hints.push("SuperSpeed capability describes USB 3.0 specific features and support".to_string());
+                            },
+                            3 => { // Container ID
+                                specs_hints.push("Container ID uniquely identifies a multi-function device across different connection methods".to_string());
+                            },
+                            _ => {}
+                        }
+                    },
+                    
+                    USBDescriptor::SuperSpeedEndpointCompanion(ss_desc) => {
+                        general_hints.push("SuperSpeed Endpoint Companion Descriptor".to_string());
+                        general_hints.push("Used to describe SuperSpeed (USB 3.0+) endpoint capabilities".to_string());
+                        details_hints.push(format!("Max Burst: {} (max {} packets per burst)", ss_desc.max_burst, ss_desc.max_burst as u16 + 1));
+                        details_hints.push(format!("Bytes per Interval: {} bytes", ss_desc.bytes_per_interval));
+                        
+                        // Decode attributes
+                        let bulk_max_streams = match ss_desc.attributes & 0x1F {
+                            0 => "No streams".to_string(),
+                            n => format!("Max {} streams", 1 << n),
+                        };
+                        
+                        details_hints.push(format!("Bulk: {}", bulk_max_streams));
+                        
+                        specs_hints.push("SuperSpeed Endpoint Companion descriptors provide USB 3.0+ specific endpoint details".to_string());
+                        specs_hints.push("They complement standard endpoint descriptors for high-speed operations".to_string());
+                    },
+                    
+                    // Class-specific descriptors
+                    USBDescriptor::CDC(cdc_desc) => {
+                        general_hints.push("Communications Device Class (CDC) Descriptor".to_string());
+                        details_hints.push(format!("Subtype: 0x{:02X}", cdc_desc.descriptor_subtype));
+                        
+                        // Decode CDC subtype
+                        let subtype_name = match cdc_desc.descriptor_subtype {
+                            0 => "Header",
+                            1 => "Call Management",
+                            2 => "Abstract Control Management",
+                            6 => "Union",
+                            _ => "Other CDC Descriptor",
+                        };
+                        general_hints.push(format!("CDC Descriptor: {}", subtype_name));
+                        
+                        specs_hints.push("CDC descriptors are used for modems, Ethernet adapters, and other communication devices".to_string());
+                    },
+                    
+                    USBDescriptor::MSC(msc_desc) => {
+                        general_hints.push("Mass Storage Class (MSC) Descriptor".to_string());
+                        details_hints.push(format!("Data Length: {} bytes", msc_desc.data.len()));
+                        
+                        specs_hints.push("MSC descriptors are used for USB storage devices like flash drives and external hard drives".to_string());
+                    },
+                    
+                    USBDescriptor::AudioControl(ac_desc) => {
+                        general_hints.push("Audio Control Interface Descriptor".to_string());
+                        details_hints.push(format!("Subtype: 0x{:02X}", ac_desc.descriptor_subtype));
+                        
+                        specs_hints.push("Audio Control descriptors are used for audio devices like headsets, speakers, and microphones".to_string());
+                    },
+                    
+                    USBDescriptor::AudioStreaming(as_desc) => {
+                        general_hints.push("Audio Streaming Interface Descriptor".to_string());
+                        details_hints.push(format!("Subtype: 0x{:02X}", as_desc.descriptor_subtype));
+                        
+                        specs_hints.push("Audio Streaming descriptors define how audio data is transferred between host and device".to_string());
+                    },
+                    
+                    USBDescriptor::VideoControl(vc_desc) => {
+                        general_hints.push("Video Control Interface Descriptor".to_string());
+                        details_hints.push(format!("Subtype: 0x{:02X}", vc_desc.descriptor_subtype));
+                        
+                        specs_hints.push("Video Control descriptors are used for webcams and other video input/output devices".to_string());
+                    },
+                    
+                    USBDescriptor::VideoStreaming(vs_desc) => {
+                        general_hints.push("Video Streaming Interface Descriptor".to_string());
+                        details_hints.push(format!("Subtype: 0x{:02X}", vs_desc.descriptor_subtype));
+                        
+                        specs_hints.push("Video Streaming descriptors define how video data is transferred between host and device".to_string());
+                    },
+                    
+                    // HID class descriptor -- moved above
                 }
                 
                 // Build the complete hints view with categories

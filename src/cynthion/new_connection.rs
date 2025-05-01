@@ -332,17 +332,28 @@ impl CynthionHandle {
             info!("Starting capture on Cynthion device: {:04x}:{:04x} using High Speed mode", 
                   self.device_info.vendor_id(), self.device_info.product_id());
             
-            // First ensure the device is not already in capture mode
-            // by sending a stop command. This helps reset the device state.
+            // First ensure the device is not already in capture mode and reset it to a known state
+            // This follows the best practices from Packetry and Cynthion documentation
             info!("Resetting Cynthion to ensure clean capture state");
+            
+            // Step 1: Send stop command to exit any previous capture mode
             if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
-                warn!("Failed to reset Cynthion capture state: {} (continuing anyway)", e);
-                // Don't return error, just continue and try to start capture
-                std::thread::sleep(std::time::Duration::from_millis(500));
-            } else {
-                // Wait for the device to reset
-                std::thread::sleep(std::time::Duration::from_millis(500));
+                warn!("Failed to send stop command during reset: {} (continuing anyway)", e);
             }
+            // Wait for the device to process the stop command
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            
+            // Step 2: Perform USB device reset (Cynthion-specific vendor command for full reset)
+            // This maps to the CYNTHION_RESET command in packetry
+            info!("Performing full Cynthion device reset");
+            if let Err(e) = self.write_request(0xFF, 0) {
+                warn!("Full device reset command failed: {} (continuing anyway)", e);
+            }
+            
+            // Wait for the device to fully reset - this is important!
+            // The Cynthion documentation recommends at least 500ms after a reset
+            info!("Waiting for device reset to complete...");
+            std::thread::sleep(std::time::Duration::from_millis(750));
             
             // Initialize transfer queue before starting capture
             // This ensures we're ready to receive data as soon as capture starts
@@ -358,28 +369,55 @@ impl CynthionHandle {
             // Store the transfer queue
             self.transfer_queue = Some(queue);
             
-            // Try to set the device to capture mode with multiple attempts if needed
-            let max_attempts = 5; // Increase max attempts
+            // Try to set the device to capture mode with multiple attempts if needed, using exponential backoff
+            let max_attempts = 5;
             let mut last_error = None;
             let mut success = false;
             
             info!("Commanding Cynthion to start Man-in-the-Middle capture...");
+            
+            // According to Packetry's best practices, we should:
+            // 1. Send START_CAPTURE command
+            // 2. Wait for confirmation or timeout
+            // 3. If failed, reset and try again with backoff
             for attempt in 1..=max_attempts {
+                // Log attempt number with more context
+                info!("Attempt {}/{} to start MitM capture", attempt, max_attempts);
+                
+                // First, check if we need to reset the device for retries
+                if attempt > 1 {
+                    debug!("Performing reset before retry attempt {}", attempt);
+                    // Reset device before retrying
+                    if let Err(e) = self.write_request(0xFF, 0) {
+                        warn!("Device reset before retry failed: {} (continuing anyway)", e);
+                    }
+                    
+                    // Need extra delay after reset for device to stabilize
+                    let reset_delay = 250 * attempt; // Longer delay for each retry
+                    debug!("Waiting {}ms for device to stabilize after reset", reset_delay);
+                    std::thread::sleep(std::time::Duration::from_millis(reset_delay as u64));
+                }
+                
+                // Now send the start capture command with exponential backoff on retries
                 match self.write_request(1, State::new(true, Speed::High).0) {
                     Ok(_) => {
-                        info!("Successfully started capture on attempt {}", attempt);
+                        info!("Successfully started MitM capture on attempt {}", attempt);
                         success = true;
                         break;
                     },
                     Err(e) => {
-                        warn!("Failed to start capture (attempt {}/{})): {}", 
+                        warn!("Failed to start MitM capture (attempt {}/{})): {}", 
                             attempt, max_attempts, e);
                         last_error = Some(e);
                         
-                        // Wait longer between attempts
+                        // Use exponential backoff between attempts
                         if attempt < max_attempts {
-                            let backoff = 100 * attempt; // Increasing backoff
-                            std::thread::sleep(std::time::Duration::from_millis(backoff));
+                            let backoff = 200 * (1 << (attempt - 1)); // Exponential backoff: 200, 400, 800, 1600ms
+                            let max_backoff = 2000; // Cap at 2 seconds
+                            let actual_backoff = std::cmp::min(backoff, max_backoff);
+                            
+                            info!("Waiting {}ms before next capture attempt", actual_backoff);
+                            std::thread::sleep(std::time::Duration::from_millis(actual_backoff));
                         }
                     }
                 }
@@ -387,12 +425,14 @@ impl CynthionHandle {
             
             if success {
                 // Create a background thread to handle transfers
+                debug!("Starting asynchronous transfer processing thread");
                 self.start_async_processing();
                 
-                // Wait a moment to ensure capture is fully initialized
-                std::thread::sleep(std::time::Duration::from_millis(100));
+                // Wait a moment to ensure capture is fully initialized and buffers are allocated
+                debug!("Waiting for capture initialization to complete");
+                std::thread::sleep(std::time::Duration::from_millis(200));
                 
-                info!("Cynthion Man-in-the-Middle mode activated, ready to capture USB traffic");
+                info!("Cynthion Man-in-the-Middle mode successfully activated - ready to capture USB traffic");
                 return Ok(());
             }
             
@@ -439,9 +479,11 @@ impl CynthionHandle {
     fn write_request(&mut self, request: u8, value: u8) -> Result<()> {
         // Request 1 with value 1 starts capture, with value 0 stops capture
         // Request 3 configures test device
+        // Request 0xFF is a full device reset
         let request_type = match request {
             1 => if value & 0x01 != 0 { "START_CAPTURE" } else { "STOP_CAPTURE" },
             3 => "CONFIGURE_TEST_DEVICE",
+            0xFF => "FULL_DEVICE_RESET",
             _ => "UNKNOWN"
         };
         
@@ -456,21 +498,36 @@ impl CynthionHandle {
             index: self.interface.interface_number() as u16,
         };
         
-        // Use a longer timeout for the start capture command
-        let timeout = if request == 1 && value & 0x01 != 0 {
-            // Longer timeout for start capture
-            Duration::from_secs(3)
-        } else {
-            Duration::from_secs(1)
+        // Determine appropriate timeout based on request type
+        let timeout = match request {
+            // START_CAPTURE needs a longer timeout
+            1 if value & 0x01 != 0 => Duration::from_secs(3),
+            // FULL_DEVICE_RESET needs a longer timeout
+            0xFF => Duration::from_secs(5),
+            // All other requests can use a standard timeout
+            _ => Duration::from_secs(1),
         };
         
         // Send the control request and capture the bytes transferred
         match self.interface.control_out_blocking(control, &[], timeout) {
             Ok(bytes) => {
                 debug!("Cynthion control request succeeded: {} bytes transferred", bytes);
+                
+                // For the reset command, we need to give the device time to reset
+                if request == 0xFF {
+                    debug!("Reset command sent successfully, device should be resetting");
+                }
+                
                 Ok(())
             },
             Err(e) => {
+                // For reset commands, a timeout or pipe error might actually indicate success
+                // as the device resets and drops the connection
+                if request == 0xFF && (e.to_string().contains("timeout") || e.to_string().contains("pipe")) {
+                    info!("Reset command resulted in expected disconnect: {}", e);
+                    return Ok(());
+                }
+                
                 error!("Cynthion control request failed: {}", e);
                 Err(Error::from(e))
             }

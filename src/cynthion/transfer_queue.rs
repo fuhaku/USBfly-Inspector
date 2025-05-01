@@ -92,19 +92,30 @@ impl TransferQueue {
                         Ok(()) => {
                             // Improved diagnostic logging for all packets, including empty ones
                             let data_len = completion.data.len();
+                            
+                            // In USB protocol, zero-length packets (ZLPs) are valid and used to indicate
+                            // the end of a transfer, or for certain status reports. They're not errors.
                             if data_len == 0 {
-                                warn!("Received empty data packet (0 bytes) - this may indicate a connection issue");
-                                // Still forward empty packets as they might be control signals
+                                debug!("Received USB zero-length packet (ZLP)");
+                                // Forward the zero-length packet as it's a meaningful part of the protocol
                                 self.data_tx.send(completion.data)
-                                    .context("Failed sending empty capture data to channel")?;
+                                    .context("Failed sending ZLP capture data to channel")?;
                             } else {
                                 debug!("Transfer complete: received {} bytes of USB data", data_len);
+                                
                                 // Check for specific packet signatures in the first few bytes
                                 if data_len >= 4 {
                                     let signature = &completion.data[0..4];
                                     debug!("Packet signature: {:02X} {:02X} {:02X} {:02X}", 
                                            signature[0], signature[1], signature[2], signature[3]);
+                                    
+                                    // Check if this looks like a valid USB packet by checking first byte
+                                    // Valid USB packet types in MitM mode are typically 0x80, 0x81, 0x82, or 0x83
+                                    if signature[0] < 0x80 || signature[0] > 0x8F {
+                                        warn!("Suspicious packet signature - not a standard Cynthion MitM format: 0x{:02X}", signature[0]);
+                                    }
                                 }
+                                
                                 self.data_tx.send(completion.data)
                                     .context("Failed sending capture data to channel")?;
                             }
