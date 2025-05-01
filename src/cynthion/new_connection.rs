@@ -18,8 +18,8 @@ use nusb::{
     Interface,
 };
 
-// Import the connection module's Speed enum
-use crate::cynthion::connection::Speed as ConnectionSpeed;
+// Import the Speed enum from the usb module instead of the deprecated one
+use crate::usb::Speed;
 
 // Bitfield structures for device control
 // We'll implement these manually since we're transitioning away from the bitfield crate
@@ -28,7 +28,7 @@ use crate::cynthion::connection::Speed as ConnectionSpeed;
 struct State(u8);
 
 impl State {
-    fn new(enable: bool, speed: ConnectionSpeed) -> State {
+    fn new(enable: bool, speed: Speed) -> State {
         let mut value = 0u8;
         // Set enable bit (bit 0)
         if enable {
@@ -44,7 +44,7 @@ impl State {
 struct TestConfig(u8);
 
 impl TestConfig {
-    fn new(speed: Option<ConnectionSpeed>) -> TestConfig {
+    fn new(speed: Option<Speed>) -> TestConfig {
         let mut value = 0u8;
         if let Some(speed) = speed {
             // Set connect bit (bit 0)
@@ -87,7 +87,7 @@ pub struct CynthionDevice {
     #[allow(dead_code)]
     alt_setting_number: u8,
     #[allow(dead_code)]
-    supported_speeds: Vec<ConnectionSpeed>,
+    supported_speeds: Vec<Speed>,
 }
 
 impl CynthionDevice {
@@ -335,7 +335,7 @@ impl CynthionHandle {
             // First ensure the device is not already in capture mode
             // by sending a stop command. This helps reset the device state.
             info!("Resetting Cynthion to ensure clean capture state");
-            if let Err(e) = self.write_request(1, State::new(false, ConnectionSpeed::High).0) {
+            if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
                 warn!("Failed to reset Cynthion capture state: {} (continuing anyway)", e);
                 // Don't return error, just continue and try to start capture
                 std::thread::sleep(std::time::Duration::from_millis(500));
@@ -365,7 +365,7 @@ impl CynthionHandle {
             
             info!("Commanding Cynthion to start Man-in-the-Middle capture...");
             for attempt in 1..=max_attempts {
-                match self.write_request(1, State::new(true, ConnectionSpeed::High).0) {
+                match self.write_request(1, State::new(true, Speed::High).0) {
                     Ok(_) => {
                         info!("Successfully started capture on attempt {}", attempt);
                         success = true;
@@ -424,12 +424,12 @@ impl CynthionHandle {
     
     // Stop capturing USB traffic
     pub fn stop_capture(&mut self) -> Result<()> {
-        self.write_request(1, State::new(false, ConnectionSpeed::High).0)
+        self.write_request(1, State::new(false, Speed::High).0)
     }
     
     // Configure the built-in test device (if available)
     #[allow(dead_code)]
-    pub fn configure_test_device(&mut self, speed: Option<ConnectionSpeed>) -> Result<()> {
+    pub fn configure_test_device(&mut self, speed: Option<Speed>) -> Result<()> {
         let test_config = TestConfig::new(speed);
         self.write_request(3, test_config.0)
             .context("Failed to set test device configuration")
@@ -607,7 +607,7 @@ impl CynthionHandle {
                 let mut success = false;
                 
                 for attempt in 1..=max_attempts {
-                    match self.write_request(1, State::new(true, ConnectionSpeed::High).0) {
+                    match self.write_request(1, State::new(true, Speed::High).0) {
                         Ok(_) => {
                             info!("Successfully started capture on newly connected device (attempt {})", attempt);
                             success = true;
