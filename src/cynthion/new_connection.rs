@@ -641,6 +641,43 @@ impl CynthionHandle {
         Ok(())
     }
     
+    // Helper method to prepare device for capture (reset and stabilize)
+    fn prepare_device_for_capture(&mut self) -> Result<()> {
+        info!("Preparing Cynthion device for capture - reset and stabilization sequence");
+        
+        // Step 1: Send stop command to exit any previous capture mode
+        debug!("Sending stop command to reset capture state");
+        if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
+            warn!("Failed to send stop command during reset: {} (continuing anyway)", e);
+        }
+        
+        // Wait for the device to process the stop command
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        
+        // Step 2: Perform USB device reset (Cynthion-specific vendor command for full reset)
+        info!("Performing full Cynthion device reset");
+        if let Err(e) = self.write_request(0xFF, 0) {
+            warn!("Full device reset command failed: {} (continuing anyway)", e);
+            // Some errors during reset are expected as the device resets
+        }
+        
+        // Wait for the device to fully reset - Cynthion needs time to reconnect all internal components
+        info!("Waiting for device reset to complete...");
+        std::thread::sleep(std::time::Duration::from_millis(2000)); // Extended to 2s for better reliability
+        
+        // Step 3: Send another stop command to ensure clean state after reset
+        debug!("Sending final stop command to ensure clean capture state");
+        if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
+            warn!("Failed to send final stop command: {} (continuing anyway)", e);
+        }
+        
+        // Final stabilization wait
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        
+        info!("Device preparation complete - ready for capture initialization");
+        Ok(())
+    }
+    
     // Check if this is a simulation
     pub fn is_simulation_mode(&self) -> bool {
         // Only use simulation mode when explicitly enabled by env var
@@ -681,9 +718,11 @@ impl CynthionHandle {
     
     // Read MitM traffic using an improved approach based on Packetry
     pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
-        // If we're in simulation mode, return simulated data
+        // If we're in simulation mode, return simulated data (shouldn't happen in hardware mode)
         if self.is_simulation_mode() {
-            return Ok(self.get_simulated_mitm_traffic());
+            warn!("Simulation mode detected but hardware mode should be enforced");
+            // In hardware-only mode, we should never return simulated data
+            return Ok(Vec::new());
         }
         
         // If capture_on_connect is true, we should check if we need to start capture
@@ -693,44 +732,80 @@ impl CynthionHandle {
             
             // Get the stored transmitter from pending_data_tx
             if let Some(data_tx) = self.pending_data_tx.take() {
-                // Create a transfer queue for the bulk transfers
+                // Before creating queue, make sure device is in a stable state
+                // This is crucial for reliable packet capture
+                if let Err(e) = self.prepare_device_for_capture() {
+                    warn!("Failed to prepare device for capture: {}", e);
+                }
+                
+                // Create a transfer queue for the bulk transfers with increased buffer size
                 let queue = TransferQueue::new(
                     &self.interface, 
                     data_tx.clone(),
                     ENDPOINT, 
                     NUM_TRANSFERS, 
-                    READ_LEN
+                    READ_LEN * 2  // Double buffer size for better packet capture
                 );
                 
                 // Store the transfer queue
                 self.transfer_queue = Some(queue);
                 
                 // Try to start the capture with multiple attempts
-                let max_attempts = 3;
+                let max_attempts = 5;  // Increased attempts
                 let mut success = false;
                 
                 for attempt in 1..=max_attempts {
-                    match self.write_request(1, State::new(true, Speed::High).0) {
-                        Ok(_) => {
-                            info!("Successfully started capture on newly connected device (attempt {})", attempt);
-                            success = true;
-                            break;
-                        },
-                        Err(e) => {
-                            warn!("Failed to start capture on newly connected device (attempt {}/{}): {}", 
-                                  attempt, max_attempts, e);
-                            
-                            // Wait briefly before retrying
-                            if attempt < max_attempts {
-                                std::thread::sleep(std::time::Duration::from_millis(100));
+                    info!("Starting capture on newly connected device (attempt {}/{})", attempt, max_attempts);
+                    
+                    // Try both Auto and High speed settings
+                    let speeds = [Speed::High, Speed::Auto, Speed::Full];
+                    
+                    for speed in &speeds {
+                        info!("Trying with speed mode: {:?}", speed);
+                        match self.write_request(1, State::new(true, *speed).0) {
+                            Ok(_) => {
+                                info!("Successfully started capture with {:?} speed (attempt {})", speed, attempt);
+                                success = true;
+                                break;
+                            },
+                            Err(e) => {
+                                warn!("Failed to start capture with {:?} speed (attempt {}/{}): {}", 
+                                    speed, attempt, max_attempts, e);
+                                
+                                // Short wait between speed attempts
+                                std::thread::sleep(std::time::Duration::from_millis(200));
                             }
                         }
                     }
+                    
+                    if success {
+                        break;
+                    }
+                    
+                    // Only try again with delay if we have more attempts left
+                    if attempt < max_attempts {
+                        let delay = 500 * attempt as u64;
+                        info!("Waiting {}ms before next capture attempt", delay);
+                        std::thread::sleep(std::time::Duration::from_millis(delay));
+                        
+                        // Reset device before next attempt
+                        if let Err(e) = self.write_request(0xFF, 0) {
+                            warn!("Device reset failed between attempts: {} (continuing anyway)", e);
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(1000));
+                    }
                 }
                 
+                // Did we succeed with any attempt?
                 if success {
-                    // Start async processing in a background thread
+                    // Wait for device to stabilize after starting capture
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                    
+                    // Start the async processing thread
                     self.start_async_processing();
+                    
+                    // Additional delay to allow transfer queue to initialize
+                    std::thread::sleep(std::time::Duration::from_millis(250));
                 } else {
                     // Failed to start capture on the new device
                     error!("Failed to start capture on newly connected device after {} attempts", max_attempts);
@@ -744,16 +819,22 @@ impl CynthionHandle {
             info!("Initializing transfer queue for Cynthion device: {:04x}:{:04x}", 
                  self.device_info.vendor_id(), self.device_info.product_id());
             
+            // Prepare device for capture (reset and stabilize)
+            if let Err(e) = self.prepare_device_for_capture() {
+                warn!("Failed to prepare device for capture: {}", e);
+                // Continue anyway as some errors are expected during reset
+            }
+            
             // Create a proper channel for data transfer
             let (tx, rx) = mpsc::channel();
             
-            // Create a new transfer queue with the transmitter
+            // Create a new transfer queue with the transmitter and increased buffer size
             let mut transfer_queue = TransferQueue::new(
                 &self.interface, 
                 tx,
                 ENDPOINT, 
                 NUM_TRANSFERS, 
-                READ_LEN
+                READ_LEN * 2  // Double buffer size for better packet capture
             );
             
             // Set the receiver in the transfer queue
@@ -762,20 +843,36 @@ impl CynthionHandle {
             // Store the transfer queue
             self.transfer_queue = Some(transfer_queue);
             
-            // Start the capture with proper error handling
-            match self.start_capture() {
-                Ok(_) => {
-                    info!("Successfully started USB traffic capture");
-                    // Start async processing in a separate thread
-                    self.start_async_processing();
-                },
-                Err(e) => {
-                    error!("Failed to start USB traffic capture: {}", e);
-                    // Reset the transfer queue since it failed
-                    self.transfer_queue = None;
-                    return Err(anyhow::anyhow!("Failed to start capture: {}", e));
+            // Start the capture with proper error handling and support for multiple speeds
+            let speeds = [Speed::High, Speed::Auto, Speed::Full];
+            let mut capture_success = false;
+            
+            for speed in &speeds {
+                info!("Trying to start capture with speed: {:?}", speed);
+                if let Ok(_) = self.write_request(1, State::new(true, *speed).0) {
+                    info!("Successfully started USB traffic capture with speed: {:?}", speed);
+                    capture_success = true;
+                    break;
+                } else {
+                    warn!("Failed to start capture with speed: {:?}, trying next speed", speed);
+                    std::thread::sleep(std::time::Duration::from_millis(300));
                 }
             }
+            
+            if !capture_success {
+                error!("Failed to start USB traffic capture with any speed setting");
+                self.transfer_queue = None;
+                return Err(anyhow::anyhow!("Failed to start capture with any speed setting"));
+            }
+            
+            // Give the device time to stabilize in capture mode
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            
+            // Start async processing in a separate thread
+            self.start_async_processing();
+            
+            // Give the transfer queue time to initialize and start receiving data
+            std::thread::sleep(std::time::Duration::from_millis(500));
             
             // Return empty data for this first call
             return Ok(Vec::new());
@@ -788,11 +885,20 @@ impl CynthionHandle {
             if let Some(receiver) = queue.get_receiver() {
                 match receiver.try_recv() {
                     Ok(data) => {
-                        // Successfully received data from the queue
+                        // Log data size with additional details for debugging
+                        if data.is_empty() {
+                            warn!("Received empty USB data packet from transfer queue");
+                        } else {
+                            debug!("Received {} bytes of USB data from transfer queue", data.len());
+                            if data.len() > 4 {
+                                trace!("USB data starts with: {:02X?}", &data[0..4]);
+                            }
+                        }
                         return Ok(data);
                     },
                     Err(mpsc::TryRecvError::Empty) => {
                         // No data available yet, return empty vector
+                        trace!("No USB data available from queue");
                         return Ok(Vec::new());
                     },
                     Err(mpsc::TryRecvError::Disconnected) => {
@@ -890,6 +996,7 @@ impl CynthionHandle {
         
         // If data is empty, return empty vector
         if data.is_empty() {
+            warn!("Received empty data for transaction processing - check device connection");
             return Vec::new();
         }
         
@@ -899,15 +1006,22 @@ impl CynthionHandle {
         // Ensure we have enough data for at least one transaction (minimum 8 bytes)
         if data.len() < 8 {
             debug!("Data too short to contain valid USB transaction: {} bytes", data.len());
+            // Show the raw data for diagnostic purposes when it's too short
+            if !data.is_empty() {
+                let hex_string = data.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
+                debug!("Incomplete data received: {}", hex_string);
+            }
             return Vec::new();
         }
         
-        // Log the first 16 bytes of data for debugging purposes
-        if data.len() >= 16 {
-            let first_bytes = &data[0..16];
-            let hex_string = first_bytes.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
-            debug!("First 16 bytes of captured data: {}", hex_string);
-        }
+        // Log detailed information about received data for debugging
+        info!("Processing {} bytes of USB data into transactions", data.len());
+        
+        // Log the first 32 bytes of data for enhanced debugging
+        let log_size = std::cmp::min(32, data.len());
+        let first_bytes = &data[0..log_size];
+        let hex_string = first_bytes.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
+        debug!("First {} bytes of captured data: {}", log_size, hex_string);
 
         // Process data into packets according to Cynthion/Packetry format
         // Each packet has: packet_type(1), endpoint(1), device_addr(1), data_len(1), data(variable)

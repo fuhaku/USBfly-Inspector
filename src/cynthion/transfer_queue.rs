@@ -90,7 +90,7 @@ impl TransferQueue {
                 completion = self.queue.next_complete().fuse() => {
                     match completion.status {
                         Ok(()) => {
-                            // Improved diagnostic logging for all packets, including empty ones
+                            // Enhanced diagnostic logging for all packets
                             let data_len = completion.data.len();
                             
                             // In USB protocol, zero-length packets (ZLPs) are valid and used to indicate
@@ -98,30 +98,64 @@ impl TransferQueue {
                             if data_len == 0 {
                                 debug!("Received USB zero-length packet (ZLP)");
                                 // Forward the zero-length packet as it's a meaningful part of the protocol
-                                self.data_tx.send(completion.data)
-                                    .context("Failed sending ZLP capture data to channel")?;
+                                match self.data_tx.send(completion.data) {
+                                    Ok(_) => debug!("Successfully sent ZLP to data channel"),
+                                    Err(e) => {
+                                        warn!("Failed sending ZLP capture data to channel: {}", e);
+                                        // Don't return error for ZLPs as they might be common and we don't want to break transfers
+                                    }
+                                };
                             } else {
-                                debug!("Transfer complete: received {} bytes of USB data", data_len);
+                                // More detailed logging for USB data packets
+                                info!("Transfer complete: received {} bytes of USB data", data_len);
                                 
-                                // Check for specific packet signatures in the first few bytes
+                                // For very small packets, log the full content
+                                if data_len <= 16 {
+                                    let hex_string = completion.data.iter()
+                                        .map(|b| format!("{:02X}", b))
+                                        .collect::<Vec<String>>()
+                                        .join(" ");
+                                    debug!("Full packet data: {}", hex_string);
+                                } else {
+                                    // For larger packets, log the first 16 bytes
+                                    let hex_string = completion.data[0..16].iter()
+                                        .map(|b| format!("{:02X}", b))
+                                        .collect::<Vec<String>>()
+                                        .join(" ");
+                                    debug!("Packet starts with: {} ...", hex_string);
+                                }
+                                
+                                // Check for specific packet formats used by Cynthion
                                 if data_len >= 4 {
-                                    let signature = &completion.data[0..4];
-                                    debug!("Packet signature: {:02X} {:02X} {:02X} {:02X}", 
-                                           signature[0], signature[1], signature[2], signature[3]);
+                                    // Packet format for Cynthion typically begins with:
+                                    // [packet_type, endpoint, device_addr, data_len, data...]
+                                    let packet_type = completion.data[0];
+                                    let endpoint = completion.data[1];
+                                    let device_addr = completion.data[2];
+                                    let data_length_field = completion.data[3];
                                     
-                                    // Check if this looks like a valid USB packet by checking first byte
-                                    // Valid USB packet types in MitM mode are typically 0x80, 0x81, 0x82, or 0x83
-                                    if signature[0] < 0x80 || signature[0] > 0x8F {
-                                        warn!("Suspicious packet signature - not a standard Cynthion MitM format: 0x{:02X}", signature[0]);
+                                    // Log detailed packet information
+                                    debug!("USB packet: type=0x{:02X}, ep=0x{:02X}, dev=0x{:02X}, len={}", 
+                                           packet_type, endpoint, device_addr, data_length_field);
+                                    
+                                    // Verify this looks like valid Cynthion MitM format
+                                    // Valid USB packet types are 0xD0 (setup), 0x90 (IN), 0x10 (OUT), etc.
+                                    let valid_types = [0xD0, 0x90, 0x10, 0xC0, 0x40, 0xA0, 0x20, 0xE0];
+                                    if !valid_types.contains(&packet_type) {
+                                        warn!("Unrecognized packet type: 0x{:02X} - may indicate incorrect format", packet_type);
                                     }
                                 }
                                 
-                                self.data_tx.send(completion.data)
-                                    .context("Failed sending capture data to channel")?;
+                                // Send the data to the processing channel
+                                match self.data_tx.send(completion.data) {
+                                    Ok(_) => trace!("Successfully sent {} bytes to data channel", data_len),
+                                    Err(e) => return Err(Error::new(e, "Failed sending capture data to channel")),
+                                };
                             }
                             
                             if !stop_rx.is_terminated() {
-                                // Submit next transfer to keep queue full.
+                                // Submit next transfer to keep queue full
+                                trace!("Submitting new bulk transfer request");
                                 self.queue.submit(
                                     RequestBuffer::new(self.transfer_length)
                                 );
