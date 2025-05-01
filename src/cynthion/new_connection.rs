@@ -1041,55 +1041,112 @@ impl CynthionHandle {
         // For our nusb implementation, properly process the data
         let mut transactions = Vec::new();
         
-        // Enhanced handling for data packets of all sizes
-        if data.len() < 8 {
-            debug!("Data is shorter than expected minimum 8 bytes: {} bytes", data.len());
-            // Show the raw data for diagnostic purposes when it's too short
-            if !data.is_empty() {
-                let hex_string = data.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
-                debug!("Raw packet data: {}", hex_string);
-                
-                // Try to extract any useful information from short packets
-                if data.len() >= 4 {
-                    debug!("Attempting to extract basic header from short packet");
-                    let packet_type = data[0];
-                    let endpoint = data[1];
-                    let device_addr = data[2];
-                    let data_len = data[3];
-                    debug!("Short packet header: type=0x{:02X}, ep=0x{:02X}, dev=0x{:02X}, len={}",
-                           packet_type, endpoint, device_addr, data_len);
-                    
-                    // Check if this is one of our newly recognized packet types
-                    let alternative_types = [0xA5, 0x00, 0x23, 0x69];
-                    if alternative_types.contains(&packet_type) {
-                        debug!("Short packet contains recognized alternative packet type");
-                        // We'll handle these special types even if they're shorter than expected
-                        // Continue processing instead of returning early
-                    } else {
-                        // Not a recognized type, likely just incomplete data
-                        return Vec::new();
-                    }
-                } else {
-                    // Too short to extract meaningful header information
-                    return Vec::new();
-                }
-            } else {
-                return Vec::new();
-            }
-        }
-        
         // Log detailed information about received data for debugging
         info!("Processing {} bytes of USB data into transactions", data.len());
         
-        // Log the first 32 bytes of data for enhanced debugging
-        let log_size = std::cmp::min(32, data.len());
-        let first_bytes = &data[0..log_size];
-        let hex_string = first_bytes.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
-        debug!("First {} bytes of captured data: {}", log_size, hex_string);
+        // Log all bytes of data for enhanced debugging
+        let hex_string = data.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
+        debug!("Raw packet data (full dump): {}", hex_string);
+        
+        // Enhanced handling for data packets of all sizes
+        if data.len() < 8 {
+            debug!("Data is shorter than expected minimum 8 bytes: {} bytes", data.len());
+            
+            // Try to extract any useful information from short packets
+            if data.len() >= 4 {
+                debug!("Attempting to extract basic header from short packet");
+                let packet_type = data[0];
+                let endpoint = data[1];
+                let device_addr = data[2];
+                let data_len = data[3];
+                debug!("Short packet header: type=0x{:02X}, ep=0x{:02X}, dev=0x{:02X}, len={}",
+                       packet_type, endpoint, device_addr, data_len);
+                
+                // Create a special transaction for this short packet
+                let direction = if endpoint & 0x80 != 0 { 
+                    UsbDirection::DeviceToHost 
+                } else { 
+                    UsbDirection::HostToDevice 
+                };
+                
+                let mut fields = std::collections::HashMap::new();
+                fields.insert("packet_type".to_string(), format!("0x{:02X}", packet_type));
+                fields.insert("raw_data".to_string(), hex_string.clone());
+                fields.insert("format".to_string(), "Non-standard short packet".to_string());
+                
+                // Create a data packet if we have enough data (more than just the header)
+                let data_packet = if data.len() > 4 {
+                    let payload = data[4..].to_vec();
+                    Some(crate::usb::mitm_traffic::UsbDataPacket::new(
+                        payload, 
+                        direction,
+                        endpoint & 0x7F
+                    ))
+                } else {
+                    // Empty data packet
+                    Some(crate::usb::mitm_traffic::UsbDataPacket::new(
+                        Vec::new(), 
+                        direction,
+                        endpoint & 0x7F
+                    ))
+                };
+                
+                // Create status packet (assume success)
+                let status_packet = Some(crate::usb::mitm_traffic::UsbStatusPacket {
+                    status: crate::usb::mitm_traffic::UsbTransferStatus::ACK,
+                    endpoint: endpoint & 0x7F,
+                });
+                
+                // Determine transfer type based on packet type or endpoint
+                let transfer_type = match packet_type {
+                    0xA5 => UsbTransferType::Control,
+                    0x00 => UsbTransferType::Bulk,
+                    0x23 => UsbTransferType::Interrupt,
+                    0x69 => UsbTransferType::Bulk,
+                    _ => {
+                        // Use endpoint to guess transfer type
+                        match endpoint & 0x7F {
+                            0 => UsbTransferType::Control,
+                            1 => UsbTransferType::Isochronous,
+                            2..=3 => UsbTransferType::Bulk,
+                            _ => UsbTransferType::Interrupt
+                        }
+                    }
+                };
+                
+                // Create the transaction
+                let transaction = UsbTransaction {
+                    id: 1,
+                    transfer_type,
+                    setup_packet: None,
+                    data_packet,
+                    status_packet,
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs_f64(),
+                    device_address: device_addr,
+                    endpoint: endpoint & 0x7F,
+                    fields,
+                };
+                
+                // Add this special transaction and return
+                transactions.push(transaction);
+                return transactions;
+            } else {
+                // Too short to extract meaningful header information
+                debug!("Packet too short to parse (< 4 bytes): {}", hex_string);
+                return Vec::new();
+            }
+        }
 
         // Process data into packets according to Cynthion/Packetry format
         // Each packet has: packet_type(1), endpoint(1), device_addr(1), data_len(1), data(variable)
         let mut offset = 0;
+        
+        // Used to track if we successfully processed any packets
+        let original_transaction_count = transactions.len();
+        
         while offset + 4 <= data.len() {
             // 1. Read packet header - minimum 4 bytes for header
             let packet_type = data[offset];
@@ -1097,16 +1154,72 @@ impl CynthionHandle {
             let device_addr = data[offset + 2];
             let data_len = data[offset + 3] as usize;
             
-            // Special handling for alternative packet types
+            // Special handling for alternative packet types with more detailed logging
             let alternative_types = [0xA5, 0x00, 0x23, 0x69];
             if alternative_types.contains(&packet_type) {
-                debug!("Processing alternative packet type: 0x{:02X}", packet_type);
-                // These might have a different structure - add special handling here
+                info!("Processing alternative packet type: 0x{:02X} at offset {}", packet_type, offset);
+                // Log more details about this alternative packet
+                let end_offset = std::cmp::min(offset + 16, data.len());
+                let packet_preview = &data[offset..end_offset];
+                let preview_hex = packet_preview.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
+                debug!("Alternative packet preview: {}", preview_hex);
             }
             
-            // Provide more detailed logging for each packet
-            debug!("Processing USB packet: type=0x{:02X}, endpoint=0x{:02X}, device=0x{:02X}, len={}", 
-                   packet_type, endpoint, device_addr, data_len);
+            // Provide very detailed logging for each packet
+            info!("Processing USB packet at offset {}: type=0x{:02X}, endpoint=0x{:02X}, device=0x{:02X}, len={}", 
+                  offset, packet_type, endpoint, device_addr, data_len);
+            
+            // Detect invalid length that might indicate corrupted/misaligned data
+            if data_len > 1024 {
+                warn!("Suspiciously large data length: {} bytes - might be misaligned data", data_len);
+                
+                // Try to resync by looking for known packet type patterns
+                let mut found_sync = false;
+                for i in 1..16 {
+                    if offset + i >= data.len() { break; }
+                    
+                    let potential_type = data[offset + i];
+                    if [0xD0, 0x90, 0xC0, 0x10, 0x40, 0xA0, 0x20, 0xE0, 0xA5, 0x00, 0x23, 0x69].contains(&potential_type) {
+                        info!("Found potential packet header at offset {}", offset + i);
+                        offset = offset + i;
+                        found_sync = true;
+                        break;
+                    }
+                }
+                
+                if found_sync {
+                    // Skip to the next iteration with the new offset
+                    continue;
+                } else {
+                    // Couldn't resync, add raw data transaction and exit loop
+                    let mut fields = std::collections::HashMap::new();
+                    fields.insert("raw_data".to_string(), hex_string.clone());
+                    fields.insert("error".to_string(), "Malformed packets".to_string());
+                    
+                    // Create a special transaction for the raw data
+                    let transaction = UsbTransaction {
+                        id: transactions.len() as u64 + 1,
+                        transfer_type: UsbTransferType::Bulk,
+                        setup_packet: None,
+                        data_packet: Some(crate::usb::mitm_traffic::UsbDataPacket::new(
+                            data.to_vec(), 
+                            UsbDirection::DeviceToHost,
+                            0
+                        )),
+                        status_packet: None,
+                        timestamp: std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs_f64(),
+                        device_address: 0,
+                        endpoint: 0,
+                        fields,
+                    };
+                    
+                    transactions.push(transaction);
+                    break;
+                }
+            }
             
             // 2. Determine direction
             // For Cynthion, the direction is determined by the endpoint's high bit
@@ -1119,7 +1232,7 @@ impl CynthionHandle {
             };
             
             // 3. Identify transfer type based on packet_type and endpoint number
-            // Updated to support both standard Packetry formatting and the format observed in your logs
+            // Updated to support both standard Packetry formatting and the format observed in logs
             let transfer_type = match packet_type {
                 // Standard Packetry documentation token types
                 0xD0 => UsbTransferType::Control,   // SETUP token (control transfer)
@@ -1131,14 +1244,14 @@ impl CynthionHandle {
                 0x20 => UsbTransferType::Isochronous, // OUT token (isochronous transfer)
                 0xE0 => UsbTransferType::Control,   // Special case for status stage
                 
-                // Observed in logs - alternative format packet types
+                // Alternative format packet types based on observed patterns
                 0xA5 => UsbTransferType::Control,   // Possibly setup or control transfer
                 0x00 => UsbTransferType::Bulk,      // Unknown but common in capture
                 0x23 => UsbTransferType::Interrupt, // Based on observed patterns
                 0x69 => UsbTransferType::Bulk,      // Based on observed patterns
                 
                 _ => {
-                    debug!("Unknown packet type: 0x{:02X}, using heuristics to determine type", packet_type);
+                    info!("Unknown packet type: 0x{:02X}, using heuristics to determine type", packet_type);
                     // Enhanced heuristics that look at both packet type and endpoint
                     match endpoint & 0x7F {
                         0 => UsbTransferType::Control,  // EP0 is always control
@@ -1160,8 +1273,52 @@ impl CynthionHandle {
             
             // Safety check for data bounds
             if offset + 4 + data_len > data.len() {
-                debug!("Packet data exceeds buffer bounds: offset={}, len={}, buffer={}", 
-                       offset, data_len, data.len());
+                warn!("Packet data exceeds buffer bounds: offset={}, len={}, buffer={}", 
+                      offset, data_len, data.len());
+                
+                // Add a partial transaction with available data
+                let available_len = data.len() - (offset + 4);
+                if available_len > 0 {
+                    let partial_payload = data[offset+4..data.len()].to_vec();
+                    debug!("Using partial payload of {} bytes", partial_payload.len());
+                    
+                    // Generate a transaction ID
+                    let id = transactions.len() as u64 + 1;
+                    
+                    // Create fields with partial info
+                    let mut fields = std::collections::HashMap::new();
+                    fields.insert("packet_type".to_string(), format!("0x{:02X}", packet_type));
+                    fields.insert("partial".to_string(), "true".to_string());
+                    fields.insert("available_bytes".to_string(), format!("{}", available_len));
+                    fields.insert("requested_bytes".to_string(), format!("{}", data_len));
+                    
+                    // Create a transaction for this partial data
+                    let transaction = UsbTransaction {
+                        id,
+                        transfer_type,
+                        setup_packet: None,
+                        data_packet: Some(crate::usb::mitm_traffic::UsbDataPacket::new(
+                            partial_payload, 
+                            direction,
+                            endpoint & 0x7F
+                        )),
+                        status_packet: Some(crate::usb::mitm_traffic::UsbStatusPacket {
+                            status: crate::usb::mitm_traffic::UsbTransferStatus::ACK,
+                            endpoint: endpoint & 0x7F,
+                        }),
+                        timestamp: std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs_f64(),
+                        device_address: device_addr,
+                        endpoint: endpoint & 0x7F,
+                        fields,
+                    };
+                    
+                    transactions.push(transaction);
+                }
+                
+                // Exit the processing loop
                 break;
             }
             
@@ -1367,6 +1524,41 @@ impl CynthionHandle {
             
             // Move to next packet
             offset += 4 + data_len;
+        }
+        
+        // Enhanced error handling for empty transaction list
+        if transactions.len() == original_transaction_count {
+            // No transactions were successfully parsed
+            warn!("Failed to parse any valid USB transactions from data");
+            
+            // Create a special transaction for the raw data so it's still visible in the UI
+            let mut fields = std::collections::HashMap::new();
+            fields.insert("raw_data".to_string(), hex_string);
+            fields.insert("note".to_string(), "USBfly could not parse this data format, showing raw bytes".to_string());
+            
+            let transaction = UsbTransaction {
+                id: 1,
+                transfer_type: UsbTransferType::Bulk, // Default type
+                setup_packet: None,
+                data_packet: Some(crate::usb::mitm_traffic::UsbDataPacket::new(
+                    data.to_vec(), 
+                    UsbDirection::DeviceToHost, // Default direction
+                    0 // Default endpoint
+                )),
+                status_packet: None,
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs_f64(),
+                device_address: 0,
+                endpoint: 0,
+                fields,
+            };
+            
+            transactions.push(transaction);
+        } else {
+            // At least one transaction was parsed
+            info!("Successfully parsed {} USB transactions", transactions.len() - original_transaction_count);
         }
         
         // Return the parsed transactions

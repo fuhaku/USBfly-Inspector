@@ -3,6 +3,7 @@ use log::{debug, info};
 use crate::usb::descriptors::UsbDevice;
 use crate::usb::UsbDescriptorType;
 use serde::{Deserialize, Serialize};
+use serde_json;
 
 // Speed enum from the previous decoder/mod.rs
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -125,38 +126,77 @@ impl UsbDecoder {
         // Create a clone of self to process the data without modifying state
         let mut decoder_clone = UsbDecoder::new();
         
-        // Check if the data has a valid MitM header structure
+        // Check if the data has a valid packet header structure
+        // Add support for more packet types we've observed
+        let is_standard_packet = data.len() > 2 && (
+            // Standard packet types from Packetry
+            data[0] == 0xD0 || data[0] == 0x90 || data[0] == 0xC0 || 
+            data[0] == 0x10 || data[0] == 0x40 || data[0] == 0xA0 || 
+            data[0] == 0x20 || data[0] == 0xE0 ||
+            // Alternative packet types we've observed
+            data[0] == 0xA5 || data[0] == 0x00 || data[0] == 0x23 || data[0] == 0x69
+        );
+            
+        // Check if the data has a valid MitM header structure (from other capture tools)
         let is_mitm_packet = data.len() > 2 && 
             (data[0] == 0x80 || data[0] == 0x81 || data[0] == 0x82 || data[0] == 0x83);
             
-        // Try to process the data
+        // Log what kind of packet we detected
+        debug!("Decoding USB data, length={}, standard_format={}, mitm_format={}", 
+               data.len(), is_standard_packet, is_mitm_packet);
+        
+        // If we have raw data with fields already set, use that
+        if !is_standard_packet && !is_mitm_packet && data.len() > 0 {
+            // Check if this is a raw data packet with fields already set
+            // These are often created by our process_transactions() fallback mechanism
+            if let Some(fields_data) = data.iter().position(|&b| b == b'{') {
+                if let Some(fields_end) = data.iter().position(|&b| b == b'}') {
+                    if fields_end > fields_data {
+                        debug!("Detected raw data with embedded field information");
+                        return Some(self.decode_with_embedded_fields(data));
+                    }
+                }
+            }
+        }
+        
+        // Try to process the data with standard descriptor decoding
         let process_result = decoder_clone.process_data(data);
         
         if let Err(e) = process_result {
             // Log the error but don't return None yet
             debug!("Standard processing of USB data failed: {}", e);
             
-            // If it looks like a MitM packet, create a fallback decoded structure
-            if is_mitm_packet {
+            // Try more specialized decoding approaches
+            if is_standard_packet {
+                debug!("Using standard packet format decoder");
+                return Some(self.decode_standard_packet(data));
+            } else if is_mitm_packet {
+                debug!("Using MitM packet format decoder");
                 return Some(self.decode_mitm_fallback(data));
+            } else {
+                // If it doesn't look like a recognizable packet format, use raw decoding
+                debug!("Using raw data decoder");
+                return Some(self.decode_raw_data(data));
             }
-            
-            // If it doesn't look like a recognizable packet format, try one more
-            // approach with raw decoding
-            return Some(self.decode_raw_data(data));
         }
         
         // Extract descriptors from processed data
         let descriptors = decoder_clone.device.get_all_descriptors();
         if descriptors.is_empty() {
-            // If no descriptors were found but it looks like a MitM packet,
-            // fall back to MitM decoding
-            if is_mitm_packet {
-                return Some(self.decode_mitm_fallback(data));
-            }
+            debug!("No USB descriptors found in data, trying alternative decoding");
             
-            // Last resort - try raw decoding
-            return Some(self.decode_raw_data(data));
+            // Try more specialized decoding approaches
+            if is_standard_packet {
+                debug!("Using standard packet format decoder");
+                return Some(self.decode_standard_packet(data));
+            } else if is_mitm_packet {
+                debug!("Using MitM packet format decoder");
+                return Some(self.decode_mitm_fallback(data));
+            } else {
+                // Last resort - try raw decoding
+                debug!("Using raw data decoder");
+                return Some(self.decode_raw_data(data));
+            }
         }
         
         // Create DecodedUSBData structure
@@ -610,4 +650,206 @@ impl UsbDecoder {
         
         decoded
     }
+    
+    // Decode standard packet format (Packetry/Cynthion format)
+    fn decode_standard_packet(&self, data: &[u8]) -> DecodedUSBData {
+        let mut decoded = DecodedUSBData {
+            data_type: "USB Packet".to_string(),
+            description: "USB Packet Data".to_string(),
+            fields: HashMap::new(),
+            details: None,
+            descriptors: Vec::new(),
+        };
+        
+        if data.len() < 4 {
+            decoded.description = "Invalid Packet Data (too short)".to_string();
+            return decoded;
+        }
+        
+        // Extract header information
+        let packet_type = data[0];
+        let endpoint = data[1];
+        let device_address = data[2];
+        let data_len = data[3] as usize;
+        
+        // Add basic packet info
+        decoded.fields.insert("Packet Type".to_string(), format!("0x{:02X}", packet_type));
+        decoded.fields.insert("Endpoint".to_string(), format!("0x{:02X}", endpoint));
+        decoded.fields.insert("Device Address".to_string(), format!("{}", device_address));
+        decoded.fields.insert("Data Length".to_string(), format!("{}", data_len));
+        
+        // Determine direction from endpoint
+        let direction = if endpoint & 0x80 != 0 {
+            "Device to Host (IN)"
+        } else {
+            "Host to Device (OUT)"
+        };
+        decoded.fields.insert("Direction".to_string(), direction.to_string());
+        
+        // Identify transfer type
+        let transfer_type = match packet_type {
+            0xD0 => "Control (SETUP)",
+            0x90 => "Bulk (IN)",
+            0xC0 => "Interrupt (IN)",
+            0x10 => "Bulk (OUT)",
+            0x40 => "Interrupt (OUT)",
+            0xA0 => "Isochronous (IN)",
+            0x20 => "Isochronous (OUT)",
+            0xE0 => "Control (Status)",
+            0xA5 => "Alternative Control",
+            0x00 => "Alternative Bulk",
+            0x23 => "Alternative Interrupt",
+            0x69 => "Alternative Bulk",
+            _ => "Unknown",
+        };
+        decoded.fields.insert("Transfer Type".to_string(), transfer_type.to_string());
+        
+        // Check if we have payload data
+        if data.len() >= 4 + data_len && data_len > 0 {
+            // For SETUP packets (control transfers), try to decode setup data
+            if packet_type == 0xD0 && data_len >= 8 {
+                // Extract setup packet fields
+                let setup_data = &data[4..4+8]; // Standard setup packet is 8 bytes
+                let bm_request_type = setup_data[0];
+                let b_request = setup_data[1];
+                let w_value = u16::from_le_bytes([setup_data[2], setup_data[3]]);
+                let w_index = u16::from_le_bytes([setup_data[4], setup_data[5]]);
+                let w_length = u16::from_le_bytes([setup_data[6], setup_data[7]]);
+                
+                // Add setup packet fields
+                decoded.fields.insert("bmRequestType".to_string(), format!("0x{:02X}", bm_request_type));
+                decoded.fields.insert("bRequest".to_string(), format!("0x{:02X}", b_request));
+                decoded.fields.insert("wValue".to_string(), format!("0x{:04X}", w_value));
+                decoded.fields.insert("wIndex".to_string(), format!("0x{:04X}", w_index));
+                decoded.fields.insert("wLength".to_string(), format!("{}", w_length));
+                
+                // For standard requests, provide more specific information
+                if (bm_request_type & 0x60) == 0 { // Standard request
+                    match b_request {
+                        0x06 => { // GET_DESCRIPTOR
+                            let desc_type = (w_value >> 8) as u8;
+                            let desc_index = (w_value & 0xFF) as u8;
+                            let desc_type_str = match desc_type {
+                                1 => "DEVICE",
+                                2 => "CONFIGURATION",
+                                3 => "STRING",
+                                4 => "INTERFACE",
+                                5 => "ENDPOINT",
+                                6 => "DEVICE_QUALIFIER",
+                                7 => "OTHER_SPEED_CONFIGURATION",
+                                8 => "INTERFACE_POWER",
+                                _ => "UNKNOWN",
+                            };
+                            decoded.description = format!("Get {} Descriptor (Index: {})", desc_type_str, desc_index);
+                        },
+                        0x05 => { // SET_ADDRESS
+                            decoded.description = format!("Set Address: {}", w_value);
+                        },
+                        0x09 => { // SET_CONFIGURATION
+                            decoded.description = format!("Set Configuration: {}", w_value);
+                        },
+                        0x01 => { // CLEAR_FEATURE
+                            decoded.description = format!("Clear Feature: 0x{:04X}", w_value);
+                        },
+                        0x03 => { // SET_FEATURE
+                            decoded.description = format!("Set Feature: 0x{:04X}", w_value);
+                        },
+                        0x00 => { // GET_STATUS
+                            decoded.description = "Get Status".to_string();
+                        },
+                        _ => {
+                            decoded.description = format!("Control Request: 0x{:02X}", b_request);
+                        }
+                    }
+                } else {
+                    // For class or vendor specific requests
+                    if (bm_request_type & 0x60) == 0x20 { // Class request
+                        decoded.description = format!("Class-specific Request: 0x{:02X}", b_request);
+                    } else if (bm_request_type & 0x60) == 0x40 { // Vendor request
+                        decoded.description = format!("Vendor-specific Request: 0x{:02X}", b_request);
+                    }
+                }
+            }
+            
+            // Add hexdump of data payload
+            let hex_dump = data[4..4+data_len].iter()
+                .map(|b| format!("{:02X}", b))
+                .collect::<Vec<String>>()
+                .join(" ");
+            
+            let ascii_dump = data[4..4+data_len].iter()
+                .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                .collect::<String>();
+                
+            decoded.details = Some(format!("Hex: {}\nASCII: {}", hex_dump, ascii_dump));
+        } else {
+            decoded.details = Some("No data payload".to_string());
+        }
+        
+        decoded
+    }
+    
+    // Decode embedded field data from raw packets
+    fn decode_with_embedded_fields(&self, data: &[u8]) -> DecodedUSBData {
+        // Create basic structure
+        let mut decoded = DecodedUSBData {
+            data_type: "USB Raw Data".to_string(),
+            description: "Raw USB Data with Embedded Fields".to_string(),
+            fields: HashMap::new(),
+            details: None,
+            descriptors: Vec::new(),
+        };
+        
+        // Convert data to string to try to extract JSON-like field data
+        if let Ok(data_str) = std::str::from_utf8(data) {
+            if let Some(fields_start) = data_str.find('{') {
+                if let Some(fields_end) = data_str.find('}') {
+                    if fields_end > fields_start {
+                        let fields_json = &data_str[fields_start..=fields_end];
+                        if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(fields_json) {
+                            if let Some(obj) = json_value.as_object() {
+                                for (key, value) in obj {
+                                    if let Some(val_str) = value.as_str() {
+                                        decoded.fields.insert(key.clone(), val_str.to_string());
+                                    } else {
+                                        decoded.fields.insert(key.clone(), value.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Add hex dump of first 32 bytes of data
+        let display_len = std::cmp::min(32, data.len());
+        let hex_dump = data[0..display_len].iter()
+            .map(|b| format!("{:02X}", b))
+            .collect::<Vec<String>>()
+            .join(" ");
+        
+        decoded.details = Some(format!("Raw data hex dump (first {} bytes): {}", display_len, hex_dump));
+        
+        // Set more specific description if we have packet type info
+        if let Some(packet_type) = decoded.fields.get("packet_type") {
+            decoded.description = format!("USB Packet Type: {}", packet_type);
+            
+            // Add more specific info if we have it
+            if let Some(transfer_type) = decoded.fields.get("transfer_type") {
+                decoded.data_type = format!("{} Transfer", transfer_type);
+            }
+        }
+        
+        decoded
+    }
+    
+    // Note: Original decode_raw_data is used instead of this (commented out to avoid duplication)
+    /*
+    fn decode_raw_data(&self, data: &[u8]) -> DecodedUSBData {
+        // This function implementation has been moved to use the existing public version
+        // See the public decode_raw_data function above
+        unreachable!()
+    }
+    */
 }
