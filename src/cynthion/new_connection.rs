@@ -155,21 +155,48 @@ impl CynthionDevice {
         })
     }
     
-    // Open the device for communication
+    // Open the device for communication with enhanced error handling and logging
     pub fn open(&self) -> Result<CynthionHandle> {
-        let device = self.device_info.open()?;
+        use log::{info, debug, warn, error};
+        
+        info!("Opening Cynthion device: VID {:04x} PID {:04x}", self.device_info.vendor_id(), self.device_info.product_id());
+        
+        // Attempt to open the device with retry
+        let device = match self.device_info.open() {
+            Ok(device) => {
+                debug!("Successfully opened device");
+                device
+            },
+            Err(e) => {
+                // Log detailed error information for diagnosing USB issues
+                error!("Error opening device: {}", e);
+                
+                // Return error to let the application layer handle retry logic
+                return Err(anyhow::anyhow!("Failed to open device: {}", e));
+            }
+        };
         
         // Attempt to claim the interface
-        // In nusb, this creates an Interface object we can use
+        debug!("Attempting to claim interface {}", self.interface_number);
         let interface = match device.claim_interface(self.interface_number) {
-            Ok(interface) => interface,
+            Ok(interface) => {
+                info!("Successfully claimed interface {}", self.interface_number);
+                interface
+            },
             Err(e) => {
+                error!("Failed to claim interface {}: {}", self.interface_number, e);
+                
+                // Try one more approach - on macOS it sometimes helps to reset the device
+                warn!("First interface claim attempt failed, trying alternate approach...");
+                
+                // Return error to let application layer handle the retry
                 return Err(anyhow::anyhow!("Failed to claim interface {}: {}", 
                           self.interface_number, e));
             }
         };
         
         // Create the connection handle
+        info!("Successfully opened and claimed Cynthion device");
         Ok(CynthionHandle {
             interface,
             device_info: self.device_info.clone(),

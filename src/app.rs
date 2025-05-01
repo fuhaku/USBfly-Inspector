@@ -214,14 +214,18 @@ impl Application for USBflyApp {
                     let device = &self.available_devices[0];
                     info!("Connecting to Cynthion device: {}", device.get_description());
                     
-                    // Attempt to connect using the new implementation
+                    // Attempt to connect using the new implementation with retry capability
                     Command::perform(
                         {
                             // Clone the device since we need to move it into the async block
                             let device = device.clone();
                             
                             async move {
-                                // Open the device
+                                // Short delay to allow USB subsystem to fully initialize the device
+                                // This helps with the first-click connection issue
+                                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                
+                                // First attempt to open the device
                                 match device.open() {
                                     Ok(handle) => {
                                         info!("Successfully opened Cynthion device");
@@ -229,8 +233,25 @@ impl Application for USBflyApp {
                                         Message::ConnectionEstablished(handle)
                                     },
                                     Err(e) => {
-                                        error!("Failed to open device: {}", e);
-                                        Message::ConnectionFailed(e.to_string())
+                                        // If first attempt fails, wait a bit longer and try once more
+                                        // This addresses the first-time connection issue on macOS
+                                        error!("First connection attempt failed: {}, trying again...", e);
+                                        
+                                        // Longer delay before retry attempt
+                                        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                                        
+                                        // Second attempt to open the device
+                                        match device.open() {
+                                            Ok(handle) => {
+                                                info!("Second attempt successful - opened Cynthion device");
+                                                let handle = Arc::new(Mutex::new(handle));
+                                                Message::ConnectionEstablished(handle)
+                                            },
+                                            Err(e) => {
+                                                error!("Failed to open device after retry: {}", e);
+                                                Message::ConnectionFailed(e.to_string())
+                                            }
+                                        }
                                     }
                                 }
                             }
