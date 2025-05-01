@@ -82,8 +82,22 @@ impl UsbDecoder {
     
     // Set the current USB speed for decoding
     pub fn set_speed(&mut self, speed: Speed) {
-        info!("Setting USB decoder speed to: {:?}", speed);
+        // Log detailed information about the speed change for debugging
+        let old_speed = self.current_speed;
+        if old_speed != speed {
+            info!("✓ Changing USB decoder speed: {:?} → {:?}", old_speed, speed);
+        } else {
+            info!("✓ Confirming USB decoder speed: {:?} (unchanged)", speed);
+        }
+        
+        // Critical step: Update the speed setting for all future packet decoding
         self.current_speed = speed;
+        
+        // Reset the decoder state when speed changes to ensure clean state
+        if old_speed != speed {
+            self.reset();
+            info!("Reset decoder state due to speed change");
+        }
     }
     
     // Process raw USB data and update decoder state with enhanced error handling
@@ -104,7 +118,36 @@ impl UsbDecoder {
         debug!("Data starts with: {}", data_start);
         
         // Adjust packet format interpretation based on current speed setting
-        info!("Decoding USB packet with speed: {:?}", self.current_speed);
+        info!("✓ Decoding USB packet with speed: {:?}", self.current_speed);
+        
+        // Apply speed-specific packet interpretation rules
+        let packet_size_valid = match self.current_speed {
+            Speed::Low => {
+                // Low speed has smaller packet sizes
+                data.len() <= 8
+            },
+            Speed::Full => {
+                // Full speed has medium packet sizes
+                data.len() <= 64
+            },
+            Speed::High => {
+                // High speed has larger packet sizes
+                data.len() <= 512
+            },
+            Speed::Super | Speed::SuperPlus => {
+                // Super speed has the largest packet sizes
+                data.len() <= 1024
+            },
+            // Auto adapts based on content
+            Speed::Auto => true,
+        };
+        
+        if !packet_size_valid && data.len() > 0 {
+            // Log warning but continue processing - the data might still be valid
+            // just not ideal for the current speed setting
+            warn!("Packet size {} bytes may not be optimal for {:?} speed", 
+                  data.len(), self.current_speed);
+        }
         
         // Reset state if this is first data
         if !self.initialized {
@@ -166,9 +209,9 @@ impl UsbDecoder {
         // Create a clone of self to process the data without modifying state
         let mut decoder_clone = UsbDecoder::new();
         
-        // Make sure we use the same speed setting in the clone
+        // Make sure we use the same speed setting in the clone - critical for proper packet interpretation
         decoder_clone.set_speed(self.current_speed);
-        debug!("Using speed {:?} for packet decoding", self.current_speed);
+        info!("✓ Using speed {:?} for USB packet decoding - crucial for proper protocol interpretation", self.current_speed);
         
         // Enhanced packet detection with complete coverage of all known packet types
         // This ensures we can recognize and decode all possible packets from Cynthion
@@ -228,6 +271,21 @@ impl UsbDecoder {
             }
         }
         
+        // Verify that the packet size is appropriate for the current speed
+        let max_packet_size = match self.current_speed {
+            Speed::Low => 8,
+            Speed::Full => 64,
+            Speed::High => 512,
+            Speed::Super | Speed::SuperPlus => 1024,
+            Speed::Auto => 1024, // Auto uses the largest allowed
+        };
+        
+        // Log packet size compatibility information
+        if data.len() > max_packet_size && data.len() > 0 {
+            warn!("Packet size {} exceeds max size {} for {:?} speed - may result in fragmented data", 
+                  data.len(), max_packet_size, self.current_speed);
+        }
+        
         // Try to process the data with standard descriptor decoding
         let process_result = decoder_clone.process_data(data);
         
@@ -276,6 +334,9 @@ impl UsbDecoder {
             details: None,
             descriptors,
         };
+        
+        // Add the speed information used for decoding
+        decoded.fields.insert("USB Speed".to_string(), format!("{:?}", self.current_speed));
         
         // Add basic device info to fields if available
         if let Some(dev) = &decoder_clone.device.device {
@@ -428,6 +489,9 @@ impl UsbDecoder {
             details: None,
             descriptors: Vec::new(),
         };
+        
+        // Add the speed information used for decoding - essential for understanding packet structure
+        decoded.fields.insert("USB Speed".to_string(), format!("{:?}", self.current_speed));
         
         if data.len() < 2 {
             decoded.description = "Invalid MitM Data (too short)".to_string();
@@ -599,6 +663,9 @@ impl UsbDecoder {
             descriptors: Vec::new(),
         };
         
+        // Add the speed information used for decoding - essential context for raw packet data
+        decoded.fields.insert("USB Speed".to_string(), format!("{:?}", self.current_speed));
+        
         if data.is_empty() {
             return decoded;
         }
@@ -740,6 +807,9 @@ impl UsbDecoder {
             details: None,
             descriptors: Vec::new(),
         };
+        
+        // Add the speed information used for decoding
+        decoded.fields.insert("USB Speed".to_string(), format!("{:?}", self.current_speed));
         
         if data.len() < 4 {
             decoded.description = "Invalid Packet Data (too short)".to_string();

@@ -1517,7 +1517,7 @@ impl CynthionHandle {
         
         // Critical fix: Even with no recognizable packet format, create at least one transaction
         // This ensures we always show something in the UI when data is received
-        let mut fallback_transaction_created = false;
+        let mut _fallback_transaction_created = false;
         
         while offset + 4 <= data.len() {
             // 1. Read packet header - minimum 4 bytes for header
@@ -1919,7 +1919,7 @@ impl CynthionHandle {
             let preview_hex = data[0..display_len].iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
             fields.insert("data_preview".to_string(), preview_hex);
             
-            fallback_transaction_created = true;
+            _fallback_transaction_created = true;
             let transaction = UsbTransaction {
                 id: 1,
                 transfer_type: UsbTransferType::Bulk, // Default type

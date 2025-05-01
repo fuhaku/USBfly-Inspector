@@ -1073,20 +1073,23 @@ impl TrafficView {
                 Space::with_height(Length::Fixed(20.0)),
                 
                 // Create a button for each speed option
-                column(speeds.iter().map(|&speed| {
-                    button(
-                        text(format!("{}", speed))
-                            .width(Length::Fill)
-                            .horizontal_alignment(iced::alignment::Horizontal::Center)
-                    )
-                    .width(Length::Fill)
-                    .on_press(Message::ChangeSpeed(speed))
-                    .style(if self.dark_mode {
-                        iced::theme::Button::Custom(Box::new(styles::DarkModePrimaryButton))
-                    } else {
-                        iced::theme::Button::Primary
-                    })
-                }).collect())
+                Column::with_children(
+                    speeds.iter().map(|&speed| {
+                        button(
+                            text(format!("{}", speed))
+                                .width(Length::Fill)
+                                .horizontal_alignment(iced::alignment::Horizontal::Center)
+                        )
+                        .width(Length::Fill)
+                        .on_press(Message::ChangeSpeed(speed))
+                        .style(if self.dark_mode {
+                            iced::theme::Button::Custom(Box::new(styles::DarkModePrimaryButton))
+                        } else {
+                            iced::theme::Button::Primary
+                        })
+                        .into()
+                    }).collect()
+                )
                 .spacing(10)
                 .width(Length::Fill),
                 

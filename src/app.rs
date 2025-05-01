@@ -95,6 +95,7 @@ pub struct USBflyApp {
     error_message: Option<String>,
     status_message: Option<String>, // For displaying status messages to users
     dark_mode: bool,
+    current_speed: crate::usb::Speed, // Current USB speed setting used for synchronization
 }
 
 #[derive(Debug, Clone)]
@@ -140,11 +141,18 @@ impl Application for USBflyApp {
         // Use the DeviceView with auto-refresh feature
         let (device_view, device_command) = DeviceView::new().with_initial_scan();
         
+        // Default to High speed for most reliable device detection
+        let default_speed = crate::usb::Speed::High;
+        
+        // Create a decoder with the default speed
+        let mut decoder = UsbDecoder::new();
+        decoder.set_speed(default_speed);
+        
         let app = Self {
             cynthion_handle: None,
             connection: None,
             available_devices: Vec::new(),
-            usb_decoder: UsbDecoder::new(),
+            usb_decoder: decoder,
             active_tab: Tab::Devices,
             device_view,
             traffic_view: TrafficView::new(),
@@ -153,6 +161,7 @@ impl Application for USBflyApp {
             error_message: None,
             status_message: None,
             dark_mode: true, // Default to dark mode for a hacker-friendly UI
+            current_speed: default_speed, // Initialize with the default speed
         };
         
         // Map the device command to our application's message type
@@ -365,6 +374,15 @@ impl Application for USBflyApp {
                 self.connection = Some(handle);
                 self.connected = true;
                 self.error_message = None;
+                
+                // Get the current speed from device_view and synchronize it
+                let selected_speed = self.device_view.get_selected_speed();
+                self.current_speed = selected_speed;
+                
+                // Ensure the decoder also uses this speed
+                self.usb_decoder.set_speed(selected_speed);
+                
+                info!("✓ Synchronized speed settings: {:?}", selected_speed);
                 Command::none()
             }
             Message::ConnectionFailed(error) => {
@@ -442,7 +460,7 @@ impl Application for USBflyApp {
                     .map(Message::DescriptorViewMessage)
             }
             Message::USBDataReceived(data) => {
-                use log::{debug, info, trace, warn, error};
+                use log::{debug, info, warn};
                 
                 // Enhanced logging for USB data reception
                 info!("Received USB data packet: {} bytes", data.len());
@@ -628,9 +646,12 @@ impl Application for USBflyApp {
                     let selected_speed = self.device_view.get_selected_speed();
                     info!("Starting USB traffic capture with speed: {:?}", selected_speed);
                     
+                    // Update current speed in app state to ensure consistency
+                    self.current_speed = selected_speed;
+                    
                     // Set the decoder's speed to match the selected speed
                     self.usb_decoder.set_speed(selected_speed);
-                    info!("Set USB decoder to use speed: {:?}", selected_speed);
+                    info!("✓ Synchronized USB decoder to use speed: {:?}", selected_speed);
                     
                     // Additional debugging for capture start
                     debug!("Preparing to start capture with Cynthion handle...");
@@ -881,6 +902,13 @@ impl Application for USBflyApp {
                 
                 // Show a notification to the user that speed is being changed
                 self.status_message = Some(format!("Changing device speed to {:?}...", speed));
+                
+                // Update the current speed tracking in app state
+                self.current_speed = speed;
+                
+                // Also update the decoder speed setting immediately - critical for proper packet interpretation
+                self.usb_decoder.set_speed(speed);
+                info!("✓ Updated decoder speed to: {:?}", speed);
                 
                 // We need to stop capture, change speed, and restart capture
                 if let Some(connection) = &self.connection {
