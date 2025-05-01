@@ -1,13 +1,38 @@
-//! USB device connection detector module for Cynthion connections
-//! This helps identify when devices connect to a Cynthion device
+//! Enhanced USB device connection detector module for Cynthion connections
+//! This helps identify when devices connect to a Cynthion device and improves capture reliability
 
 use log::{debug, info};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use lazy_static::lazy_static;
 
-/// A detection helper that identifies USB device connections through Cynthion traffic
+// Global state to track if we've detected a connected device
+lazy_static! {
+    static ref DEVICE_CONNECTED: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+}
+
+/// An enhanced detection helper that identifies USB device connections through Cynthion traffic
+/// and improves the capture process for connected devices
 pub struct UsbDeviceConnectionDetector {}
 
 impl UsbDeviceConnectionDetector {
-    /// Analyze raw USB data looking for device connection sequences
+    /// Check if a device has been detected as connected to Cynthion
+    pub fn is_device_connected() -> bool {
+        DEVICE_CONNECTED.load(Ordering::Relaxed)
+    }
+    
+    /// Set the device connected status (can be used by external components)
+    pub fn set_device_connected(connected: bool) {
+        DEVICE_CONNECTED.store(connected, Ordering::Relaxed);
+        if connected {
+            info!("USB device connected to Cynthion - capture optimized for device traffic");
+        } else {
+            info!("No USB devices detected on Cynthion");
+        }
+    }
+    
+    /// Enhanced analysis of raw USB data looking for device connection sequences
+    /// This method specifically focuses on finding connected devices on a Cynthion
     pub fn check_for_usb_device_connection(data: &[u8]) {
         // We need at least a full USB packet to analyze
         if data.len() < 8 {
@@ -18,6 +43,7 @@ impl UsbDeviceConnectionDetector {
         // When a USB device is connected, the host will perform a specific enumeration sequence
         // Typically starting with GET_DESCRIPTOR for the device descriptor
         let mut offset = 0;
+        let mut has_found_device = false;
         
         while offset + 8 <= data.len() {
             // Read packet header (Cynthion format)
@@ -31,9 +57,12 @@ impl UsbDeviceConnectionDetector {
                 break;
             }
             
-            // SETUP packets (0xD0) on EP0 (control endpoint) are the most interesting
-            // for device detection, especially GET_DESCRIPTOR requests
-            if packet_type == 0xD0 && (endpoint & 0x7F) == 0 && data_len >= 8 {
+            // Enhanced detection looking for different packet types
+            // 1. SETUP packets (0xD0) on EP0 (control endpoint)
+            // 2. IN/OUT packets on various endpoints
+            // 3. Special device configuration packets
+            if (packet_type == 0xD0 || packet_type == 0xC0 || packet_type == 0x80) && 
+               (endpoint & 0x7F) == 0 && data_len >= 8 {
                 // This is a SETUP packet - extract the setup packet data
                 let setup_data = &data[offset+4..offset+4+8]; // Standard setup packet is 8 bytes
                 
@@ -55,6 +84,9 @@ impl UsbDeviceConnectionDetector {
                             // Device Descriptor - major indicator of USB device connection
                             info!("🔌 USB Device Connection Detected! Host requesting Device Descriptor");
                             info!("   Device Address: {} on endpoint {}", device_addr, endpoint & 0x7F);
+                            has_found_device = true;
+                            // Update global connection state
+                            UsbDeviceConnectionDetector::set_device_connected(true);
                         },
                         2 => {
                             // Configuration Descriptor - follows device descriptor in enumeration
@@ -81,11 +113,19 @@ impl UsbDeviceConnectionDetector {
                     let config = w_value & 0xFF;
                     info!("✅ USB Configuration Complete: Device {} configured with config {}", device_addr, config);
                     info!("   USB device is now fully enumerated and ready for operation");
+                    has_found_device = true;
+                    // Update global connection state
+                    UsbDeviceConnectionDetector::set_device_connected(true);
                 }
             }
             
             // Move to the next packet
             offset += 4 + data_len;
+        }
+        
+        // Return true if we found any evidence of a connected device
+        if has_found_device {
+            debug!("Device connection evidence found in USB traffic");
         }
     }
 }

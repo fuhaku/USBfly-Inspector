@@ -24,7 +24,5 @@ pub use self::descriptors::{
 
 pub use self::decoder::{DecodedUSBData, UsbDecoder, Speed};
 
-// Re-export the essential MitM traffic types
-pub use self::mitm_traffic::{
-    generate_simulated_mitm_traffic
-};
+// Keep this import area for future MitM traffic types as needed
+// Currently they're directly imported where used

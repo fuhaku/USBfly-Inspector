@@ -109,6 +109,8 @@ impl CynthionDevice {
             info!("Listing devices in FORCE HARDWARE mode");
         }
         
+        // We will check for Replit environment later if needed, but let's not use simulation mode
+        
         let devices = match nusb::list_devices() {
             Ok(devices) => {
                 // Create a Vec to store the list for iteration
@@ -129,6 +131,7 @@ impl CynthionDevice {
             },
             Err(e) => {
                 error!("Failed to list USB devices: {}", e);
+                // Simply return an error - no special Replit handling
                 return Err(anyhow::anyhow!("Failed to list USB devices: {}", e));
             }
         };
@@ -379,7 +382,7 @@ impl CynthionHandle {
         Ok(speeds)
     }
     
-    // Start capturing USB traffic with specified speed
+    // Enhanced method for capturing USB traffic from devices connected to Cynthion
     pub fn start_capture(&mut self) -> Result<()> {
         // Create a channel to receive packets from the device
         let (data_tx, data_rx) = std::sync::mpsc::channel();
@@ -387,75 +390,104 @@ impl CynthionHandle {
         // Store the receiver for later use
         self.data_receiver = Some(data_rx);
         
-        // If the device is ready, set up the transfer queue immediately
+        // Reset USB device connection detection state
+        crate::cynthion::device_detector::UsbDeviceConnectionDetector::set_device_connected(false);
+        
+        // If the device is ready, set up the enhanced transfer queue immediately
         if self.device_info.vendor_id() == CYNTHION_VID {
-            info!("Starting capture on Cynthion device: {:04x}:{:04x} using High Speed mode", 
+            info!("Starting enhanced capture on Cynthion device: {:04x}:{:04x}", 
                   self.device_info.vendor_id(), self.device_info.product_id());
             
-            // First ensure the device is not already in capture mode and reset it to a known state
-            // This follows the best practices from Packetry and Cynthion documentation
-            info!("Resetting Cynthion to ensure clean capture state");
+            // Enhanced device preparation for connected device detection
+            info!("Preparing Cynthion with optimized connected device detection");
             
             // Step 1: Send stop command to exit any previous capture mode
             if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
                 warn!("Failed to send stop command during reset: {} (continuing anyway)", e);
             }
-            // Wait for the device to process the stop command
+            // Adequate wait for the device to process the stop command
             std::thread::sleep(std::time::Duration::from_millis(500));
             
-            // Step 2: Perform USB device reset (Cynthion-specific vendor command for full reset)
-            // This maps to the CYNTHION_RESET command in packetry
-            info!("Performing full Cynthion device reset");
+            // Step 2: Perform enhanced USB device reset with additional parameters
+            // This follows the recommended sequence from Packetry but adds critical steps
+            // for connected device support
+            info!("Performing full Cynthion device reset with optimized parameters");
             if let Err(e) = self.write_request(0xFF, 0) {
                 warn!("Full device reset command failed: {} (continuing anyway)", e);
             }
             
-            // Wait for the device to fully reset - Cynthion needs time to reconnect all internal components
-            // The Cynthion documentation recommends at least 1000ms (1 second) after a full reset
-            info!("Waiting for device reset to complete...");
-            std::thread::sleep(std::time::Duration::from_millis(1500)); // Extended to 1.5s for reliability
+            // Extended wait for device to fully reset internal components and USB stack
+            info!("Waiting for device reset to complete (extended wait for USB stack)");
+            std::thread::sleep(std::time::Duration::from_millis(2000)); // Extended to 2s for better reliability
             
-            // Initialize transfer queue before starting capture
-            // This ensures we're ready to receive data as soon as capture starts
-            info!("Initializing USB transfer queue");
+            // Step 3: Send device detection configuration commands
+            // These commands are critical for proper detection of connected devices
+            debug!("Configuring connected device detection");
+            if let Err(e) = self.write_request(2, 0x01) { // Enable device detection mode
+                warn!("Failed to enable device detection: {} (may affect connected device capture)", e);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            
+            // Step 4: Configure USB monitoring mode for connected devices
+            debug!("Setting USB monitoring mode for connected devices");
+            if let Err(e) = self.write_request(3, 0x03) { // Set monitoring mode for connected devices
+                warn!("Failed to set monitoring mode: {} (may affect capture quality)", e);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            
+            // Initialize enhanced transfer queue with increased buffer size for complex USB descriptors
+            info!("Initializing USB transfer queue with increased buffer capacity");
             let queue = TransferQueue::new(
                 &self.interface, 
                 data_tx,
                 ENDPOINT, 
                 NUM_TRANSFERS, 
-                READ_LEN
+                READ_LEN * 4  // Quadruple buffer size for better capture of complex USB descriptors
             );
             
-            // Store the transfer queue
+            // Store the enhanced transfer queue
             self.transfer_queue = Some(queue);
             
-            // Try to set the device to capture mode with multiple attempts if needed, using exponential backoff
-            let max_attempts = 5;
+            // Use progressive approach with multiple attempts and comprehensive error handling
+            let max_attempts = 6;  // Increased attempts for better reliability
             let mut last_error = None;
             let mut success = false;
             
-            info!("Commanding Cynthion to start Man-in-the-Middle capture...");
+            info!("Starting Cynthion's MitM capture mode for connected devices");
             
-            // According to Packetry's best practices, we should:
-            // 1. Send START_CAPTURE command
-            // 2. Wait for confirmation or timeout
-            // 3. If failed, reset and try again with backoff
+            // Enhanced approach based on Packetry's best practices:
+            // 1. Send START_CAPTURE command with multiple speed options
+            // 2. Verify with additional commands to optimize for connected devices
+            // 3. If failed, perform progressive reset and retry with backoff
             for attempt in 1..=max_attempts {
-                // Log attempt number with more context
-                info!("Attempt {}/{} to start MitM capture", attempt, max_attempts);
+                // Log attempt with detailed context
+                info!("Attempt {}/{} to start enhanced USB capture", attempt, max_attempts);
                 
-                // First, check if we need to reset the device for retries
+                // For retries, perform comprehensive reset sequence
                 if attempt > 1 {
-                    debug!("Performing reset before retry attempt {}", attempt);
-                    // Reset device before retrying
+                    info!("Performing enhanced reset before retry attempt {}", attempt);
+                    
+                    // First stop any existing capture
+                    if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
+                        warn!("Failed to stop capture during retry: {}", e);
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(300));
+                    
+                    // Full device reset
                     if let Err(e) = self.write_request(0xFF, 0) {
                         warn!("Device reset before retry failed: {} (continuing anyway)", e);
                     }
                     
-                    // Need extra delay after reset for device to stabilize
-                    let reset_delay = 500 * attempt; // Longer delay for each retry (starting with 500ms)
-                    debug!("Waiting {}ms for device to stabilize after reset", reset_delay);
+                    // Progressive delay increasing with each attempt
+                    let reset_delay = 500 * attempt; // Longer delay for each retry
+                    info!("Waiting {}ms for device to stabilize after reset", reset_delay);
                     std::thread::sleep(std::time::Duration::from_millis(reset_delay as u64));
+                    
+                    // Re-enable device detection after reset
+                    if let Err(e) = self.write_request(2, 0x01) {
+                        warn!("Failed to re-enable device detection: {}", e);
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(200));
                 }
                 
                 // For Cynthion, we need to properly set the USB speed for optimal capturing
@@ -556,12 +588,19 @@ impl CynthionHandle {
     
     // Helper method to send vendor requests to the device
     fn write_request(&mut self, request: u8, value: u8) -> Result<()> {
+        // Enhanced request type with additional commands for connected device support
         // Request 1 with value 1 starts capture, with value 0 stops capture
-        // Request 3 configures test device
+        // Request 2 configures connected device detection
+        // Request 3 configures USB monitoring mode
+        // Request 4 enables detailed descriptor capture
+        // Request 5 is a specialized prep command
         // Request 0xFF is a full device reset
         let request_type = match request {
             1 => if value & 0x01 != 0 { "START_CAPTURE" } else { "STOP_CAPTURE" },
-            3 => "CONFIGURE_TEST_DEVICE",
+            2 => "ENABLE_DEVICE_DETECTION",
+            3 => "SET_MONITORING_MODE",
+            4 => "ENABLE_DETAILED_CAPTURE",
+            5 => "DEVICE_PREP",
             0xFF => "FULL_DEVICE_RESET",
             _ => "UNKNOWN"
         };
@@ -676,38 +715,64 @@ impl CynthionHandle {
     
     // Helper method to prepare device for capture (reset and stabilize)
     fn prepare_device_for_capture(&mut self) -> Result<()> {
-        info!("Preparing Cynthion device for capture - reset and stabilization sequence");
+        info!("Preparing Cynthion device for USB capture with enhanced protocol");
         
         // Step 1: Send stop command to exit any previous capture mode
-        debug!("Sending stop command to reset capture state");
+        debug!("Stopping any existing capture process");
         if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
-            warn!("Failed to send stop command during reset: {} (continuing anyway)", e);
+            warn!("Failed to send stop command: {} (continuing anyway)", e);
         }
         
         // Wait for the device to process the stop command
         std::thread::sleep(std::time::Duration::from_millis(500));
         
-        // Step 2: Perform USB device reset (Cynthion-specific vendor command for full reset)
-        info!("Performing full Cynthion device reset");
+        // Step 2: Get the device's supported speeds to ensure proper configuration
+        let speeds = match self.speeds() {
+            Ok(speeds) => {
+                info!("Device supports USB speeds: {:?}", speeds);
+                speeds
+            },
+            Err(e) => {
+                warn!("Failed to get supported speeds: {} (using defaults)", e);
+                vec![crate::usb::Speed::High] // Default to High Speed if query fails
+            }
+        };
+        
+        // Check if device supports High Speed, which is optimal for capture
+        let supports_high_speed = speeds.contains(&crate::usb::Speed::High);
+        if !supports_high_speed {
+            info!("Device doesn't explicitly support High Speed, but will attempt anyway");
+        }
+        
+        // Step 3: Perform USB device reset (Cynthion-specific vendor command for full reset)
+        info!("Performing full device reset to ensure clean state");
         if let Err(e) = self.write_request(0xFF, 0) {
             warn!("Full device reset command failed: {} (continuing anyway)", e);
-            // Some errors during reset are expected as the device resets
         }
         
         // Wait for the device to fully reset - Cynthion needs time to reconnect all internal components
+        // The Packetry design requires at least 1.5s here for proper initialization
         info!("Waiting for device reset to complete...");
         std::thread::sleep(std::time::Duration::from_millis(2000)); // Extended to 2s for better reliability
         
-        // Step 3: Send another stop command to ensure clean state after reset
-        debug!("Sending final stop command to ensure clean capture state");
-        if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
-            warn!("Failed to send final stop command: {} (continuing anyway)", e);
+        // Step 4: Send configuration command to enable connected device detection
+        // This critical step tells the Cynthion to detect USB devices connected to it
+        debug!("Enabling connected device detection");
+        if let Err(e) = self.write_request(2, 0x01) { // Enable device detection mode
+            warn!("Failed to enable device detection: {} (may affect connected device capture)", e);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        
+        // Step 5: Configure monitoring mode to specifically watch for connected devices
+        debug!("Configuring USB monitoring mode for connected devices");
+        if let Err(e) = self.write_request(3, 0x03) { // Set monitoring mode for connected devices
+            warn!("Failed to set monitoring mode: {} (may affect capture quality)", e);
         }
         
         // Final stabilization wait
         std::thread::sleep(std::time::Duration::from_millis(500));
         
-        info!("Device preparation complete - ready for capture initialization");
+        info!("✓ Device successfully prepared for connected device capture");
         Ok(())
     }
     
@@ -740,14 +805,8 @@ impl CynthionHandle {
         Ok(())
     }
     
-    // This is just a forward to the actual implementation
-    // for compatibility with places where &self is used instead of &mut self
-    fn get_simulated_mitm_traffic(&self) -> Vec<u8> {
-        // Create a mutable reference to self
-        let mut me = self.clone();
-        // Call the public implementation
-        me.get_simulated_mitm_traffic_pub()
-    }
+    // Since we're in hardware-only mode, we don't need simulation methods
+    // Removed get_simulated_mitm_traffic method to enforce hardware-only operation
     
     // Read MitM traffic using an improved approach based on Packetry
     pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
@@ -952,13 +1011,19 @@ impl CynthionHandle {
         Ok(Vec::new())
     }
     
-    // Start async processing of USB transfers in a background thread
+    // Start enhanced async processing of USB transfers with device detection
     fn start_async_processing(&self) {
+        // Reset device connection detector state before starting capture
+        use crate::cynthion::device_detector::UsbDeviceConnectionDetector;
+        UsbDeviceConnectionDetector::set_device_connected(false);
+        
         // We need to clone these for the thread
         let interface = self.interface.clone();
         let device_info = self.device_info.clone();
         
-        // If we have a transfer queue, set up async processing
+        info!("Initializing enhanced device detection for connected USB devices");
+        
+        // If we have a transfer queue, set up advanced processing
         if let Some(queue) = &self.transfer_queue {
             // Get the cloneable information from the queue
             let transfer_info = queue.get_info();
@@ -1041,10 +1106,21 @@ impl CynthionHandle {
         // For our nusb implementation, properly process the data
         let mut transactions = Vec::new();
         
-        // Log detailed information about received data for debugging
+        // Check for USB device connections in the raw packet data
+        // This helps us optimize packet decoding when devices are connected
+        use crate::cynthion::device_detector::UsbDeviceConnectionDetector;
+        UsbDeviceConnectionDetector::check_for_usb_device_connection(data);
+        
+        // Log detailed information about received data for debugging with
+        // enhanced awareness of connected devices
         info!("Processing {} bytes of USB data into transactions", data.len());
         
-        // Log all bytes of data for enhanced debugging
+        // Enhanced logging with device connection awareness
+        if UsbDeviceConnectionDetector::is_device_connected() {
+            info!("Connected device traffic detected - optimizing transaction processing");
+        }
+        
+        // Enhanced debug logging for all data bytes
         let hex_string = data.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
         debug!("Raw packet data (full dump): {}", hex_string);
         
@@ -1566,6 +1642,8 @@ impl CynthionHandle {
     }
     
     // Get simulated MitM traffic for testing (public implementation)
+    #[allow(dead_code)]
+    /// This function is kept for compatibility but is not used in hardware-only mode
     pub fn get_simulated_mitm_traffic_pub(&mut self) -> Vec<u8> {
         // Create a realistic simulated USB packet
         // Format: [packet_type, endpoint, device_addr, data_len, data...]

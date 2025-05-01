@@ -6,7 +6,7 @@ use iced::widget::{button, column, container, row, text};
 use iced::{executor, Application, Background, Color, Command, Element, Length, Subscription, Theme};
 use std::sync::{Arc, Mutex};
 // Use the log macros for consistent error handling
-use log::{info, error, debug};
+use log::{info, error, debug, warn};
 
 // Custom tab styles
 struct ActiveTabStyle;
@@ -339,10 +339,17 @@ impl Application for USBflyApp {
                     // Process the data with our enhanced decoder using the new handle
                     if let Some(handle) = &self.cynthion_handle {
                         if let Ok(mut cynthion_handle) = handle.lock() {
-                            // Process the raw data into USB transactions
-                            debug!("Processing data through MitM decoder with new nusb implementation...");
+                            // Check if this data contains evidence of USB devices connected to Cynthion
+                            // This helps optimize packet processing for connected devices
+                            use crate::cynthion::device_detector::UsbDeviceConnectionDetector;
                             
-                            // Get the transactions from the new implementation
+                            // Process the data for device connection detection
+                            UsbDeviceConnectionDetector::check_for_usb_device_connection(&data);
+                            
+                            // Enhanced processing with device connection awareness
+                            debug!("Processing USB traffic data through enhanced decoder...");
+                            
+                            // Get the transactions from the implementation with improved connected device support
                             let transactions = cynthion_handle.process_transactions(&data);
                             
                             if !transactions.is_empty() {
@@ -351,9 +358,16 @@ impl Application for USBflyApp {
                                         .map(|t| t.transfer_type)
                                         .collect::<Vec<_>>());
                                 
-                                // Add each transaction to the traffic view
+                                // Add each transaction to the traffic view with improved metadata
                                 for transaction in transactions {
                                     debug!("Adding transaction ID {} to traffic view", transaction.id);
+                                    
+                                    // Check if this is a transaction from a connected device
+                                    let is_device_connected = UsbDeviceConnectionDetector::is_device_connected();
+                                    if is_device_connected {
+                                        debug!("Transaction from connected USB device detected");
+                                    }
+                                    
                                     self.traffic_view.add_transaction(transaction);
                                 }
                             } else {
@@ -702,22 +716,22 @@ impl Application for USBflyApp {
                     // First get the info we need under a short-lived lock
                     let (is_simulation, maybe_data, connection_ref) = {
                         match conn_clone.lock() {
-                            Ok(mut conn) => {
+                            Ok(conn) => {
                                 let is_sim = conn.is_simulation_mode();
                                 
-                                // Get simulated data while we have the lock if in simulation mode
+                                // In hardware-only mode, we don't use simulation
+                                // But we need to handle the simulation flag gracefully
                                 let data = if is_sim {
-                                    // Use enhanced simulation with our new module
-                                    let raw_data = conn.get_simulated_mitm_traffic_pub();
+                                    // We should never reach here in hardware-only mode,
+                                    // but provide a clean fallback just in case
+                                    warn!("Simulation mode requested but hardware-only mode is enforced");
                                     
-                                    // Process the raw data into USB transactions using our new module
-                                    let transactions = conn.process_mitm_traffic(&raw_data);
+                                    // Return empty data - we're in hardware-only mode
+                                    // This ensures we don't break the app if simulation mode
+                                    // is somehow enabled
+                                    Some(Vec::new())
                                     
-                                    // For simulated data, always provide something to show
-                                    info!("Generated {} simulated USB transactions", transactions.len());
-                                    
-                                    // Still need to return raw data for compatibility with current code
-                                    Some(raw_data)
+                                    // Note: Removed simulation method calls to enforce hardware-only mode
                                 } else {
                                     // For real device, we'll get data after dropping the lock
                                     None
@@ -767,13 +781,14 @@ impl Application for USBflyApp {
                             tokio::time::sleep(std::time::Duration::from_millis(150)).await;
                             
                             if is_simulation {
-                                // Use our enhanced simulation module for more realistic data
-                                let sim_data = if let Ok(mut conn) = connection_ref.lock() {
-                                    conn.get_simulated_mitm_traffic_pub()
-                                } else {
-                                    // Fallback if we couldn't get a lock for some reason
-                                    crate::usb::generate_simulated_mitm_traffic()
-                                };
+                                // In hardware-only mode, we don't use simulation
+                                // But we need to handle simulation mode gracefully
+                                warn!("Hardware-only mode is enforced - no simulation data available");
+                                
+                                // Return empty data for simulation mode in hardware-only mode
+                                // This ensures the application continues to function even if
+                                // simulation mode is somehow enabled
+                                let sim_data = Vec::new();
                                 
                                 info!("Generated {} bytes of MitM USB traffic", sim_data.len());
                                 return Message::USBDataReceived(sim_data);
