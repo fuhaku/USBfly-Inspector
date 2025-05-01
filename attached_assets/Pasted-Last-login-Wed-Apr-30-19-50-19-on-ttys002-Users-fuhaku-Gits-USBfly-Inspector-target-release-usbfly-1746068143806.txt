@@ -1,0 +1,368 @@
+Last login: Wed Apr 30 19:50:19 on ttys002
+/Users/fuhaku/Gits/USBfly-Inspector/target/release/usbfly ; exit;
+fuhaku@Jasons-MacBook-Pro ~ % /Users/fuhaku/Gits/USBfly-Inspector/target/release/usbfly ; exit;
+ INFO  usbfly > Starting USBfly application v0.1.0
+ INFO  usbfly > Platform: macos
+ INFO  usbfly > MacOS detected - initializing with hardware mode preference
+ INFO  usbfly > Found USB device: VID=05ac PID=12a8
+ INFO  usbfly > ◉ macOS device detection: VID:05ac PID:12a8
+ INFO  usbfly > Found USB device: VID=1d50 PID=615b
+ INFO  usbfly > 🔥 Cynthion device detected at startup! 🔥
+ INFO  usbfly > ◉ Setting environment for hardware access mode
+ INFO  usbfly > USB subsystem initialized successfully. Found 2 devices
+ INFO  usbfly > Hardware mode enforced - simulation mode disabled
+ INFO  usbfly > Using default software renderer for cross-platform compatibility
+ INFO  wgpu_hal::gles::egl > Unable to open libEGL: Library(DlOpen { desc: "dlopen(libEGL.dylib, 0x0005): tried: \'libEGL.dylib\' (no such file), \'/System/Volumes/Preboot/Cryptexes/OSlibEGL.dylib\' (no such file), \'/usr/lib/libEGL.dylib\' (no such file, not in dyld cache), \'libEGL.dylib\' (no such file)" })
+ INFO  iced_wgpu::window::compositor > Settings {
+    present_mode: AutoVsync,
+    internal_backend: Backends(
+        VULKAN | GL | METAL | DX12 | DX11 | BROWSER_WEBGPU,
+    ),
+    default_font: Font {
+        family: SansSerif,
+        weight: Normal,
+        stretch: Normal,
+        monospaced: false,
+    },
+    default_text_size: 16.0,
+    antialiasing: Some(
+        MSAAx4,
+    ),
+}
+ INFO  wgpu_core::instance           > Adapter Metal AdapterInfo { name: "AMD Radeon Pro 560X", vendor: 0, device: 0, device_type: DiscreteGpu, driver: "", driver_info: "", backend: Metal }
+ INFO  wgpu_core::instance           > Adapter Metal AdapterInfo { name: "Intel(R) UHD Graphics 630", vendor: 0, device: 0, device_type: IntegratedGpu, driver: "", driver_info: "", backend: Metal }
+ INFO  iced_wgpu::window::compositor > Available adapters: [
+    AdapterInfo {
+        name: "AMD Radeon Pro 560X",
+        vendor: 0,
+        device: 0,
+        device_type: DiscreteGpu,
+        driver: "",
+        driver_info: "",
+        backend: Metal,
+    },
+    AdapterInfo {
+        name: "Intel(R) UHD Graphics 630",
+        vendor: 0,
+        device: 0,
+        device_type: IntegratedGpu,
+        driver: "",
+        driver_info: "",
+        backend: Metal,
+    },
+]
+ INFO  wgpu_core::instance           > Adapter Metal AdapterInfo { name: "AMD Radeon Pro 560X", vendor: 0, device: 0, device_type: DiscreteGpu, driver: "", driver_info: "", backend: Metal }
+ INFO  iced_wgpu::window::compositor > Selected: AdapterInfo {
+    name: "AMD Radeon Pro 560X",
+    vendor: 0,
+    device: 0,
+    device_type: DiscreteGpu,
+    driver: "",
+    driver_info: "",
+    backend: Metal,
+}
+ INFO  iced_wgpu::window::compositor > Selected format: Bgra8UnormSrgb
+ INFO  cosmic_text::font::system::std > Parsed 802 font faces in 109ms.
+ INFO  wgpu_core::device              > Created buffer Valid((0, 1, Metal)) with BufferDescriptor { label: Some("glyphon params"), size: 16, usage: BufferUsages(COPY_DST | UNIFORM), mapped_at_creation: false }
+ INFO  wgpu_core::device              > Created texture Valid((0, 1, Metal)) with TextureDescriptor { label: Some("glyphon atlas"), size: Extent3d { width: 256, height: 256, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: D2, format: Rgba8UnormSrgb, usage: TextureUsages(COPY_DST | TEXTURE_BINDING), view_formats: [] }
+ INFO  wgpu_core::device              > Created texture Valid((1, 1, Metal)) with TextureDescriptor { label: Some("glyphon atlas"), size: Extent3d { width: 256, height: 256, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: D2, format: R8Unorm, usage: TextureUsages(COPY_DST | TEXTURE_BINDING), view_formats: [] }
+ INFO  wgpu_core::device              > Created buffer Valid((1, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::quad vertex buffer"), size: 32, usage: BufferUsages(VERTEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Created buffer Valid((2, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::quad index buffer"), size: 12, usage: BufferUsages(INDEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Created render pipeline Valid((0, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu.quad.solid.pipeline"), layout: Some((1, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 1, Metal), entry_point: "solid_vs_main" }, buffers: [VertexBufferLayout { array_stride: 8, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }] }, VertexBufferLayout { array_stride: 68, step_mode: Instance, attributes: [VertexAttribute { format: Float32x4, offset: 0, shader_location: 1 }, VertexAttribute { format: Float32x2, offset: 16, shader_location: 2 }, VertexAttribute { format: Float32x2, offset: 24, shader_location: 3 }, VertexAttribute { format: Float32x4, offset: 32, shader_location: 4 }, VertexAttribute { format: Float32x4, offset: 48, shader_location: 5 }, VertexAttribute { format: Float32, offset: 64, shader_location: 6 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 1, Metal), entry_point: "solid_fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((1, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu.quad.gradient.pipeline"), layout: Some((2, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 2, Metal), entry_point: "gradient_vs_main" }, buffers: [VertexBufferLayout { array_stride: 8, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }] }, VertexBufferLayout { array_stride: 148, step_mode: Instance, attributes: [VertexAttribute { format: Uint32x4, offset: 0, shader_location: 1 }, VertexAttribute { format: Uint32x4, offset: 16, shader_location: 2 }, VertexAttribute { format: Uint32x4, offset: 32, shader_location: 3 }, VertexAttribute { format: Uint32x4, offset: 48, shader_location: 4 }, VertexAttribute { format: Uint32x4, offset: 64, shader_location: 5 }, VertexAttribute { format: Float32x4, offset: 80, shader_location: 6 }, VertexAttribute { format: Float32x4, offset: 96, shader_location: 7 }, VertexAttribute { format: Float32x4, offset: 112, shader_location: 8 }, VertexAttribute { format: Float32x4, offset: 128, shader_location: 9 }, VertexAttribute { format: Float32, offset: 144, shader_location: 10 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 2, Metal), entry_point: "gradient_fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((2, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu::triangle::msaa pipeline"), layout: Some((3, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 3, Metal), entry_point: "vs_main" }, buffers: [] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 3, Metal), entry_point: "fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((3, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu::triangle::solid pipeline"), layout: Some((4, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 4, Metal), entry_point: "solid_vs_main" }, buffers: [VertexBufferLayout { array_stride: 24, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }, VertexAttribute { format: Float32x4, offset: 8, shader_location: 1 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 4, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 4, Metal), entry_point: "solid_fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((4, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu.triangle.gradient.pipeline"), layout: Some((5, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 5, Metal), entry_point: "gradient_vs_main" }, buffers: [VertexBufferLayout { array_stride: 104, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }, VertexAttribute { format: Uint32x4, offset: 8, shader_location: 1 }, VertexAttribute { format: Uint32x4, offset: 24, shader_location: 2 }, VertexAttribute { format: Uint32x4, offset: 40, shader_location: 3 }, VertexAttribute { format: Uint32x4, offset: 56, shader_location: 4 }, VertexAttribute { format: Uint32x4, offset: 72, shader_location: 5 }, VertexAttribute { format: Float32x4, offset: 88, shader_location: 6 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 4, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 5, Metal), entry_point: "gradient_fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created render pipeline Valid((5, 1, Metal)) with RenderPipelineDescriptor { label: Some("iced_wgpu::image pipeline"), layout: Some((6, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (1, 6, Metal), entry_point: "vs_main" }, buffers: [VertexBufferLayout { array_stride: 8, step_mode: Vertex, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 0 }] }, VertexBufferLayout { array_stride: 36, step_mode: Instance, attributes: [VertexAttribute { format: Float32x2, offset: 0, shader_location: 1 }, VertexAttribute { format: Float32x2, offset: 8, shader_location: 2 }, VertexAttribute { format: Float32x2, offset: 16, shader_location: 3 }, VertexAttribute { format: Float32x2, offset: 24, shader_location: 4 }, VertexAttribute { format: Sint32, offset: 32, shader_location: 5 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Cw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (1, 6, Metal), entry_point: "fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ INFO  wgpu_core::device              > Created buffer Valid((3, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::image vertex buffer"), size: 32, usage: BufferUsages(VERTEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Created buffer Valid((4, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::image index buffer"), size: 12, usage: BufferUsages(INDEX), mapped_at_creation: true }
+ INFO  wgpu_core::device              > Created texture Valid((2, 1, Metal)) with TextureDescriptor { label: Some("iced_wgpu::image texture atlas"), size: Extent3d { width: 2048, height: 2048, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: D2, format: Rgba8UnormSrgb, usage: TextureUsages(COPY_SRC | COPY_DST | TEXTURE_BINDING), view_formats: [] }
+ INFO  wgpu_core::device              > configuring surface with SurfaceConfiguration { usage: TextureUsages(RENDER_ATTACHMENT), format: Bgra8UnormSrgb, width: 2048, height: 1536, present_mode: AutoVsync, alpha_mode: Auto, view_formats: [] }
+ INFO  wgpu_core::device              > Automatically choosing presentation mode by rule AutoVsync. Chose Fifo
+ INFO  wgpu_core::device              > Automatically choosing alpha mode by rule Auto. Chose Opaque
+ INFO  wgpu_hal::metal::surface       > build swapchain SurfaceConfiguration { swap_chain_size: 3, present_mode: Fifo, composite_alpha_mode: Opaque, format: Bgra8UnormSrgb, extent: Extent3d { width: 2048, height: 1536, depth_or_array_layers: 1 }, usage: TextureUses(COLOR_TARGET), view_formats: [] }
+ INFO  usbfly::cynthion::new_connection > Listing devices in FORCE HARDWARE mode
+ INFO  usbfly::cynthion::new_connection > Listing devices in FORCE HARDWARE mode
+ INFO  wgpu_core::device                > configuring surface with SurfaceConfiguration { usage: TextureUsages(RENDER_ATTACHMENT), format: Bgra8UnormSrgb, width: 2048, height: 1536, present_mode: AutoVsync, alpha_mode: Auto, view_formats: [] }
+ INFO  wgpu_core::device                > Automatically choosing presentation mode by rule AutoVsync. Chose Fifo
+ INFO  wgpu_core::device                > Automatically choosing alpha mode by rule Auto. Chose Opaque
+ INFO  wgpu_hal::metal::surface         > build swapchain SurfaceConfiguration { swap_chain_size: 3, present_mode: Fifo, composite_alpha_mode: Opaque, format: Bgra8UnormSrgb, extent: Extent3d { width: 2048, height: 1536, depth_or_array_layers: 1 }, usage: TextureUses(COLOR_TARGET), view_formats: [] }
+ INFO  wgpu_core::device                > Created buffer Valid((5, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu::quad uniforms buffer"), size: 80, usage: BufferUsages(COPY_DST | UNIFORM), mapped_at_creation: false }
+ INFO  wgpu_core::device                > Created buffer Valid((6, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu.quad.solid.buffer"), size: 262144, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device                > Created buffer Valid((7, 1, Metal)) with BufferDescriptor { label: Some("iced_wgpu.quad.gradient.buffer"), size: 524288, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device                > Created buffer Valid((8, 1, Metal)) with BufferDescriptor { label: Some("glyphon vertices"), size: 4096, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: false }
+ INFO  wgpu_core::device                > Created buffer Valid((9, 1, Metal)) with BufferDescriptor { label: Some("glyphon indices"), size: 4096, usage: BufferUsages(COPY_DST | INDEX), mapped_at_creation: false }
+ INFO  wgpu_core::device                > Created render pipeline Valid((6, 1, Metal)) with RenderPipelineDescriptor { label: Some("glyphon pipeline"), layout: Some((0, 1, Metal)), vertex: VertexState { stage: ProgrammableStageDescriptor { module: (0, 1, Metal), entry_point: "vs_main" }, buffers: [VertexBufferLayout { array_stride: 28, step_mode: Vertex, attributes: [VertexAttribute { format: Sint32x2, offset: 0, shader_location: 0 }, VertexAttribute { format: Uint32, offset: 8, shader_location: 1 }, VertexAttribute { format: Uint32, offset: 12, shader_location: 2 }, VertexAttribute { format: Uint32, offset: 16, shader_location: 3 }, VertexAttribute { format: Uint32, offset: 20, shader_location: 4 }, VertexAttribute { format: Float32, offset: 24, shader_location: 5 }] }] }, primitive: PrimitiveState { topology: TriangleList, strip_index_format: None, front_face: Ccw, cull_mode: None, unclipped_depth: false, polygon_mode: Fill, conservative: false }, depth_stencil: None, multisample: MultisampleState { count: 1, mask: 18446744073709551615, alpha_to_coverage_enabled: false }, fragment: Some(FragmentState { stage: ProgrammableStageDescriptor { module: (0, 1, Metal), entry_point: "fs_main" }, targets: [Some(ColorTargetState { format: Bgra8UnormSrgb, blend: Some(BlendState { color: BlendComponent { src_factor: SrcAlpha, dst_factor: OneMinusSrcAlpha, operation: Add }, alpha: BlendComponent { src_factor: One, dst_factor: OneMinusSrcAlpha, operation: Add } }), write_mask: ColorWrites(RED | GREEN | BLUE | ALPHA) })] }), multiview: None }
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8262 Ambient Light Sensor
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8514 FaceTime HD Camera (Built-in)
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8102 Touch Bar Backlight
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8233 Apple T2 Controller
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8103 Headset
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8302 Touch Bar Display
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:027c Apple Internal Keyboard / Trackpad
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:1d50 PID:615b USB Analyzer
+ INFO  usbfly::cynthion::new_connection > 👉 CYNTHION DEVICE FOUND: VID:1d50 PID:615b USB Analyzer
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:12a8 iPhone
+ INFO  usbfly::cynthion::new_connection > Found potential Cynthion device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::new_connection > ✓ Added Cynthion-compatible device to available list: 1d50:615b
+ INFO  usbfly::cynthion::new_connection > Found 1 Cynthion-compatible devices
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8262 Ambient Light Sensor
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8514 FaceTime HD Camera (Built-in)
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8102 Touch Bar Backlight
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8233 Apple T2 Controller
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8103 Headset
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8302 Touch Bar Display
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:027c Apple Internal Keyboard / Trackpad
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:1d50 PID:615b USB Analyzer
+ INFO  usbfly::cynthion::new_connection > 👉 CYNTHION DEVICE FOUND: VID:1d50 PID:615b USB Analyzer
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:12a8 iPhone
+ INFO  usbfly::cynthion::new_connection > Found potential Cynthion device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::new_connection > ✓ Added Cynthion-compatible device to available list: 1d50:615b
+ INFO  usbfly::cynthion::new_connection > Found 1 Cynthion-compatible devices
+ INFO  usbfly::app                      > Found 1 Cynthion-compatible devices
+ INFO  wgpu_core::device                > Created texture Valid((4, 1, Metal)) with TextureDescriptor { label: Some("glyphon atlas"), size: Extent3d { width: 512, height: 512, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: D2, format: R8Unorm, usage: TextureUsages(COPY_DST | TEXTURE_BINDING), view_formats: [] }
+ INFO  wgpu_core::device                > Buffer (8, 1, Metal) is destroyed
+ INFO  wgpu_core::device                > Created buffer Valid((10, 1, Metal)) with BufferDescriptor { label: Some("glyphon vertices"), size: 65536, usage: BufferUsages(COPY_DST | VERTEX), mapped_at_creation: true }
+ INFO  wgpu_core::device                > Buffer (9, 1, Metal) is destroyed
+ INFO  wgpu_core::device                > Created buffer Valid((11, 1, Metal)) with BufferDescriptor { label: Some("glyphon indices"), size: 8192, usage: BufferUsages(COPY_DST | INDEX), mapped_at_creation: true }
+ INFO  usbfly::gui::views::device_view  > USB device list updated: 1 devices
+ INFO  usbfly::app                      > Device scan found 1 Cynthion-compatible devices
+ DEBUG usbfly::gui::views::device_view  > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::new_connection > Listing devices in FORCE HARDWARE mode
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8262 Ambient Light Sensor
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8514 FaceTime HD Camera (Built-in)
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8102 Touch Bar Backlight
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8233 Apple T2 Controller
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8103 Headset
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8302 Touch Bar Display
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:027c Apple Internal Keyboard / Trackpad
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:1d50 PID:615b USB Analyzer
+ INFO  usbfly::cynthion::new_connection > 👉 CYNTHION DEVICE FOUND: VID:1d50 PID:615b USB Analyzer
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:12a8 iPhone
+ INFO  usbfly::cynthion::new_connection > Found potential Cynthion device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::new_connection > ✓ Added Cynthion-compatible device to available list: 1d50:615b
+ INFO  usbfly::cynthion::new_connection > Found 1 Cynthion-compatible devices
+ DEBUG usbfly::gui::views::device_view  > USB device list refreshed (no changes)
+ INFO  usbfly::gui::views::device_view  > Selected device: 1d50:615b
+ DEBUG usbfly::gui::views::device_view  > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::new_connection > Listing devices in FORCE HARDWARE mode
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8262 Ambient Light Sensor
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8514 FaceTime HD Camera (Built-in)
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8102 Touch Bar Backlight
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8233 Apple T2 Controller
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8103 Headset
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8302 Touch Bar Display
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:027c Apple Internal Keyboard / Trackpad
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:1d50 PID:615b USB Analyzer
+ INFO  usbfly::cynthion::new_connection > 👉 CYNTHION DEVICE FOUND: VID:1d50 PID:615b USB Analyzer
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:12a8 iPhone
+ INFO  usbfly::cynthion::new_connection > Found potential Cynthion device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::new_connection > ✓ Added Cynthion-compatible device to available list: 1d50:615b
+ INFO  usbfly::cynthion::new_connection > Found 1 Cynthion-compatible devices
+ DEBUG usbfly::gui::views::device_view  > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view  > Updated selected device information
+ INFO  usbfly::app                      > Connecting to Cynthion device: USB Analyzer 1d50:615b (Interface 0)
+ INFO  usbfly::cynthion::new_connection > Opening Cynthion device: VID 1d50 PID 615b
+ DEBUG usbfly::cynthion::new_connection > Successfully opened device
+ DEBUG usbfly::cynthion::new_connection > Attempting to claim interface 0
+ INFO  usbfly::cynthion::new_connection > Successfully claimed interface 0
+ INFO  usbfly::cynthion::new_connection > Successfully opened and claimed Cynthion device
+ INFO  usbfly::app                      > Successfully opened Cynthion device
+ INFO  usbfly::cynthion::new_connection > Initializing transfer queue for Cynthion device: 1d50:615b
+ INFO  usbfly::cynthion::new_connection > Preparing Cynthion device for capture - reset and stabilization sequence
+ DEBUG usbfly::cynthion::new_connection > Sending stop command to reset capture state
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: STOP_CAPTURE (req=1, val=0x02)
+ DEBUG usbfly::cynthion::new_connection > Cynthion control request succeeded: 0 bytes transferred
+ INFO  usbfly::cynthion::new_connection > Performing full Cynthion device reset
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: FULL_DEVICE_RESET (req=255, val=0x00)
+ ERROR usbfly::cynthion::new_connection > Cynthion control request failed: endpoint STALL condition
+ WARN  usbfly::cynthion::new_connection > Full device reset command failed: endpoint STALL condition (continuing anyway)
+ INFO  usbfly::cynthion::new_connection > Waiting for device reset to complete...
+ DEBUG usbfly::gui::views::device_view  > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::new_connection > Listing devices in FORCE HARDWARE mode
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8262 Ambient Light Sensor
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8514 FaceTime HD Camera (Built-in)
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8102 Touch Bar Backlight
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8233 Apple T2 Controller
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8103 Headset
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8302 Touch Bar Display
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:027c Apple Internal Keyboard / Trackpad
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:1d50 PID:615b USB Analyzer
+ INFO  usbfly::cynthion::new_connection > 👉 CYNTHION DEVICE FOUND: VID:1d50 PID:615b USB Analyzer
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:12a8 iPhone
+ INFO  usbfly::cynthion::new_connection > Found potential Cynthion device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::new_connection > ✓ Added Cynthion-compatible device to available list: 1d50:615b
+ INFO  usbfly::cynthion::new_connection > Found 1 Cynthion-compatible devices
+ DEBUG usbfly::gui::views::device_view  > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view  > Updated selected device information
+ DEBUG usbfly::cynthion::new_connection > Sending final stop command to ensure clean capture state
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: STOP_CAPTURE (req=1, val=0x02)
+ DEBUG usbfly::cynthion::new_connection > Cynthion control request succeeded: 0 bytes transferred
+ INFO  usbfly::app                      > Starting USB traffic capture with new nusb implementation...
+ INFO  usbfly::cynthion::new_connection > Device preparation complete - ready for capture initialization
+ DEBUG usbfly::cynthion::transfer_queue > Creating new transfer queue for endpoint 0x81
+ DEBUG usbfly::cynthion::transfer_queue > Successfully initialized 4 transfers for endpoint 0x81
+ INFO  usbfly::cynthion::new_connection > Trying to start capture with speed: High
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: START_CAPTURE (req=1, val=0x03)
+ ERROR usbfly::cynthion::new_connection > Cynthion control request failed: unknown error
+ WARN  usbfly::cynthion::new_connection > Failed to start capture with speed: High, trying next speed
+ INFO  usbfly::cynthion::new_connection > Trying to start capture with speed: Auto
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: START_CAPTURE (req=1, val=0x01)
+ DEBUG usbfly::cynthion::new_connection > Cynthion control request succeeded: 0 bytes transferred
+ INFO  usbfly::cynthion::new_connection > Successfully started USB traffic capture with speed: Auto
+ INFO  usbfly::cynthion::new_connection > Started async transfer processing thread
+ INFO  usbfly::cynthion::new_connection > USB transfer processing thread started for device 1d50:615b
+ DEBUG usbfly::cynthion::new_connection > Initializing transfer queue in async processing thread for endpoint 0x81
+ DEBUG usbfly::cynthion::transfer_queue > Creating new transfer queue for endpoint 0x81
+ DEBUG usbfly::cynthion::transfer_queue > Successfully initialized 4 transfers for endpoint 0x81
+ INFO  usbfly::cynthion::new_connection > USB transfer queue successfully created in processing thread
+ DEBUG usbfly::cynthion::new_connection > Starting USB transfer processing loop - waiting for USB data packets
+ INFO  usbfly::cynthion::transfer_queue > Transfer complete: received 32768 bytes of USB data
+ DEBUG usbfly::cynthion::transfer_queue > Packet starts with: A5 73 32 03 00 03 00 1B 69 A8 0A 03 00 01 00 11 ...
+ DEBUG usbfly::cynthion::transfer_queue > USB packet: type=0xA5, ep=0x73, dev=0x32, len=3
+ WARN  usbfly::cynthion::transfer_queue > Unrecognized packet type: 0xA5 - may indicate incorrect format
+ INFO  usbfly::cynthion::transfer_queue > Transfer complete: received 32768 bytes of USB data
+ DEBUG usbfly::cynthion::transfer_queue > Packet starts with: 00 01 00 12 5A 03 00 03 04 C7 69 A8 0A 03 00 01 ...
+ DEBUG usbfly::cynthion::transfer_queue > USB packet: type=0x00, ep=0x01, dev=0x00, len=18
+ WARN  usbfly::cynthion::transfer_queue > Unrecognized packet type: 0x00 - may indicate incorrect format
+ INFO  usbfly::cynthion::transfer_queue > Transfer complete: received 32768 bytes of USB data
+ DEBUG usbfly::cynthion::transfer_queue > Packet starts with: 23 03 00 01 00 12 5A 03 00 03 00 3D 69 28 4C 03 ...
+ DEBUG usbfly::cynthion::transfer_queue > USB packet: type=0x23, ep=0x03, dev=0x00, len=1
+ WARN  usbfly::cynthion::transfer_queue > Unrecognized packet type: 0x23 - may indicate incorrect format
+ INFO  usbfly::cynthion::transfer_queue > Transfer complete: received 32768 bytes of USB data
+ DEBUG usbfly::cynthion::transfer_queue > Packet starts with: 69 A8 0A 03 00 01 00 11 5A 03 00 03 00 3F 69 A8 ...
+ DEBUG usbfly::cynthion::transfer_queue > USB packet: type=0x69, ep=0xA8, dev=0x0A, len=3
+ WARN  usbfly::cynthion::transfer_queue > Unrecognized packet type: 0x69 - may indicate incorrect format
+
+thread '<unnamed>' panicked at /Users/fuhaku/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nusb-0.1.13/src/transfer/queue.rs:186:14:
+queue should have pending transfers when calling next_complete
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ INFO  usbfly::cynthion::new_connection > Starting capture on Cynthion device: 1d50:615b using High Speed mode
+ INFO  usbfly::cynthion::new_connection > Resetting Cynthion to ensure clean capture state
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: STOP_CAPTURE (req=1, val=0x02)
+ DEBUG usbfly::cynthion::new_connection > Cynthion control request succeeded: 0 bytes transferred
+ INFO  usbfly::cynthion::new_connection > Performing full Cynthion device reset
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: FULL_DEVICE_RESET (req=255, val=0x00)
+ ERROR usbfly::cynthion::new_connection > Cynthion control request failed: endpoint STALL condition
+ WARN  usbfly::cynthion::new_connection > Full device reset command failed: endpoint STALL condition (continuing anyway)
+ INFO  usbfly::cynthion::new_connection > Waiting for device reset to complete...
+ INFO  usbfly::cynthion::new_connection > Initializing USB transfer queue
+ DEBUG usbfly::cynthion::transfer_queue > Creating new transfer queue for endpoint 0x81
+ DEBUG usbfly::cynthion::transfer_queue > Successfully initialized 4 transfers for endpoint 0x81
+ INFO  usbfly::cynthion::new_connection > Commanding Cynthion to start Man-in-the-Middle capture...
+ INFO  usbfly::cynthion::new_connection > Attempt 1/5 to start MitM capture
+ INFO  usbfly::cynthion::new_connection > Trying to start capture with speed mode: Auto
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: START_CAPTURE (req=1, val=0x01)
+ ERROR usbfly::cynthion::new_connection > Cynthion control request failed: unknown error
+ WARN  usbfly::cynthion::new_connection > Failed to start MitM capture with Auto speed (attempt 1/5): unknown error
+ INFO  usbfly::cynthion::new_connection > Trying to start capture with speed mode: High
+ DEBUG usbfly::cynthion::new_connection > Sending Cynthion control request: START_CAPTURE (req=1, val=0x03)
+ DEBUG usbfly::cynthion::new_connection > Cynthion control request succeeded: 0 bytes transferred
+ INFO  usbfly::cynthion::new_connection > Successfully started MitM capture with High speed on attempt 1
+ DEBUG usbfly::cynthion::new_connection > Starting asynchronous transfer processing thread
+ INFO  usbfly::cynthion::new_connection > Started async transfer processing thread
+ DEBUG usbfly::cynthion::new_connection > Waiting for capture initialization to complete
+ INFO  usbfly::cynthion::new_connection > USB transfer processing thread started for device 1d50:615b
+ DEBUG usbfly::cynthion::new_connection > Initializing transfer queue in async processing thread for endpoint 0x81
+ DEBUG usbfly::cynthion::transfer_queue > Creating new transfer queue for endpoint 0x81
+ DEBUG usbfly::cynthion::transfer_queue > Successfully initialized 4 transfers for endpoint 0x81
+ INFO  usbfly::cynthion::new_connection > USB transfer queue successfully created in processing thread
+ DEBUG usbfly::cynthion::new_connection > Starting USB transfer processing loop - waiting for USB data packets
+ INFO  usbfly::cynthion::transfer_queue > Transfer complete: received 16384 bytes of USB data
+ DEBUG usbfly::cynthion::transfer_queue > Packet starts with: 00 12 5A 01 00 03 04 EE 69 A8 0A 03 00 01 00 12 ...
+ DEBUG usbfly::cynthion::transfer_queue > USB packet: type=0x00, ep=0x12, dev=0x5A, len=1
+ WARN  usbfly::cynthion::transfer_queue > Unrecognized packet type: 0x00 - may indicate incorrect format
+ INFO  usbfly::cynthion::transfer_queue > Transfer complete: received 16384 bytes of USB data
+ DEBUG usbfly::cynthion::transfer_queue > Packet starts with: 69 A8 0A 03 00 01 00 12 5A A8 00 03 00 3E 69 A8 ...
+ DEBUG usbfly::cynthion::transfer_queue > USB packet: type=0x69, ep=0xA8, dev=0x0A, len=3
+ WARN  usbfly::cynthion::transfer_queue > Unrecognized packet type: 0x69 - may indicate incorrect format
+ INFO  usbfly::cynthion::transfer_queue > Transfer complete: received 16384 bytes of USB data
+ DEBUG usbfly::cynthion::transfer_queue > Packet starts with: 00 12 5A CD 00 03 04 E7 69 A8 0A 0D 00 01 00 12 ...
+ DEBUG usbfly::cynthion::transfer_queue > USB packet: type=0x00, ep=0x12, dev=0x5A, len=205
+ WARN  usbfly::cynthion::transfer_queue > Unrecognized packet type: 0x00 - may indicate incorrect format
+ INFO  usbfly::cynthion::transfer_queue > Transfer complete: received 16384 bytes of USB data
+ DEBUG usbfly::cynthion::transfer_queue > Packet starts with: 00 3F 69 28 4C 03 00 01 00 11 5A 0D 00 03 04 E9 ...
+ DEBUG usbfly::cynthion::transfer_queue > USB packet: type=0x00, ep=0x3F, dev=0x69, len=40
+ WARN  usbfly::cynthion::transfer_queue > Unrecognized packet type: 0x00 - may indicate incorrect format
+
+thread '<unnamed>' panicked at /Users/fuhaku/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nusb-0.1.13/src/transfer/queue.rs:186:14:
+queue should have pending transfers when calling next_complete
+ INFO  usbfly::cynthion::new_connection > Cynthion Man-in-the-Middle mode successfully activated - ready to capture USB traffic
+ INFO  usbfly::app                      > USB traffic capture started successfully with nusb implementation
+ DEBUG usbfly::gui::views::device_view  > Auto-refreshing USB device list
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ INFO  usbfly::cynthion::new_connection > Listing devices in FORCE HARDWARE mode
+ DEBUG usbfly::app                      > Processing data through MitM decoder with new nusb implementation...
+ WARN  usbfly::cynthion::new_connection > Received empty data for transaction processing - check device connection
+ DEBUG usbfly::app                      > No transactions decoded from packet
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Processing data through MitM decoder with new nusb implementation...
+ DEBUG usbfly::app                      > No transactions decoded from packet
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Processing data through MitM decoder with new nusb implementation...
+ WARN  usbfly::cynthion::new_connection > Received empty data for transaction processing - check device connection
+ DEBUG usbfly::app                      > No transactions decoded from packet
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Processing data through MitM decoder with new nusb implementation...
+ WARN  usbfly::cynthion::new_connection > Received empty data for transaction processing - check device connection
+ DEBUG usbfly::app                      > No transactions decoded from packet
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Processing data through MitM decoder with new nusb implementation...
+ WARN  usbfly::cynthion::new_connection > Received empty data for transaction processing - check device connection
+ DEBUG usbfly::app                      > No transactions decoded from packet
+ INFO  usbfly::app                      > Disconnecting from Cynthion device
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::app                      > Received USB data packet: 0 bytes
+ DEBUG usbfly::usb::decoder             > Resetting USB decoder state
+ DEBUG usbfly::gui::views::device_view  > Auto-refreshing USB device list
+ INFO  usbfly::cynthion::new_connection > Listing devices in FORCE HARDWARE mode
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8262 Ambient Light Sensor
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8514 FaceTime HD Camera (Built-in)
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8102 Touch Bar Backlight
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8233 Apple T2 Controller
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8103 Headset
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:8302 Touch Bar Display
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:027c Apple Internal Keyboard / Trackpad
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:1d50 PID:615b USB Analyzer
+ INFO  usbfly::cynthion::new_connection > 👉 CYNTHION DEVICE FOUND: VID:1d50 PID:615b USB Analyzer
+ DEBUG usbfly::cynthion::new_connection > USB device detected: VID:05ac PID:12a8 iPhone
+ INFO  usbfly::cynthion::new_connection > Found potential Cynthion device: VID:1d50 PID:615b
+ INFO  usbfly::cynthion::new_connection > ✓ Added Cynthion-compatible device to available list: 1d50:615b
+ INFO  usbfly::cynthion::new_connection > Found 1 Cynthion-compatible devices
+ DEBUG usbfly::gui::views::device_view  > USB device list refreshed (no changes)
+ DEBUG usbfly::gui::views::device_view  > Updated selected device information
+ INFO  wgpu_core::hub                   > Dropping Global
+ INFO  wgpu_core::device                > Destroying 3 command encoders
+
+Saving session...
+...copying shared history...
+...saving history...truncating history files...
+...completed.
+
+[Process completed]

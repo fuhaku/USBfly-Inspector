@@ -1041,15 +1041,41 @@ impl CynthionHandle {
         // For our nusb implementation, properly process the data
         let mut transactions = Vec::new();
         
-        // Ensure we have enough data for at least one transaction (minimum 8 bytes)
+        // Enhanced handling for data packets of all sizes
         if data.len() < 8 {
-            debug!("Data too short to contain valid USB transaction: {} bytes", data.len());
+            debug!("Data is shorter than expected minimum 8 bytes: {} bytes", data.len());
             // Show the raw data for diagnostic purposes when it's too short
             if !data.is_empty() {
                 let hex_string = data.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
-                debug!("Incomplete data received: {}", hex_string);
+                debug!("Raw packet data: {}", hex_string);
+                
+                // Try to extract any useful information from short packets
+                if data.len() >= 4 {
+                    debug!("Attempting to extract basic header from short packet");
+                    let packet_type = data[0];
+                    let endpoint = data[1];
+                    let device_addr = data[2];
+                    let data_len = data[3];
+                    debug!("Short packet header: type=0x{:02X}, ep=0x{:02X}, dev=0x{:02X}, len={}",
+                           packet_type, endpoint, device_addr, data_len);
+                    
+                    // Check if this is one of our newly recognized packet types
+                    let alternative_types = [0xA5, 0x00, 0x23, 0x69];
+                    if alternative_types.contains(&packet_type) {
+                        debug!("Short packet contains recognized alternative packet type");
+                        // We'll handle these special types even if they're shorter than expected
+                        // Continue processing instead of returning early
+                    } else {
+                        // Not a recognized type, likely just incomplete data
+                        return Vec::new();
+                    }
+                } else {
+                    // Too short to extract meaningful header information
+                    return Vec::new();
+                }
+            } else {
+                return Vec::new();
             }
-            return Vec::new();
         }
         
         // Log detailed information about received data for debugging
@@ -1064,12 +1090,19 @@ impl CynthionHandle {
         // Process data into packets according to Cynthion/Packetry format
         // Each packet has: packet_type(1), endpoint(1), device_addr(1), data_len(1), data(variable)
         let mut offset = 0;
-        while offset + 8 <= data.len() {
-            // 1. Read packet header
+        while offset + 4 <= data.len() {
+            // 1. Read packet header - minimum 4 bytes for header
             let packet_type = data[offset];
             let endpoint = data[offset + 1];
             let device_addr = data[offset + 2];
             let data_len = data[offset + 3] as usize;
+            
+            // Special handling for alternative packet types
+            let alternative_types = [0xA5, 0x00, 0x23, 0x69];
+            if alternative_types.contains(&packet_type) {
+                debug!("Processing alternative packet type: 0x{:02X}", packet_type);
+                // These might have a different structure - add special handling here
+            }
             
             // Provide more detailed logging for each packet
             debug!("Processing USB packet: type=0x{:02X}, endpoint=0x{:02X}, device=0x{:02X}, len={}", 
@@ -1086,8 +1119,9 @@ impl CynthionHandle {
             };
             
             // 3. Identify transfer type based on packet_type and endpoint number
-            // According to Packetry documentation, packet_type indicates the USB token type
+            // Updated to support both standard Packetry formatting and the format observed in your logs
             let transfer_type = match packet_type {
+                // Standard Packetry documentation token types
                 0xD0 => UsbTransferType::Control,   // SETUP token (control transfer)
                 0x90 => UsbTransferType::Bulk,      // IN token (bulk transfer)
                 0xC0 => UsbTransferType::Interrupt, // IN token (interrupt transfer)
@@ -1096,15 +1130,30 @@ impl CynthionHandle {
                 0xA0 => UsbTransferType::Isochronous, // IN token (isochronous transfer)
                 0x20 => UsbTransferType::Isochronous, // OUT token (isochronous transfer)
                 0xE0 => UsbTransferType::Control,   // Special case for status stage
+                
+                // Observed in logs - alternative format packet types
+                0xA5 => UsbTransferType::Control,   // Possibly setup or control transfer
+                0x00 => UsbTransferType::Bulk,      // Unknown but common in capture
+                0x23 => UsbTransferType::Interrupt, // Based on observed patterns
+                0x69 => UsbTransferType::Bulk,      // Based on observed patterns
+                
                 _ => {
                     debug!("Unknown packet type: 0x{:02X}, using heuristics to determine type", packet_type);
-                    // Use endpoint number to make an educated guess
-                    // By USB spec, EP0 is control, low numbers often bulk, higher often interrupt
+                    // Enhanced heuristics that look at both packet type and endpoint
                     match endpoint & 0x7F {
                         0 => UsbTransferType::Control,  // EP0 is always control
                         1 => UsbTransferType::Isochronous, // Often used for isochronous
                         2..=3 => UsbTransferType::Bulk, // Often used for bulk
-                        _ => UsbTransferType::Interrupt // Higher EPs often interrupt
+                        _ => {
+                            // Additional endpoint pattern heuristics
+                            if endpoint >= 0x80 && endpoint <= 0x8F {
+                                UsbTransferType::Bulk // Often higher IN endpoints are bulk
+                            } else if endpoint >= 0xA0 && endpoint <= 0xAF {
+                                UsbTransferType::Interrupt // Often IN endpoints with bit 5 set are interrupt
+                            } else {
+                                UsbTransferType::Interrupt // Default for other pattern
+                            }
+                        }
                     }
                 }
             };
