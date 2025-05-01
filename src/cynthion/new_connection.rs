@@ -390,8 +390,12 @@ impl CynthionHandle {
     
     // Start capture with a specific speed setting
     pub fn start_capture_with_speed(&mut self, speed: Speed) -> Result<()> {
-        // Log the selected speed for verification
+        // Enhanced logging for debugging the start capture process
+        info!("-------------- STARTING CAPTURE ------------------");
         info!("Starting capture with user-selected speed: {:?}", speed);
+        debug!("Device info: VID:{:04x} PID:{:04x} ({})", 
+               self.device_info.vendor_id(), self.device_info.product_id(), 
+               self.device_info.product_string().unwrap_or("Unknown"));
         
         // Create a channel to receive packets from the device
         let (data_tx, data_rx) = std::sync::mpsc::channel();

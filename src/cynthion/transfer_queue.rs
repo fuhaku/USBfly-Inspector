@@ -7,7 +7,7 @@ use std::time::Duration;
 use anyhow::{Error, anyhow};
 use futures_channel::oneshot;
 use futures_util::{future::FusedFuture, FutureExt, select_biased};
-use log::{debug, error, info, warn, trace};
+use log::{debug, error, info, warn};
 use nusb::{Interface, transfer::{Queue, RequestBuffer, TransferError}}; // Removed unused Completion
 
 // Import only what we need from Packetry's approach
@@ -197,14 +197,14 @@ impl TransferQueue {
                                 
                                 // Send the data to the processing channel
                                 match self.data_tx.send(completion.data) {
-                                    Ok(_) => trace!("Successfully sent {} bytes to data channel", data_len),
+                                    Ok(_) => debug!("Successfully sent {} bytes to data channel", data_len),
                                     Err(e) => return Err(anyhow!("Failed sending capture data to channel: {}", e)),
                                 };
                             }
                             
                             if !stop_rx.is_terminated() {
                                 // Submit next transfer to keep queue full
-                                trace!("Submitting new bulk transfer request");
+                                debug!("Submitting new bulk transfer request");
                                 self.queue.submit(
                                     RequestBuffer::new(self.transfer_length)
                                 );

@@ -421,6 +421,9 @@ impl DeviceView {
             // Always enable speed selection for devices when connected
             let show_speed_selection = true;
             
+            debug!("Speed selection enabled for device: {} (VID:{:04x} PID:{:04x})", 
+                  device.product(), device.vendor_id(), device.product_id());
+            
             // Add debug logging to confirm speed selection visibility
             info!("USB Speed selection enabled for device: {}:{} ({})", 
                  device.vendor_id(), device.product_id(), device.product());
@@ -542,18 +545,25 @@ impl DeviceView {
         let content = column![
             header,
             error_display,
+            // Make device list scrollable with fixed height
             container(
                 scrollable(device_list)
                     .height(Length::Fill)
+                    .id(iced::widget::scrollable::Id::new("device-list-scroll")) // Add ID for better tracking
             )
                 .style(iced::theme::Container::Box)
                 .padding(10)
                 .width(Length::Fill)
                 .height(Length::Fixed(200.0)),
-            container(device_details)
+            // Make device details scrollable too
+            container(
+                scrollable(device_details)
+                    .id(iced::widget::scrollable::Id::new("device-details-scroll"))
+            )
                 .style(iced::theme::Container::Box)
                 .padding(10)
                 .width(Length::Fill)
+                .height(Length::Fixed(250.0)) // Give it more space
         ]
         .spacing(20)
         .padding(20)

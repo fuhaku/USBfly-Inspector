@@ -261,17 +261,19 @@ impl Application for USBflyApp {
                 }
             }
             Message::Disconnect => {
-                if let Some(_handle) = &self.cynthion_handle {
-                    // With the new implementation, we don't need to explicitly disconnect
-                    // Just release the handle to close the device
-                    info!("Disconnecting from Cynthion device");
-                }
+                info!("Disconnecting from Cynthion device");
+                debug!("Clearing both connection handles");
+                
+                // Clear both handles to ensure consistent state
                 self.cynthion_handle = None;
                 self.connection = None;
                 self.connected = false;
                 Command::none()
             }
             Message::ConnectionEstablished(handle) => {
+                // Set both handles to the same value to ensure consistent usage
+                info!("Connection established with Cynthion device");
+                debug!("Synchronizing both connection handles");
                 self.cynthion_handle = Some(handle.clone());
                 self.connection = Some(handle);
                 self.connected = true;
@@ -286,9 +288,17 @@ impl Application for USBflyApp {
                 // After too many consecutive errors, we attempt automatic recovery
                 log::warn!("Detected possible connection failure from persistent USB read errors");
                 
-                // With nusb, a hanging handle will just mean a delay, we can assume
-                // the device is still connected if we have a handle
-                let is_connected = self.cynthion_handle.is_some();
+                // Check if either handle is valid - if so, synchronize them
+                let is_connected = self.cynthion_handle.is_some() || self.connection.is_some();
+                
+                // Ensure handle synchronization if one is missing
+                if self.connection.is_some() && self.cynthion_handle.is_none() {
+                    debug!("Synchronizing handles during possible failure: copying from connection to cynthion_handle");
+                    self.cynthion_handle = self.connection.clone();
+                } else if self.cynthion_handle.is_some() && self.connection.is_none() {
+                    debug!("Synchronizing handles during possible failure: copying from cynthion_handle to connection");
+                    self.connection = self.cynthion_handle.clone();
+                }
                 
                 if !is_connected {
                     // If we don't have a handle, show an error
@@ -336,8 +346,17 @@ impl Application for USBflyApp {
                     // First add the raw packet for traditional view
                     self.traffic_view.add_packet(data.clone(), decoded.clone());
                     
-                    // Process the data with our enhanced decoder using the new handle
-                    if let Some(handle) = &self.cynthion_handle {
+                    // Ensure handle synchronization for data processing too
+                    if self.connection.is_some() && self.cynthion_handle.is_none() {
+                        debug!("Synchronizing handles for data processing: copying from connection to cynthion_handle");
+                        self.cynthion_handle = self.connection.clone();
+                    } else if self.cynthion_handle.is_some() && self.connection.is_none() {
+                        debug!("Synchronizing handles for data processing: copying from cynthion_handle to connection");
+                        self.connection = self.cynthion_handle.clone();
+                    }
+                    
+                    // Process the data with our enhanced decoder using the connection handle
+                    if let Some(handle) = &self.connection {
                         if let Ok(mut cynthion_handle) = handle.lock() {
                             // Check if this data contains evidence of USB devices connected to Cynthion
                             // This helps optimize packet processing for connected devices
@@ -377,7 +396,7 @@ impl Application for USBflyApp {
                             debug!("Could not acquire handle lock for MitM processing");
                         }
                     } else {
-                        trace!("No device handle available for MitM processing");
+                        debug!("No device handle available for MitM processing");
                     }
                     
                     // Continue with descriptor view update
@@ -459,12 +478,30 @@ impl Application for USBflyApp {
                 Command::batch(commands)
             }
             Message::StartCapture => {
-                if let Some(handle) = &self.cynthion_handle {
+                debug!("Starting capture: cynthion_handle={}, connection={}", 
+                       self.cynthion_handle.is_some(), self.connection.is_some());
+                       
+                // Make sure both handles are in sync - there should be a single source of truth
+                // Copy from connection to cynthion_handle if needed
+                if self.connection.is_some() && self.cynthion_handle.is_none() {
+                    debug!("Synchronizing handles: copying from connection to cynthion_handle");
+                    self.cynthion_handle = self.connection.clone();
+                }
+                // Copy from cynthion_handle to connection if needed
+                else if self.cynthion_handle.is_some() && self.connection.is_none() {
+                    debug!("Synchronizing handles: copying from cynthion_handle to connection");
+                    self.connection = self.cynthion_handle.clone();
+                }
+                
+                if let Some(handle) = &self.connection {
                     let handle_clone = Arc::clone(handle);
                     
                     // Get the user-selected speed from device view
                     let selected_speed = self.device_view.get_selected_speed();
                     info!("Starting USB traffic capture with speed: {:?}", selected_speed);
+                    
+                    // Additional debugging for capture start
+                    debug!("Preparing to start capture with Cynthion handle...");
                     
                     // Update UI state to show capture is active
                     self.traffic_view.set_capture_active(true);
@@ -511,10 +548,12 @@ impl Application for USBflyApp {
                                 match start_result {
                                     Ok(_) => {
                                         info!("USB traffic capture started successfully with nusb implementation");
+                                        info!("Capture started with speed: {:?}", selected_speed);
                                         Message::CaptureStarted
                                     },
                                     Err(e) => {
                                         error!("Failed to start capture: {}", e);
+                                        error!("Capture start failure with speed: {:?}", selected_speed);
                                         Message::CaptureError(format!("Failed to start capture: {}", e))
                                     }
                                 }
@@ -528,6 +567,21 @@ impl Application for USBflyApp {
                 }
             }
             Message::StopCapture => {
+                debug!("Stopping capture: cynthion_handle={}, connection={}", 
+                       self.cynthion_handle.is_some(), self.connection.is_some());
+                       
+                // Make sure both handles are in sync before stopping
+                // Copy from connection to cynthion_handle if needed
+                if self.connection.is_some() && self.cynthion_handle.is_none() {
+                    debug!("Synchronizing handles for stop: copying from connection to cynthion_handle");
+                    self.cynthion_handle = self.connection.clone();
+                }
+                // Copy from cynthion_handle to connection if needed
+                else if self.cynthion_handle.is_some() && self.connection.is_none() {
+                    debug!("Synchronizing handles for stop: copying from cynthion_handle to connection");
+                    self.connection = self.cynthion_handle.clone();
+                }
+                
                 if let Some(connection) = &self.connection {
                     let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
@@ -595,6 +649,21 @@ impl Application for USBflyApp {
                 }
             }
             Message::ClearCaptureBuffer => {
+                debug!("Clearing buffer: cynthion_handle={}, connection={}", 
+                       self.cynthion_handle.is_some(), self.connection.is_some());
+                       
+                // Make sure both handles are in sync before clearing buffer
+                // Copy from connection to cynthion_handle if needed
+                if self.connection.is_some() && self.cynthion_handle.is_none() {
+                    debug!("Synchronizing handles for clear: copying from connection to cynthion_handle");
+                    self.cynthion_handle = self.connection.clone();
+                }
+                // Copy from cynthion_handle to connection if needed
+                else if self.cynthion_handle.is_some() && self.connection.is_none() {
+                    debug!("Synchronizing handles for clear: copying from cynthion_handle to connection");
+                    self.connection = self.cynthion_handle.clone();
+                }
+
                 if let Some(connection) = &self.connection {
                     let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
@@ -710,6 +779,21 @@ impl Application for USBflyApp {
                 )
             }
             Message::FetchCaptureData => {
+                debug!("Fetching data: cynthion_handle={}, connection={}", 
+                       self.cynthion_handle.is_some(), self.connection.is_some());
+                       
+                // Make sure both handles are in sync before fetching data
+                // Copy from connection to cynthion_handle if needed
+                if self.connection.is_some() && self.cynthion_handle.is_none() {
+                    debug!("Synchronizing handles for fetch: copying from connection to cynthion_handle");
+                    self.cynthion_handle = self.connection.clone();
+                }
+                // Copy from cynthion_handle to connection if needed
+                else if self.cynthion_handle.is_some() && self.connection.is_none() {
+                    debug!("Synchronizing handles for fetch: copying from cynthion_handle to connection");
+                    self.connection = self.cynthion_handle.clone();
+                }
+                
                 if let Some(connection) = &self.connection {
                     let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
                     
