@@ -462,7 +462,9 @@ impl Application for USBflyApp {
                 if let Some(handle) = &self.cynthion_handle {
                     let handle_clone = Arc::clone(handle);
                     
-                    info!("Starting USB traffic capture with new nusb implementation...");
+                    // Get the user-selected speed from device view
+                    let selected_speed = self.device_view.get_selected_speed();
+                    info!("Starting USB traffic capture with speed: {:?}", selected_speed);
                     
                     // Update UI state to show capture is active
                     self.traffic_view.set_capture_active(true);
@@ -475,8 +477,8 @@ impl Application for USBflyApp {
                                 
                                 // Try to start capture while we have the lock
                                 let result = if !is_sim {
-                                    // Only try to actually start capture for real devices
-                                    cynthion_handle.start_capture()
+                                    // Only try to actually start capture for real devices with selected speed
+                                    cynthion_handle.start_capture_with_speed(selected_speed)
                                 } else {
                                     // For simulation mode, just pretend it succeeded
                                     Ok(())
@@ -710,6 +712,10 @@ impl Application for USBflyApp {
             Message::FetchCaptureData => {
                 if let Some(connection) = &self.connection {
                     let conn_clone: Arc<Mutex<CynthionHandle>> = Arc::clone(connection);
+                    
+                    // Log the selected speed used for this capture
+                    let selected_speed = self.device_view.get_selected_speed();
+                    info!("Fetching capture data (connection speed: {:?})", selected_speed);
                     
                     // Use a simulated capture data approach for safety
                     // This avoids the Send/Sync issues with MutexGuard across await points

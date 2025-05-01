@@ -384,6 +384,15 @@ impl CynthionHandle {
     
     // Enhanced method for capturing USB traffic from devices connected to Cynthion
     pub fn start_capture(&mut self) -> Result<()> {
+        // Use Auto speed by default
+        self.start_capture_with_speed(Speed::Auto)
+    }
+    
+    // Start capture with a specific speed setting
+    pub fn start_capture_with_speed(&mut self, speed: Speed) -> Result<()> {
+        // Log the selected speed for verification
+        info!("Starting capture with user-selected speed: {:?}", speed);
+        
         // Create a channel to receive packets from the device
         let (data_tx, data_rx) = std::sync::mpsc::channel();
         
@@ -395,8 +404,8 @@ impl CynthionHandle {
         
         // If the device is ready, set up the enhanced transfer queue immediately
         if self.device_info.vendor_id() == CYNTHION_VID {
-            info!("Starting enhanced capture on Cynthion device: {:04x}:{:04x}", 
-                  self.device_info.vendor_id(), self.device_info.product_id());
+            info!("Starting enhanced capture on Cynthion device: {:04x}:{:04x} with speed: {:?}", 
+                  self.device_info.vendor_id(), self.device_info.product_id(), speed);
             
             // Enhanced device preparation for connected device detection
             info!("Preparing Cynthion with optimized connected device detection");
@@ -491,24 +500,37 @@ impl CynthionHandle {
                 }
                 
                 // For Cynthion, we need to properly set the USB speed for optimal capturing
-                // Try both Auto and High speed settings based on Packetry documentation
-                let speeds_to_try = [Speed::Auto, Speed::High];
+                // When using start_capture_with_speed, we prioritize the user-specified speed
+                // but will fall back to alternatives if it fails
+                let mut speeds_to_try = vec![speed];
+                
+                // Add fallback speeds if needed, but avoid duplicates
+                if speed != Speed::Auto {
+                    speeds_to_try.push(Speed::Auto);
+                }
+                if speed != Speed::High {
+                    speeds_to_try.push(Speed::High);
+                }
+                if speed != Speed::Full && speed != Speed::Auto && speed != Speed::High {
+                    speeds_to_try.push(Speed::Full);
+                }
+                
                 let mut speed_success = false;
                 
-                for speed in &speeds_to_try {
-                    info!("Trying to start capture with speed mode: {:?}", speed);
+                for current_speed in &speeds_to_try {
+                    info!("Trying to start capture with speed mode: {:?}", current_speed);
                     
                     // Now send the start capture command with the selected speed
-                    match self.write_request(1, State::new(true, *speed).0) {
+                    match self.write_request(1, State::new(true, *current_speed).0) {
                         Ok(_) => {
-                            info!("Successfully started MitM capture with {:?} speed on attempt {}", speed, attempt);
+                            info!("Successfully started MitM capture with {:?} speed on attempt {}", current_speed, attempt);
                             speed_success = true;
                             success = true;
                             break; // Break out of the speed loop
                         },
                         Err(e) => {
                             warn!("Failed to start MitM capture with {:?} speed (attempt {}/{}): {}", 
-                                  speed, attempt, max_attempts, e);
+                                  current_speed, attempt, max_attempts, e);
                             last_error = Some(e);
                             
                             // Wait a bit before trying the next speed
@@ -669,6 +691,20 @@ impl CynthionHandle {
     #[allow(dead_code)]
     pub fn end_capture(&mut self) -> Result<()> {
         self.stop_capture()
+    }
+    
+    // Begin capture with specified speed and return a queue for processing transfers
+    #[allow(dead_code)]
+    pub fn begin_capture_with_speed(
+        &mut self,
+        data_tx: mpsc::Sender<Vec<u8>>,
+        speed: Speed
+    ) -> Result<TransferQueue> {
+        // Use specified speed
+        self.start_capture_with_speed(speed)?;
+        
+        Ok(TransferQueue::new(&self.interface, data_tx,
+            ENDPOINT, NUM_TRANSFERS, READ_LEN))
     }
     
     // Get device information

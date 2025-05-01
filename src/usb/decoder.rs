@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 // Speed enum from the previous decoder/mod.rs
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Speed {
     Auto = 0,
     High = 1,
@@ -19,6 +19,17 @@ impl Speed {
     #[allow(dead_code)]
     pub fn mask(&self) -> u8 {
         1 << (*self as u8)
+    }
+}
+
+impl std::fmt::Display for Speed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Speed::Auto => write!(f, "Auto"),
+            Speed::High => write!(f, "High Speed"),
+            Speed::Full => write!(f, "Full Speed"),
+            Speed::Low => write!(f, "Low Speed"),
+        }
     }
 }
 

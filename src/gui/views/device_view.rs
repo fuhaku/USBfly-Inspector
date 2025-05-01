@@ -26,6 +26,8 @@ pub struct DeviceView {
     // Auto-refresh timer
     last_refresh_time: std::time::Instant,
     auto_refresh_interval: std::time::Duration,
+    // Speed selection for USB capture
+    selected_speed: crate::usb::Speed,
 }
 
 // Custom styles for compatible device rows
@@ -67,6 +69,7 @@ pub enum Message {
     DeviceSelected(CynthionDevice),
     DevicesLoaded(Result<Vec<CynthionDevice>, String>),
     CheckAutoRefresh,
+    SpeedSelected(crate::usb::Speed),
     NoOp,
 }
 
@@ -80,7 +83,14 @@ impl DeviceView {
             last_refresh_time: std::time::Instant::now(),
             // Auto-refresh every 2 seconds by default - this can be tuned for better experience
             auto_refresh_interval: std::time::Duration::from_secs(2),
+            // Default to Auto speed setting
+            selected_speed: crate::usb::Speed::Auto,
         }
+    }
+    
+    // Get the currently selected speed for USB capture
+    pub fn get_selected_speed(&self) -> crate::usb::Speed {
+        self.selected_speed
     }
     
     // Call this method after creating a new instance to start the initial device scan
@@ -259,6 +269,11 @@ impl DeviceView {
                         }
                     }
                 }
+                Command::none()
+            },
+            Message::SpeedSelected(speed) => {
+                info!("USB speed selection changed to: {:?}", speed);
+                self.selected_speed = speed;
                 Command::none()
             },
             Message::NoOp => Command::none(),
@@ -454,6 +469,34 @@ impl DeviceView {
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
                             text(device.serial_number())
                                 .width(Length::FillPortion(2))
+                        ].padding(5).spacing(10),
+                        
+                        // Add USB speed selection picker for compatible devices
+                        row![
+                            text("USB Speed:")
+                                .width(Length::FillPortion(1))
+                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
+                            
+                            // Use different elements based on compatibility
+                            {let speed_control = if is_compatible {
+                                let pick_list = iced::widget::pick_list(
+                                    &[crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low] as &[_],
+                                    Some(self.selected_speed),
+                                    Message::SpeedSelected
+                                )
+                                .width(Length::FillPortion(2))
+                                .text_size(14)
+                                .style(iced::theme::PickList::Default);
+                                
+                                Element::from(pick_list)
+                            } else {
+                                let unavailable_text = text("Not available for this device")
+                                    .width(Length::FillPortion(2))
+                                    .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY));
+                                    
+                                Element::from(unavailable_text)
+                            };
+                            speed_control}
                         ].padding(5).spacing(10),
                     ]
                     .spacing(5)
