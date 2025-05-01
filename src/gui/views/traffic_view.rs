@@ -83,6 +83,7 @@ pub struct TrafficView {
     root_nodes: Vec<TreeNodeId>,
     dark_mode: bool,
     capture_active: bool, // Whether traffic capture is currently active
+    speed_selection_open: bool, // Whether the speed selection dialog is open
 }
 
 #[derive(Debug, Clone)]
@@ -95,6 +96,10 @@ pub enum Message {
     LoadData(Vec<TrafficItem>),
     ToggleTreeNode(TreeNodeId),
     ToggleDarkMode(bool),
+    // New messages for speed change functionality
+    OpenSpeedDialog,
+    CloseSpeedDialog,
+    ChangeSpeed(crate::usb::Speed),
     NoOp,
 }
 
@@ -109,12 +114,18 @@ impl TrafficView {
             root_nodes: Vec::new(),
             dark_mode: true, // Default to dark mode for hacker-friendly UI
             capture_active: false, // Default to capture not active
+            speed_selection_open: false, // Default to speed selection dialog closed
         }
     }
     
     // Add a method to set the capture active state
     pub fn set_capture_active(&mut self, active: bool) {
         self.capture_active = active;
+    }
+    
+    // Method to check if capture is active
+    pub fn is_capture_active(&self) -> bool {
+        self.capture_active
     }
     
     // Add a method to clear captured traffic
@@ -342,6 +353,21 @@ impl TrafficView {
             },
             Message::ToggleDarkMode(enabled) => {
                 self.dark_mode = enabled;
+                Command::none()
+            },
+            // New messages for speed dialog
+            Message::OpenSpeedDialog => {
+                self.speed_selection_open = true;
+                Command::none()
+            },
+            Message::CloseSpeedDialog => {
+                self.speed_selection_open = false;
+                Command::none()
+            },
+            Message::ChangeSpeed(_) => {
+                // This is handled by the app with a custom map_message function
+                // We just need to close the dialog here
+                self.speed_selection_open = false;
                 Command::none()
             },
             Message::NoOp => Command::none(),
@@ -850,9 +876,28 @@ impl TrafficView {
             .on_press(Message::ClearTraffic)
             .style(iced::theme::Button::Destructive);
             
+        // Add Change Speed button when capture is active
+        let change_speed_button = if self.capture_active {
+            button("Change Device Speed")
+                .on_press(Message::OpenSpeedDialog)
+                .style(if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(styles::DarkModePrimaryButton))
+                } else {
+                    iced::theme::Button::Primary
+                })
+        } else {
+            button("Change Device Speed")
+                .style(if self.dark_mode {
+                    iced::theme::Button::Custom(Box::new(styles::DarkModeSecondaryButton))
+                } else {
+                    iced::theme::Button::Secondary
+                })
+        };
+        
         // Group buttons together
         let action_buttons = row![
             auto_scroll_button,
+            change_speed_button,
             clear_button,
         ]
         .spacing(10)
@@ -1003,16 +1048,93 @@ impl TrafficView {
             })
         };
         
-        let content = column![
-            header,
-            capture_status,
-            traffic_list
-        ]
-        .spacing(10)
-        .padding(10)
-        .width(Length::Fill)
-        .height(Length::Fill);
+        // Create the speed selection dialog if it's open
+        let content = if self.speed_selection_open {
+            let speeds = [crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low];
+            
+            // Create the dialog content with explanation text
+            let dialog_content = column![
+                text("Select Attached Device Speed")
+                    .size(20)
+                    .style(if self.dark_mode {
+                        iced::theme::Text::Color(color::dark::PRIMARY_LIGHT)
+                    } else {
+                        iced::theme::Text::Color(color::PRIMARY_DARK)
+                    }),
+                
+                text("This setting configures Cynthion to match the speed of the attached USB device.\nSelect the speed of the USB device connected to Cynthion's host port.\nChanging the speed requires a reconnection to apply the new setting.")
+                    .size(14)
+                    .style(if self.dark_mode {
+                        iced::theme::Text::Color(color::dark::TEXT)
+                    } else {
+                        iced::theme::Text::Color(color::TEXT)
+                    }),
+                
+                Space::with_height(Length::Fixed(20.0)),
+                
+                // Create a button for each speed option
+                column(speeds.iter().map(|&speed| {
+                    button(
+                        text(format!("{}", speed))
+                            .width(Length::Fill)
+                            .horizontal_alignment(iced::alignment::Horizontal::Center)
+                    )
+                    .width(Length::Fill)
+                    .on_press(Message::ChangeSpeed(speed))
+                    .style(if self.dark_mode {
+                        iced::theme::Button::Custom(Box::new(styles::DarkModePrimaryButton))
+                    } else {
+                        iced::theme::Button::Primary
+                    })
+                }).collect())
+                .spacing(10)
+                .width(Length::Fill),
+                
+                Space::with_height(Length::Fixed(20.0)),
+                
+                button("Cancel")
+                    .width(Length::Fill)
+                    .on_press(Message::CloseSpeedDialog)
+                    .style(if self.dark_mode {
+                        iced::theme::Button::Custom(Box::new(styles::DarkModeSecondaryButton))
+                    } else {
+                        iced::theme::Button::Secondary
+                    })
+            ]
+            .spacing(10)
+            .padding(20)
+            .width(Length::Fixed(400.0));
+            
+            // Create a modal dialog with the content
+            container(
+                container(dialog_content)
+                    .style(if self.dark_mode {
+                        iced::theme::Container::Custom(Box::new(styles::DarkModeContainer))
+                    } else {
+                        iced::theme::Container::Box
+                    })
+                    .center_x()
+                    .center_y()
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(iced::theme::Container::Custom(Box::new(styles::ModalBackground)))
+            .into()
+        } else {
+            // Normal content when not showing dialog
+            let main_content = column![
+                header,
+                capture_status,
+                traffic_list
+            ]
+            .spacing(10)
+            .padding(10)
+            .width(Length::Fill)
+            .height(Length::Fill);
+            
+            main_content.into()
+        };
         
-        content.into()
+        content
     }
 }

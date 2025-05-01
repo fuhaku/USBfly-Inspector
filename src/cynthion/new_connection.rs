@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use std::sync::mpsc;
 use std::time::Duration;
 
-use anyhow::{Result, bail, Context as AnyhowContext, Error};
+use anyhow::{Result, bail, Context as AnyhowContext, Error, anyhow};
 use log::{info, error, warn, debug, trace};
 use nusb::{
     self,
@@ -382,6 +382,73 @@ impl CynthionHandle {
         Ok(speeds)
     }
     
+    // Set USB speed of the device without starting capture
+    pub fn set_speed(&mut self, speed: Speed) -> Result<()> {
+        info!("Setting USB speed to {:?}", speed);
+        
+        // First stop any ongoing capture with multiple attempts
+        let max_stop_attempts = 3;
+        let mut stop_success = false;
+        
+        for attempt in 1..=max_stop_attempts {
+            info!("Attempt {}/{} to stop capture before speed change", attempt, max_stop_attempts);
+            
+            match self.write_request(1, State::new(false, speed).0) {
+                Ok(_) => {
+                    info!("Successfully stopped capture for speed change");
+                    stop_success = true;
+                    break;
+                },
+                Err(e) => {
+                    warn!("Attempt {}/{} failed to stop capture: {}", attempt, max_stop_attempts, e);
+                    // Longer delay for each retry attempt
+                    let wait_time = 200 * attempt;
+                    std::thread::sleep(std::time::Duration::from_millis(wait_time));
+                }
+            }
+        }
+        
+        if !stop_success {
+            warn!("Failed to stop capture after {} attempts, attempting speed change anyway", max_stop_attempts);
+        }
+        
+        // Wait for the device to process the command
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        
+        // Set the speed by using the TestConfig command
+        let speed_config = TestConfig::new(Some(speed)).0;
+        
+        // Try to set speed with multiple attempts
+        let max_set_attempts = 3;
+        for attempt in 1..=max_set_attempts {
+            info!("Attempt {}/{} to set USB speed to {:?}", attempt, max_set_attempts, speed);
+            
+            match self.write_request(0x0A, speed_config) {
+                Ok(_) => {
+                    info!("Successfully set USB speed to {:?}", speed);
+                    // Remember this speed for future connections
+                    crate::cynthion::device_detector::UsbDeviceConnectionDetector::set_last_successful_speed(speed);
+                    return Ok(());
+                },
+                Err(e) => {
+                    warn!("Attempt {}/{} failed to set speed to {:?}: {}", 
+                          attempt, max_set_attempts, speed, e);
+                    
+                    if attempt < max_set_attempts {
+                        // Incremental delay between attempts
+                        let wait_time = 300 * attempt;
+                        std::thread::sleep(std::time::Duration::from_millis(wait_time));
+                    } else {
+                        return Err(anyhow!("Failed to set USB speed after {} attempts: {}", max_set_attempts, e));
+                    }
+                }
+            }
+        }
+        
+        // This should never be reached due to return statements above, but added for completeness
+        Err(anyhow!("Failed to set USB speed: unexpected error"))
+    }
+    
     // Enhanced method for capturing USB traffic from devices connected to Cynthion
     pub fn start_capture(&mut self) -> Result<()> {
         // Use Auto speed by default
@@ -602,6 +669,31 @@ impl CynthionHandle {
     // Stop capturing USB traffic
     pub fn stop_capture(&mut self) -> Result<()> {
         self.write_request(1, State::new(false, Speed::High).0)
+    }
+    
+    // Release the device and clean up resources
+    pub fn release_device(&mut self) -> Result<()> {
+        // First stop any active capture
+        if let Err(e) = self.stop_capture() {
+            warn!("Error stopping capture during device release: {}", e);
+            // Continue with release even if stop_capture fails
+        }
+        
+        // Release the transfer queue if it exists
+        if let Some(mut queue) = self.transfer_queue.take() {
+            if let Err(e) = queue.cancel() {
+                warn!("Error canceling transfer queue during device release: {}", e);
+                // Continue with release even if cancel fails
+            }
+        }
+        
+        // Clear any pending data channel
+        self.pending_data_tx = None;
+        self.data_receiver = None;
+        
+        // The interface will be released when the struct is dropped
+        info!("Device released successfully");
+        Ok(())
     }
     
     // Configure the built-in test device (if available)

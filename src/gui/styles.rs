@@ -412,6 +412,23 @@ impl iced::widget::button::StyleSheet for GhostButton {
 }
 
 // Dark mode containers
+// Modal background overlay for dialogs
+pub struct ModalBackground;
+
+impl iced::widget::container::StyleSheet for ModalBackground {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> iced::widget::container::Appearance {
+        iced::widget::container::Appearance {
+            background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.7))),
+            border_radius: 0.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            text_color: None,
+        }
+    }
+}
+
 pub struct DarkModeContainer;
 
 impl iced::widget::container::StyleSheet for DarkModeContainer {

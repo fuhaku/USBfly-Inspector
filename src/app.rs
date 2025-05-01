@@ -93,6 +93,7 @@ pub struct USBflyApp {
     descriptor_view: DescriptorView,
     connected: bool, // Flag to track connection state
     error_message: Option<String>,
+    status_message: Option<String>, // For displaying status messages to users
     dark_mode: bool,
 }
 
@@ -123,6 +124,10 @@ pub enum Message {
     ProcessingCapture(Arc<Mutex<CynthionHandle>>), // Process capture data from real device
     CaptureStopped,         // Notification that capture has stopped successfully
     CaptureError(String),   // Error message from capture operation
+    // Dynamic speed change functionality
+    ChangeUsbSpeed(crate::usb::Speed), // Change USB speed while connected
+    ReconnectWithSpeed(crate::usb::Speed), // Reconnect with a new speed setting
+    UpdateStatusMessage(String), // Update status message for UI feedback
 }
 
 impl Application for USBflyApp {
@@ -146,6 +151,7 @@ impl Application for USBflyApp {
             descriptor_view: DescriptorView::new(),
             connected: false,
             error_message: None,
+            status_message: None,
             dark_mode: true, // Default to dark mode for a hacker-friendly UI
         };
         
@@ -228,8 +234,21 @@ impl Application for USBflyApp {
                                 
                                 // First attempt to open the device
                                 match device.open() {
-                                    Ok(handle) => {
+                                    Ok(mut handle) => {
                                         info!("Successfully opened Cynthion device");
+                                        
+                                        // Get the selected speed from DeviceView
+                                        let speed = self.device_view.get_selected_speed();
+                                        info!("Setting connection speed to: {:?}", speed);
+                                        
+                                        // Configure the device with the selected speed
+                                        if speed != crate::usb::Speed::Auto {
+                                            match handle.set_speed(speed) {
+                                                Ok(_) => info!("✓ Successfully set USB speed to: {:?}", speed),
+                                                Err(e) => warn!("Failed to set USB speed: {} (continuing anyway)", e)
+                                            }
+                                        }
+                                        
                                         let handle = Arc::new(Mutex::new(handle));
                                         Message::ConnectionEstablished(handle)
                                     },
@@ -243,8 +262,21 @@ impl Application for USBflyApp {
                                         
                                         // Second attempt to open the device
                                         match device.open() {
-                                            Ok(handle) => {
+                                            Ok(mut handle) => {
                                                 info!("Second attempt successful - opened Cynthion device");
+                                                
+                                                // Get the selected speed from DeviceView
+                                                let speed = self.device_view.get_selected_speed();
+                                                info!("Setting connection speed to: {:?}", speed);
+                                                
+                                                // Configure the device with the selected speed
+                                                if speed != crate::usb::Speed::Auto {
+                                                    match handle.set_speed(speed) {
+                                                        Ok(_) => info!("✓ Successfully set USB speed to: {:?}", speed),
+                                                        Err(e) => warn!("Failed to set USB speed: {} (continuing anyway)", e)
+                                                    }
+                                                }
+                                                
                                                 let handle = Arc::new(Mutex::new(handle));
                                                 Message::ConnectionEstablished(handle)
                                             },
@@ -378,9 +410,31 @@ impl Application for USBflyApp {
                     .map(Message::DeviceViewMessage)
             }
             Message::TrafficViewMessage(msg) => {
-                // Forward message to traffic view and map the result back to our message type
-                self.traffic_view.update(msg)
-                    .map(Message::TrafficViewMessage)
+                // Special handling for speed change message
+                match msg {
+                    crate::gui::views::traffic_view::Message::ChangeSpeed(speed) => {
+                        // Forward the speed change message to our main app
+                        info!("Received speed change request: {:?}", speed);
+                        
+                        // Update traffic view state
+                        self.traffic_view.update(msg);
+                        
+                        // Return appropriate command to change speed
+                        if self.connected {
+                            Command::perform(
+                                async move { speed },
+                                Message::ChangeUsbSpeed
+                            )
+                        } else {
+                            Command::none()
+                        }
+                    },
+                    _ => {
+                        // Forward other messages to traffic view and map the result back to our message type
+                        self.traffic_view.update(msg)
+                            .map(Message::TrafficViewMessage)
+                    }
+                }
             }
             Message::DescriptorViewMessage(msg) => {
                 // Forward message to descriptor view and map the result back to our message type
@@ -418,67 +472,68 @@ impl Application for USBflyApp {
                         info!("Decoded USB packet of type: {}", decoded.data_type);
                         self.traffic_view.add_packet(data.clone(), decoded.clone());
                         
-                    
-                    // Ensure handle synchronization for data processing too
-                    if self.connection.is_some() && self.cynthion_handle.is_none() {
-                        debug!("Synchronizing handles for data processing: copying from connection to cynthion_handle");
-                        self.cynthion_handle = self.connection.clone();
-                    } else if self.cynthion_handle.is_some() && self.connection.is_none() {
-                        debug!("Synchronizing handles for data processing: copying from cynthion_handle to connection");
-                        self.connection = self.cynthion_handle.clone();
-                    }
-                    
-                    // Process the data with our enhanced decoder using the connection handle
-                    if let Some(handle) = &self.connection {
-                        if let Ok(mut cynthion_handle) = handle.lock() {
-                            // Check if this data contains evidence of USB devices connected to Cynthion
-                            // This helps optimize packet processing for connected devices
-                            use crate::cynthion::device_detector::UsbDeviceConnectionDetector;
-                            
-                            // Process the data for device connection detection
-                            UsbDeviceConnectionDetector::check_for_usb_device_connection(&data);
-                            
-                            // Enhanced processing with device connection awareness
-                            debug!("Processing USB traffic data through enhanced decoder...");
-                            
-                            // Get the transactions from the implementation with improved connected device support
-                            let transactions = cynthion_handle.process_transactions(&data);
-                            
-                            if !transactions.is_empty() {
-                                info!("Successfully decoded {} USB transactions", transactions.len());
-                                debug!("Transaction types: {:?}", transactions.iter()
-                                        .map(|t| t.transfer_type)
-                                        .collect::<Vec<_>>());
+                        // Ensure handle synchronization for data processing too
+                        if self.connection.is_some() && self.cynthion_handle.is_none() {
+                            debug!("Synchronizing handles for data processing: copying from connection to cynthion_handle");
+                            self.cynthion_handle = self.connection.clone();
+                        } else if self.cynthion_handle.is_some() && self.connection.is_none() {
+                            debug!("Synchronizing handles for data processing: copying from cynthion_handle to connection");
+                            self.connection = self.cynthion_handle.clone();
+                        }
+                        
+                        // Process the data with our enhanced decoder using the connection handle
+                        if let Some(handle) = &self.connection {
+                            if let Ok(mut cynthion_handle) = handle.lock() {
+                                // Check if this data contains evidence of USB devices connected to Cynthion
+                                // This helps optimize packet processing for connected devices
+                                use crate::cynthion::device_detector::UsbDeviceConnectionDetector;
                                 
-                                // Add each transaction to the traffic view with improved metadata
-                                for transaction in transactions {
-                                    debug!("Adding transaction ID {} to traffic view", transaction.id);
+                                // Process the data for device connection detection
+                                UsbDeviceConnectionDetector::check_for_usb_device_connection(&data);
+                                
+                                // Enhanced processing with device connection awareness
+                                debug!("Processing USB traffic data through enhanced decoder...");
+                                
+                                // Get the transactions from the implementation with improved connected device support
+                                let transactions = cynthion_handle.process_transactions(&data);
+                                
+                                if !transactions.is_empty() {
+                                    info!("Successfully decoded {} USB transactions", transactions.len());
+                                    debug!("Transaction types: {:?}", transactions.iter()
+                                            .map(|t| t.transfer_type)
+                                            .collect::<Vec<_>>());
                                     
-                                    // Check if this is a transaction from a connected device
-                                    let is_device_connected = UsbDeviceConnectionDetector::is_device_connected();
-                                    if is_device_connected {
-                                        debug!("Transaction from connected USB device detected");
+                                    // Add each transaction to the traffic view with improved metadata
+                                    for transaction in transactions {
+                                        debug!("Adding transaction ID {} to traffic view", transaction.id);
+                                        
+                                        // Check if this is a transaction from a connected device
+                                        let is_device_connected = UsbDeviceConnectionDetector::is_device_connected();
+                                        if is_device_connected {
+                                            debug!("Transaction from connected USB device detected");
+                                        }
+                                        
+                                        self.traffic_view.add_transaction(transaction);
                                     }
-                                    
-                                    self.traffic_view.add_transaction(transaction);
+                                } else {
+                                    debug!("No transactions decoded from packet");
                                 }
                             } else {
-                                debug!("No transactions decoded from packet");
+                                debug!("Could not acquire handle lock for MitM processing");
                             }
                         } else {
-                            debug!("Could not acquire handle lock for MitM processing");
+                            debug!("No device handle available for MitM processing");
                         }
-                    } else {
-                        debug!("No device handle available for MitM processing");
+                        
+                        // Continue with descriptor view update
+                        self.descriptor_view.update_descriptors(decoded);
+                    },
+                    None => {
+                        debug!("Failed to decode USB data");
                     }
-                    
-                    // Continue with descriptor view update
-                    self.descriptor_view.update_descriptors(decoded);
-                } else {
-                    debug!("Failed to decode USB data");
                 }
                 Command::none()
-            }
+            },
             Message::SaveCapture => {
                 // Save current capture to file
                 if let Some(traffic_data) = self.traffic_view.get_traffic_data() {
@@ -812,6 +867,164 @@ impl Application for USBflyApp {
                 // Reset capture state in UI
                 self.traffic_view.set_capture_active(false);
                 Command::none()
+            },
+            
+            Message::UpdateStatusMessage(message) => {
+                debug!("Updating status message: {}", message);
+                self.status_message = Some(message);
+                Command::none()
+            },
+            
+            // Handle USB speed change requests
+            Message::ChangeUsbSpeed(speed) => {
+                info!("Changing USB speed to: {:?}", speed);
+                
+                // Show a notification to the user that speed is being changed
+                self.status_message = Some(format!("Changing device speed to {:?}...", speed));
+                
+                // We need to stop capture, change speed, and restart capture
+                if let Some(connection) = &self.connection {
+                    let conn_clone = Arc::clone(connection);
+                    
+                    // Store the currently active state to restore it after reconnect
+                    let was_capture_active = self.traffic_view.is_capture_active();
+                    
+                    // First stop any active capture with multiple attempts
+                    if was_capture_active {
+                        info!("Stopping active capture before changing speed");
+                        
+                        // Update UI state first to provide immediate feedback
+                        self.traffic_view.set_capture_active(false);
+                        
+                        // Try to stop the capture with multiple attempts
+                        let max_attempts = 3;
+                        let mut success = false;
+                        
+                        if let Ok(mut conn) = conn_clone.lock() {
+                            for attempt in 1..=max_attempts {
+                                info!("Attempt {}/{} to stop capture for speed change", attempt, max_attempts);
+                                
+                                match conn.stop_capture() {
+                                    Ok(_) => {
+                                        info!("Successfully stopped capture for speed change");
+                                        success = true;
+                                        break;
+                                    },
+                                    Err(e) => {
+                                        warn!("Attempt {}/{} to stop capture failed: {}", attempt, max_attempts, e);
+                                        if attempt < max_attempts {
+                                            std::thread::sleep(std::time::Duration::from_millis(300 * attempt as u64));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if !success {
+                            warn!("Failed to stop capture after {} attempts. Continuing with speed change anyway.", max_attempts);
+                        }
+                    }
+                    
+                    // Now initiate a reconnect with the new speed
+                    Command::perform(
+                        async move { speed },
+                        Message::ReconnectWithSpeed
+                    )
+                } else {
+                    warn!("Cannot change USB speed: No active connection");
+                    self.status_message = Some("Cannot change device speed: No active connection".to_string());
+                    Command::none()
+                }
+            },
+            
+            // Perform the reconnect with new speed
+            Message::ReconnectWithSpeed(speed) => {
+                info!("Reconnecting with new USB speed: {:?}", speed);
+                
+                // Update the status message to show progress
+                self.status_message = Some(format!("Reconnecting to apply {:?} device speed setting...", speed));
+                
+                // We need to:  
+                // 1. Disconnect properly
+                // 2. Update the speed in the decoder
+                // 3. Connect again
+                // 4. Restart capture if it was active
+                
+                // Update the decoder speed setting first
+                self.usb_decoder.set_speed(speed);
+                info!("Updated USB decoder speed to: {:?}", speed);
+                
+                // Update device view selected speed
+                self.device_view.set_selected_speed(speed);
+                
+                // Store the original device selection and capture state to restore later
+                let was_capture_active = self.traffic_view.is_capture_active();
+                
+                // Start a disconnection sequence followed by reconnection
+                info!("Starting disconnect/reconnect sequence for speed change");
+                
+                // Create a command that will disconnect first
+                let disconnect_command = Command::perform(
+                    async { Message::Disconnect },
+                    |msg| msg
+                );
+                
+                // Then schedule a reconnect after the disconnect completes with a longer delay
+                // for better reliability with USB device detection
+                let reconnect_command = Command::perform(
+                    async {
+                        // Add a delay to ensure the disconnect completes first
+                        // Increased from 500ms to 1000ms for better reliability
+                        info!("Waiting for device to disconnect completely before reconnecting");
+                        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+                        Message::Connect
+                    },
+                    |msg| msg
+                );
+                
+                // Create a status update command to show when reconnection is in progress
+                let status_update_command = Command::perform(
+                    async {
+                        // This will run after the disconnect but before the reconnect
+                        tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+                        Message::UpdateStatusMessage(format!("Reconnecting with {:?} device speed...", speed))
+                    },
+                    |msg| msg
+                );
+                
+                // And finally, if capture was active, restart it after reconnection with longer delay
+                let restart_capture_command = if was_capture_active {
+                    Command::perform(
+                        async {
+                            // Add a longer delay to ensure device is connected before starting capture
+                            // Increased from 800ms to 1500ms for better reliability
+                            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+                            Message::StartCapture
+                        },
+                        |msg| msg
+                    )
+                } else {
+                    Command::none()
+                };
+                
+                // Create a final status update command to show when process is complete
+                let final_status_command = Command::perform(
+                    async move {
+                        // This will run after everything else completes
+                        tokio::time::sleep(std::time::Duration::from_millis(2500)).await;
+                        Message::UpdateStatusMessage(format!("Device speed changed to {:?}", speed))
+                    },
+                    |msg| msg
+                );
+                
+                // Batch all commands together
+                Command::batch(vec![
+                    disconnect_command,
+                    status_update_command,
+                    reconnect_command,
+                    restart_capture_command,
+                    final_status_command
+                ])
             }
             Message::ProcessingCapture(connection_ref) => {
                 // Process the MitM traffic capture in a thread-safe way

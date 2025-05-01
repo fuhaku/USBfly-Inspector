@@ -93,6 +93,12 @@ impl DeviceView {
         self.selected_speed
     }
     
+    // Set the selected USB speed
+    pub fn set_selected_speed(&mut self, speed: crate::usb::Speed) {
+        info!("Setting selected USB speed to: {:?}", speed);
+        self.selected_speed = speed;
+    }
+    
     // Call this method after creating a new instance to start the initial device scan
     pub fn with_initial_scan(self) -> (Self, Command<Message>) {
         let command = Command::perform(
@@ -486,7 +492,7 @@ impl DeviceView {
                         column![
                             container(
                                 row![
-                                    text("USB SPEED SETTING:")
+                                    text("ATTACHED DEVICE SPEED:")
                                         .size(16)
                                         .width(Length::FillPortion(1))
                                         .style(iced::theme::Text::Color(crate::gui::styles::color::PRIMARY_DARK)),
@@ -521,7 +527,7 @@ impl DeviceView {
                             
                             // Add explanatory text about speed selection importance
                             container(
-                                text("IMPORTANT: Select the correct USB speed for accurate packet decoding.\nUse the same speed as the connected USB device (Auto for automatic detection).")
+                                text("IMPORTANT: Select the speed of the USB device connected to Cynthion.\nThis setting configures Cynthion to match the attached device's speed.\nUse Auto for automatic detection, or select specific speed for better reliability.")
                                     .size(14)
                                     .width(Length::Fill)
                                     .style(iced::theme::Text::Color(crate::gui::styles::color::INFO))
@@ -529,7 +535,7 @@ impl DeviceView {
                             .width(Length::Fill)
                             .padding(5)
                         ]
-                        ].padding(5).spacing(10),
+                        .padding(5).spacing(10),
                     ]
                     .spacing(5)
                     .width(Length::Fill)
