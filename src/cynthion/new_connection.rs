@@ -109,15 +109,45 @@ impl CynthionDevice {
             info!("Listing devices in FORCE HARDWARE mode");
         }
         
-        let devices = nusb::list_devices()?;
+        let devices = match nusb::list_devices() {
+            Ok(devices) => {
+                // Log details about each detected USB device for diagnostic purposes
+                for dev in &devices {
+                    debug!("USB device detected: VID:{:04x} PID:{:04x} {}", 
+                           dev.vendor_id(), dev.product_id(), 
+                           dev.product_string().unwrap_or("Unknown"));
+                    if Self::is_supported(dev.vendor_id(), dev.product_id()) {
+                        info!("👉 CYNTHION DEVICE FOUND: VID:{:04x} PID:{:04x} {}", 
+                              dev.vendor_id(), dev.product_id(),
+                              dev.product_string().unwrap_or("Unknown"));
+                    }
+                }
+                devices
+            },
+            Err(e) => {
+                error!("Failed to list USB devices: {}", e);
+                return Err(anyhow::anyhow!("Failed to list USB devices: {}", e));
+            }
+        };
         
         let mut result = Vec::new();
         for device_info in devices {
             let device = match Self::from_device_info(device_info.clone()) {
-                Some(device) => device,
+                Some(device) => {
+                    info!("✓ Added Cynthion-compatible device to available list: {:04x}:{:04x}",
+                         device_info.vendor_id(), device_info.product_id());
+                    device
+                },
                 None => continue,
             };
             result.push(device);
+        }
+        
+        // Log summary of detected devices
+        if result.is_empty() {
+            debug!("No Cynthion-compatible devices found in scan");
+        } else {
+            info!("Found {} Cynthion-compatible devices", result.len());
         }
         
         Ok(result)
