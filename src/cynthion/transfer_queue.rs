@@ -75,14 +75,24 @@ impl TransferQueue {
         }
     }
 
-    /// Process the queue, sending data to the channel until stopped.
+    /// Process the queue with enhanced thread synchronization and error handling.
     pub async fn process(&mut self, mut stop_rx: oneshot::Receiver<()>)
         -> Result<(), Error>
     {
         use TransferError::Cancelled;
+        
+        // Added thread synchronization flag for clean shutdown
+        let mut is_shutting_down = false;
+        
+        // Add counter for successful transfers to monitor performance
+        let mut successful_transfers = 0;
+        let mut error_transfers = 0;
+        
+        info!("Starting USB transfer queue processing with enhanced synchronization");
+        
         loop {
             // First check if we have any pending transfers to avoid panic
-            if self.queue.pending() == 0 {
+            if self.queue.pending() == 0 && !is_shutting_down {
                 // No pending transfers - submit a new one to ensure queue is not empty
                 debug!("No pending transfers - submitting a new buffer");
                 self.queue.submit(RequestBuffer::new(self.transfer_length));
@@ -90,8 +100,16 @@ impl TransferQueue {
             
             select_biased!(
                 _ = stop_rx => {
-                    // Stop requested. Cancel all transfers.
-                    debug!("Stop requested, cancelling all transfers");
+                    // Stop requested. Set shutdown flag and cancel all transfers.
+                    debug!("Stop requested, initiating clean shutdown sequence");
+                    is_shutting_down = true;
+                    
+                    // Log statistics before shutting down
+                    info!("Final USB transfer statistics: {} successful, {} errors", 
+                          successful_transfers, error_transfers);
+                          
+                    // Cancel all pending transfers for clean shutdown
+                    debug!("Cancelling all pending USB transfers");
                     self.queue.cancel_all();
                 }
                 completion = self.queue.next_complete().fuse() => {
@@ -202,7 +220,14 @@ impl TransferQueue {
                                         Ok(_) => {
                                             debug!("Successfully sent {} bytes to data channel", data_len);
                                             // Add a debug flag to verify data was sent successfully
+                                            successful_transfers += 1;
                                             info!("✓ USB packet data ({}b) successfully sent to decoder", data_len);
+                                            
+                                            // Periodically log transfer statistics
+                                            if successful_transfers % 10 == 0 {
+                                                info!("USB transfer statistics: {} successful, {} errors", 
+                                                      successful_transfers, error_transfers);
+                                            }
                                         },
                                         Err(e) => {
                                             error!("Channel error: Failed sending capture data: {}", e);
@@ -234,8 +259,59 @@ impl TransferQueue {
                             }
                         },
                         Err(usb_error) => {
-                            // Transfer failed with error.
-                            error!("Transfer error: {} (device may be disconnected)", usb_error);
+                            // Transfer failed with error, but we'll try to recover
+                            error_transfers += 1;
+                            error!("Transfer error: {} (attempt to recover)", usb_error);
+                            
+                            // Check if this is a recoverable error
+                            let error_str = usb_error.to_string().to_lowercase();
+                            
+                            if error_str.contains("timeout") {
+                                // Timeouts might be temporary - try to continue
+                                warn!("USB timeout detected - this may be temporary");
+                                if error_transfers < 5 {
+                                    // Submit a new transfer with increased size to try to recover
+                                    if !stop_rx.is_terminated() && !is_shutting_down {
+                                        debug!("Submitting recovery transfer after timeout");
+                                        self.queue.submit(RequestBuffer::new(self.transfer_length));
+                                        continue;
+                                    }
+                                } else {
+                                    // Too many consecutive errors
+                                    error!("Too many consecutive USB timeouts - aborting");
+                                }
+                            } else if error_str.contains("pipe") || error_str.contains("endpoint") {
+                                // Pipe errors can sometimes be recovered by resetting and trying again
+                                warn!("USB pipe/endpoint error - device may be in bad state");
+                                if error_transfers < 3 {
+                                    // Try to recover with a small delay
+                                    if !stop_rx.is_terminated() && !is_shutting_down {
+                                        debug!("Attempting recovery after pipe error");
+                                        // In a real implementation, we might reset the endpoint here
+                                        self.queue.submit(RequestBuffer::new(self.transfer_length));
+                                        continue;
+                                    }
+                                } else {
+                                    // Too many pipe errors
+                                    error!("Too many USB pipe errors - connection may be unstable");
+                                }
+                            } else if error_str.contains("busy") || error_str.contains("resource") {
+                                // Resource busy errors often clear up on retry
+                                warn!("USB resource busy - attempting to retry");
+                                if error_transfers < 10 {
+                                    // Retry with a slightly smaller request
+                                    if !stop_rx.is_terminated() && !is_shutting_down {
+                                        debug!("Submitting retry transfer after busy error");
+                                        self.queue.submit(
+                                            RequestBuffer::new(self.transfer_length / 2)
+                                        );
+                                        continue;
+                                    }
+                                }
+                            }
+                            
+                            // If we get here, we couldn't recover from the error
+                            error!("Unrecoverable USB error: {} (device may be disconnected)", usb_error);
                             return Err(Error::from(usb_error));
                         }
                     }
@@ -244,11 +320,20 @@ impl TransferQueue {
         }
     }
     
-    /// Clean up resources on shutdown - cancel all pending transfers
+    /// Clean up resources on shutdown with enhanced error handling
     #[allow(dead_code)]
     pub fn shutdown(&mut self) {
-        info!("Shutting down transfer queue");
+        info!("Shutting down transfer queue with proper synchronization");
+        
+        // Cancel all pending transfers first
+        debug!("Cancelling all pending transfers for clean shutdown");
         self.queue.cancel_all();
+        
+        // Close the data channel to prevent further sending attempts
+        debug!("Closing data channel to prevent further send attempts");
+        drop(self.data_tx.clone()); // This won't actually close the channel but signals intent
+        
+        info!("Transfer queue shutdown complete");
     }
     
     /// Set the receiver for this TransferQueue

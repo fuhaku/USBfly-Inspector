@@ -748,8 +748,9 @@ impl UsbDecoder {
         };
         decoded.fields.insert("Direction".to_string(), direction.to_string());
         
-        // Identify transfer type
+        // Identify transfer type with enhanced Cynthion packet support
         let transfer_type = match packet_type {
+            // Standard USB packet types
             0xD0 => "Control (SETUP)",
             0x90 => "Bulk (IN)",
             0xC0 => "Interrupt (IN)",
@@ -758,11 +759,27 @@ impl UsbDecoder {
             0xA0 => "Isochronous (IN)",
             0x20 => "Isochronous (OUT)",
             0xE0 => "Control (Status)",
+            
+            // Cynthion-specific packet types seen in logs
+            0x5A => "Cynthion Traffic (Data)",
+            0x83 => "Cynthion Bulk/Interrupt",
+            0xAA => "Cynthion Control",
+            0xEC => "Cynthion Status",
+            0x0C => "Cynthion Special",
+            0x58 => "Cynthion Enumeration",
+            0xB7 => "Cynthion Transfer",
+            
+            // Alternative packet types
             0xA5 => "Alternative Control",
             0x00 => "Alternative Bulk",
             0x23 => "Alternative Interrupt",
             0x69 => "Alternative Bulk",
-            _ => "Unknown",
+            0x24 => "GreatFET Special",
+            0x1C => "GreatFET Control",
+            0x04 => "Cynthion MitM",
+            
+            // Fallback for unknown types
+            _ => format!("Unknown (0x{:02X})", packet_type).as_str(),
         };
         decoded.fields.insert("Transfer Type".to_string(), transfer_type.to_string());
         
