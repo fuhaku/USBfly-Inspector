@@ -415,7 +415,15 @@ impl DeviceView {
         
         // Selected device detail view
         let device_details = if let Some(device) = &self.selected_device {
+            // Check if device is compatible for display purposes only
             let is_compatible = Self::is_compatible_device(device.vendor_id(), device.product_id());
+            
+            // Always enable speed selection for devices when connected
+            let show_speed_selection = true;
+            
+            // Add debug logging to confirm speed selection visibility
+            info!("USB Speed selection enabled for device: {}:{} ({})", 
+                 device.vendor_id(), device.product_id(), device.product());
             
             column![
                 row![
@@ -477,8 +485,8 @@ impl DeviceView {
                                 .width(Length::FillPortion(1))
                                 .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
                             
-                            // Use different elements based on compatibility
-                            {let speed_control = if is_compatible {
+                            // Use different elements based on our show_speed_selection flag
+                            {let speed_control = if show_speed_selection {
                                 let pick_list = iced::widget::pick_list(
                                     &[crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low] as &[_],
                                     Some(self.selected_speed),
