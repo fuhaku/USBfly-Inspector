@@ -341,7 +341,7 @@ impl CynthionHandle {
                 warn!("Failed to send stop command during reset: {} (continuing anyway)", e);
             }
             // Wait for the device to process the stop command
-            std::thread::sleep(std::time::Duration::from_millis(250));
+            std::thread::sleep(std::time::Duration::from_millis(500));
             
             // Step 2: Perform USB device reset (Cynthion-specific vendor command for full reset)
             // This maps to the CYNTHION_RESET command in packetry
@@ -350,10 +350,10 @@ impl CynthionHandle {
                 warn!("Full device reset command failed: {} (continuing anyway)", e);
             }
             
-            // Wait for the device to fully reset - this is important!
-            // The Cynthion documentation recommends at least 500ms after a reset
+            // Wait for the device to fully reset - Cynthion needs time to reconnect all internal components
+            // The Cynthion documentation recommends at least 1000ms (1 second) after a full reset
             info!("Waiting for device reset to complete...");
-            std::thread::sleep(std::time::Duration::from_millis(750));
+            std::thread::sleep(std::time::Duration::from_millis(1500)); // Extended to 1.5s for reliability
             
             // Initialize transfer queue before starting capture
             // This ensures we're ready to receive data as soon as capture starts
@@ -393,33 +393,51 @@ impl CynthionHandle {
                     }
                     
                     // Need extra delay after reset for device to stabilize
-                    let reset_delay = 250 * attempt; // Longer delay for each retry
+                    let reset_delay = 500 * attempt; // Longer delay for each retry (starting with 500ms)
                     debug!("Waiting {}ms for device to stabilize after reset", reset_delay);
                     std::thread::sleep(std::time::Duration::from_millis(reset_delay as u64));
                 }
                 
-                // Now send the start capture command with exponential backoff on retries
-                match self.write_request(1, State::new(true, Speed::High).0) {
-                    Ok(_) => {
-                        info!("Successfully started MitM capture on attempt {}", attempt);
-                        success = true;
-                        break;
-                    },
-                    Err(e) => {
-                        warn!("Failed to start MitM capture (attempt {}/{})): {}", 
-                            attempt, max_attempts, e);
-                        last_error = Some(e);
-                        
-                        // Use exponential backoff between attempts
-                        if attempt < max_attempts {
-                            let backoff = 200 * (1 << (attempt - 1)); // Exponential backoff: 200, 400, 800, 1600ms
-                            let max_backoff = 2000; // Cap at 2 seconds
-                            let actual_backoff = std::cmp::min(backoff, max_backoff);
+                // For Cynthion, we need to properly set the USB speed for optimal capturing
+                // Try both Auto and High speed settings based on Packetry documentation
+                let speeds_to_try = [Speed::Auto, Speed::High];
+                let mut speed_success = false;
+                
+                for speed in &speeds_to_try {
+                    info!("Trying to start capture with speed mode: {:?}", speed);
+                    
+                    // Now send the start capture command with the selected speed
+                    match self.write_request(1, State::new(true, *speed).0) {
+                        Ok(_) => {
+                            info!("Successfully started MitM capture with {:?} speed on attempt {}", speed, attempt);
+                            speed_success = true;
+                            success = true;
+                            break; // Break out of the speed loop
+                        },
+                        Err(e) => {
+                            warn!("Failed to start MitM capture with {:?} speed (attempt {}/{}): {}", 
+                                  speed, attempt, max_attempts, e);
+                            last_error = Some(e);
                             
-                            info!("Waiting {}ms before next capture attempt", actual_backoff);
-                            std::thread::sleep(std::time::Duration::from_millis(actual_backoff));
+                            // Wait a bit before trying the next speed
+                            std::thread::sleep(std::time::Duration::from_millis(200));
                         }
                     }
+                }
+                
+                // If we succeeded with any speed, no need to try another attempt
+                if speed_success {
+                    break;
+                }
+                
+                // Use exponential backoff between attempts
+                if attempt < max_attempts {
+                    let backoff = 400 * (1 << (attempt - 1)); // Exponential backoff: 400, 800, 1600ms
+                    let max_backoff = 3000; // Cap at 3 seconds
+                    let actual_backoff = std::cmp::min(backoff, max_backoff);
+                    
+                    info!("Waiting {}ms before next capture attempt", actual_backoff);
+                    std::thread::sleep(std::time::Duration::from_millis(actual_backoff));
                 }
             }
             
@@ -429,8 +447,9 @@ impl CynthionHandle {
                 self.start_async_processing();
                 
                 // Wait a moment to ensure capture is fully initialized and buffers are allocated
+                // According to Packetry, this delay is important for Cynthion to stabilize its capture state
                 debug!("Waiting for capture initialization to complete");
-                std::thread::sleep(std::time::Duration::from_millis(200));
+                std::thread::sleep(std::time::Duration::from_millis(500)); // Increased to 500ms for reliability
                 
                 info!("Cynthion Man-in-the-Middle mode successfully activated - ready to capture USB traffic");
                 return Ok(());
@@ -856,39 +875,59 @@ impl CynthionHandle {
             return Vec::new();
         }
         
-        // Process data into packets
+        // Log the first 16 bytes of data for debugging purposes
+        if data.len() >= 16 {
+            let first_bytes = &data[0..16];
+            let hex_string = first_bytes.iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
+            debug!("First 16 bytes of captured data: {}", hex_string);
+        }
+
+        // Process data into packets according to Cynthion/Packetry format
+        // Each packet has: packet_type(1), endpoint(1), device_addr(1), data_len(1), data(variable)
         let mut offset = 0;
         while offset + 8 <= data.len() {
-            // Read packet header
+            // 1. Read packet header
             let packet_type = data[offset];
             let endpoint = data[offset + 1];
+            let device_addr = data[offset + 2];
+            let data_len = data[offset + 3] as usize;
+            
+            // Provide more detailed logging for each packet
+            debug!("Processing USB packet: type=0x{:02X}, endpoint=0x{:02X}, device=0x{:02X}, len={}", 
+                   packet_type, endpoint, device_addr, data_len);
+            
+            // 2. Determine direction
+            // For Cynthion, the direction is determined by the endpoint's high bit
+            // If EP & 0x80 == 0, it's host-to-device (OUT)
+            // If EP & 0x80 != 0, it's device-to-host (IN)
             let direction = if endpoint & 0x80 != 0 { 
                 UsbDirection::DeviceToHost 
             } else { 
                 UsbDirection::HostToDevice 
             };
             
-            // Extract device address
-            let device_addr = data[offset + 2];
-            
-            // Identify transfer type based on packet_type
+            // 3. Identify transfer type based on packet_type and endpoint number
+            // According to Packetry documentation, packet_type indicates the USB token type
             let transfer_type = match packet_type {
-                0xD0 => UsbTransferType::Control,   // SETUP token
-                0x90 => UsbTransferType::Bulk,      // IN token (bulk)
-                0xC0 => UsbTransferType::Interrupt, // IN token (interrupt)
-                0x10 => UsbTransferType::Bulk,      // OUT token (bulk)
-                0x40 => UsbTransferType::Interrupt, // OUT token (interrupt)
+                0xD0 => UsbTransferType::Control,   // SETUP token (control transfer)
+                0x90 => UsbTransferType::Bulk,      // IN token (bulk transfer)
+                0xC0 => UsbTransferType::Interrupt, // IN token (interrupt transfer)
+                0x10 => UsbTransferType::Bulk,      // OUT token (bulk transfer)
+                0x40 => UsbTransferType::Interrupt, // OUT token (interrupt transfer)
+                0xA0 => UsbTransferType::Isochronous, // IN token (isochronous transfer)
+                0x20 => UsbTransferType::Isochronous, // OUT token (isochronous transfer)
+                0xE0 => UsbTransferType::Control,   // Special case for status stage
                 _ => {
-                    debug!("Unknown packet type: 0x{:02X}, assuming Bulk", packet_type);
-                    UsbTransferType::Bulk  // Default to bulk
+                    debug!("Unknown packet type: 0x{:02X}, using heuristics to determine type", packet_type);
+                    // Use endpoint number to make an educated guess
+                    // By USB spec, EP0 is control, low numbers often bulk, higher often interrupt
+                    match endpoint & 0x7F {
+                        0 => UsbTransferType::Control,  // EP0 is always control
+                        1 => UsbTransferType::Isochronous, // Often used for isochronous
+                        2..=3 => UsbTransferType::Bulk, // Often used for bulk
+                        _ => UsbTransferType::Interrupt // Higher EPs often interrupt
+                    }
                 }
-            };
-            
-            // Calculate data length
-            let data_len = if offset + 3 < data.len() {
-                data[offset + 3] as usize
-            } else {
-                0
             };
             
             // Safety check for data bounds
@@ -904,9 +943,9 @@ impl CynthionHandle {
             // Generate a transaction ID
             let id = transactions.len() as u64 + 1;
             
-            // Create a data packet for this transaction
+            // Create a data packet for this transaction - use clone() to avoid ownership issues
             let data_packet = crate::usb::mitm_traffic::UsbDataPacket::new(
-                payload, 
+                payload.clone(), 
                 direction,
                 endpoint & 0x7F // Remove direction bit
             );
@@ -934,9 +973,24 @@ impl CynthionHandle {
                     let mut fields = std::collections::HashMap::new();
                     fields.insert("speed".to_string(), "High".to_string());
                     fields.insert("packet_type".to_string(), format!("0x{:02X}", packet_type));
+                    fields.insert("direction".to_string(), format!("{:?}", direction));
+                    fields.insert("transfer_type".to_string(), format!("{:?}", transfer_type));
+                    
                     if packet_type == 0xD0 {
                         fields.insert("setup".to_string(), "true".to_string());
                     }
+                    
+                    if data_len > 0 {
+                        fields.insert("data_size".to_string(), format!("{}", data_len));
+                        // Also add first few bytes of data for quick reference
+                        let preview_len = std::cmp::min(data_len, 8);
+                        let preview = payload[..preview_len].iter()
+                            .map(|b| format!("{:02X}", b))
+                            .collect::<Vec<String>>()
+                            .join(" ");
+                        fields.insert("data_preview".to_string(), preview);
+                    }
+                    
                     fields
                 },
             };
@@ -983,6 +1037,12 @@ impl CynthionHandle {
                         0x0A => Some(crate::usb::mitm_traffic::UsbStandardRequest::GetInterface),
                         0x0B => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetInterface),
                         0x0C => Some(crate::usb::mitm_traffic::UsbStandardRequest::SynchFrame),
+                        // USB 3.0 specific requests
+                        0x30 => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetSel),      // USB 3.0: Set System Exit Latency
+                        0x31 => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetIsochDelay), // USB 3.0: Set Isochronous Delay
+                        // USB 2.0 Extension requests
+                        0x33 => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetFeatureSelector), // Set Feature Selector
+                        // Class and Vendor specific requests are handled elsewhere
                         _ => None,
                     }
                 } else {
@@ -991,12 +1051,73 @@ impl CynthionHandle {
                 
                 // Create description for the request
                 let request_description = match standard_request {
-                    Some(req) => format!("{}(w_value=0x{:04X}, w_index=0x{:04X}, w_length={})", 
-                                         format!("{:?}", req).replace("UsbStandardRequest::", ""),
-                                         w_value, w_index, w_length),
-                    None => format!("Request: 0x{:02X} (Type: {:?}, Recipient: {:?})",
-                                  b_request, request_type, recipient),
+                    Some(req) => {
+                        // Extract descriptor type for GET_DESCRIPTOR requests
+                        let descriptor_info = if req == crate::usb::mitm_traffic::UsbStandardRequest::GetDescriptor {
+                            let desc_type = (w_value >> 8) as u8;
+                            let desc_index = (w_value & 0xFF) as u8;
+                            
+                            let desc_type_name = match desc_type {
+                                1 => "DEVICE",
+                                2 => "CONFIGURATION", 
+                                3 => "STRING",
+                                4 => "INTERFACE",
+                                5 => "ENDPOINT",
+                                6 => "DEVICE_QUALIFIER",
+                                7 => "OTHER_SPEED_CONFIGURATION",
+                                8 => "INTERFACE_POWER",
+                                9 => "OTG",
+                                10 => "DEBUG",
+                                11 => "INTERFACE_ASSOCIATION",
+                                15 => "BOS",
+                                16 => "DEVICE_CAPABILITY",
+                                17 => "HID",
+                                18 => "REPORT",
+                                19 => "PHYSICAL",
+                                20 => "CLASS_SPECIFIC_INTERFACE",
+                                21 => "CLASS_SPECIFIC_ENDPOINT",
+                                22 => "HUB",
+                                23 => "SUPERSPEED_HUB",
+                                24 => "SS_ENDPOINT_COMPANION",
+                                _ => "UNKNOWN",
+                            };
+                            
+                            format!(" (type={}, index={})", desc_type_name, desc_index)
+                        } else {
+                            "".to_string()
+                        };
+                        
+                        format!("{}{} (wValue=0x{:04X}, wIndex=0x{:04X}, wLength={})", 
+                               format!("{:?}", req).replace("UsbStandardRequest::", ""),
+                               descriptor_info,
+                               w_value, w_index, w_length)
+                    },
+                    None => {
+                        // For non-standard requests, provide more context
+                        match request_type {
+                            crate::usb::mitm_traffic::UsbControlRequestType::Class => {
+                                format!("Class Request: 0x{:02X} to {:?} (wValue=0x{:04X}, wIndex=0x{:04X}, wLength={})",
+                                      b_request, recipient, w_value, w_index, w_length)
+                            },
+                            crate::usb::mitm_traffic::UsbControlRequestType::Vendor => {
+                                format!("Vendor Request: 0x{:02X} to {:?} (wValue=0x{:04X}, wIndex=0x{:04X}, wLength={})",
+                                      b_request, recipient, w_value, w_index, w_length)
+                            },
+                            _ => {
+                                format!("Request: 0x{:02X} (Type: {:?}, Recipient: {:?}, wValue=0x{:04X}, wIndex=0x{:04X}, wLength={})",
+                                      b_request, request_type, recipient, w_value, w_index, w_length)
+                            }
+                        }
+                    }
                 };
+                
+                // Log important setup packets for debugging
+                if standard_request == Some(crate::usb::mitm_traffic::UsbStandardRequest::GetDescriptor) {
+                    debug!("Setup packet: GET_DESCRIPTOR - Type: {}, Index: {}, Length: {}", 
+                          (w_value >> 8), (w_value & 0xFF), w_length);
+                } else if let Some(req) = standard_request {
+                    debug!("Setup packet: {:?}", req);
+                }
                 
                 // Add the setup packet to the transaction
                 transaction.setup_packet = Some(crate::usb::mitm_traffic::UsbSetupPacket {
@@ -1149,7 +1270,7 @@ impl CynthionHandle {
             
             // Create a data packet for this transaction
             let data_packet = crate::usb::mitm_traffic::UsbDataPacket::new(
-                payload, 
+                payload.clone(), 
                 direction,
                 endpoint & 0x7F // Remove direction bit
             );

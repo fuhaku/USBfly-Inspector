@@ -108,8 +108,11 @@ pub enum UsbStandardRequest {
     GetInterface = 10,
     SetInterface = 11,
     SynchFrame = 12,
-    SetSel = 48,
-    SetIsochDelay = 49,
+    // USB 3.0 specific requests
+    SetSel = 48,        // 0x30: Set System Exit Latency (SuperSpeed USB)
+    SetIsochDelay = 49, // 0x31: Set Isochronous Delay (SuperSpeed USB)
+    // USB 2.0 Extensions
+    SetFeatureSelector = 51, // 0x33: Set Feature Selector (USB 2.0 Extension)
     Unknown = 255,
 }
 
@@ -129,8 +132,9 @@ impl From<u8> for UsbStandardRequest {
             10 => UsbStandardRequest::GetInterface,
             11 => UsbStandardRequest::SetInterface,
             12 => UsbStandardRequest::SynchFrame,
-            48 => UsbStandardRequest::SetSel,
-            49 => UsbStandardRequest::SetIsochDelay,
+            48 => UsbStandardRequest::SetSel,        // 0x30
+            49 => UsbStandardRequest::SetIsochDelay, // 0x31
+            51 => UsbStandardRequest::SetFeatureSelector, // 0x33
             _ => UsbStandardRequest::Unknown,
         }
     }
@@ -154,6 +158,7 @@ impl fmt::Display for UsbStandardRequest {
             UsbStandardRequest::SynchFrame => write!(f, "SYNCH_FRAME"),
             UsbStandardRequest::SetSel => write!(f, "SET_SEL"),
             UsbStandardRequest::SetIsochDelay => write!(f, "SET_ISOCH_DELAY"),
+            UsbStandardRequest::SetFeatureSelector => write!(f, "SET_FEATURE_SELECTOR"),
             UsbStandardRequest::Unknown => write!(f, "UNKNOWN"),
         }
     }
@@ -337,6 +342,12 @@ pub struct UsbDataPacket {
 }
 
 impl UsbDataPacket {
+    // Helper method to get a reference to the data
+    pub fn get_data(&self) -> &[u8] {
+        &self.data
+    }
+    
+    // Takes ownership of data Vec<u8>
     pub fn new(data: Vec<u8>, direction: UsbDirection, endpoint: u8) -> Self {
         // Create a summary of the data based on length and contents
         let data_summary = if data.is_empty() {
@@ -559,7 +570,7 @@ impl MitmTrafficData {
                         
                         // Now check if there's a corresponding data packet with the descriptor
                         if let Some(data) = &transaction.data_packet {
-                            if !data.data.is_empty() {
+                            if !data.get_data().is_empty() {
                                 // This might be a descriptor - try to parse it based on the type
                                 // We'll need to try parsing it as different descriptor types
                                 let descriptor_type = (setup.wValue >> 8) as u8;
@@ -567,27 +578,27 @@ impl MitmTrafficData {
                                 // Try to parse based on descriptor type
                                 match descriptor_type {
                                     1 => { // Device Descriptor
-                                        if let Ok(device_desc) = DeviceDescriptor::parse(&data.data) {
+                                        if let Ok(device_desc) = DeviceDescriptor::parse(data.get_data()) {
                                             self.descriptors.push(USBDescriptor::Device(device_desc));
                                         }
                                     },
                                     2 => { // Configuration Descriptor
-                                        if let Ok(config_desc) = ConfigurationDescriptor::parse(&data.data) {
+                                        if let Ok(config_desc) = ConfigurationDescriptor::parse(data.get_data()) {
                                             self.descriptors.push(USBDescriptor::Configuration(config_desc));
                                         }
                                     },
                                     3 => { // String Descriptor
-                                        if let Ok(string_desc) = StringDescriptor::parse(&data.data, (setup.wValue & 0xFF) as u8) {
+                                        if let Ok(string_desc) = StringDescriptor::parse(data.get_data(), (setup.wValue & 0xFF) as u8) {
                                             self.descriptors.push(USBDescriptor::String(string_desc));
                                         }
                                     },
                                     4 => { // Interface Descriptor
-                                        if let Ok(interface_desc) = InterfaceDescriptor::parse(&data.data) {
+                                        if let Ok(interface_desc) = InterfaceDescriptor::parse(data.get_data()) {
                                             self.descriptors.push(USBDescriptor::Interface(interface_desc));
                                         }
                                     },
                                     5 => { // Endpoint Descriptor
-                                        if let Ok(endpoint_desc) = EndpointDescriptor::parse(&data.data) {
+                                        if let Ok(endpoint_desc) = EndpointDescriptor::parse(data.get_data()) {
                                             self.descriptors.push(USBDescriptor::Endpoint(endpoint_desc));
                                         }
                                     },
@@ -628,11 +639,12 @@ impl MitmTrafficData {
                     }
                     
                     if let Some(data) = &transaction.data_packet {
-                        details.insert("Data Length".to_string(), format!("{} bytes", data.data.len()));
-                        if !data.data.is_empty() {
+                        let data_len = data.get_data().len();
+                        details.insert("Data Length".to_string(), format!("{} bytes", data_len));
+                        if !data.get_data().is_empty() {
                             // Add hex dump of first few bytes
-                            let max_bytes = std::cmp::min(16, data.data.len());
-                            let hex_dump = data.data[0..max_bytes]
+                            let max_bytes = std::cmp::min(16, data_len);
+                            let hex_dump = data.get_data()[0..max_bytes]
                                 .iter()
                                 .map(|b| format!("{:02X}", b))
                                 .collect::<Vec<String>>()
@@ -652,11 +664,12 @@ impl MitmTrafficData {
                 UsbTransferType::Bulk | UsbTransferType::Interrupt | UsbTransferType::Isochronous => {
                     if let Some(data) = &transaction.data_packet {
                         details.insert("Direction".to_string(), format!("{}", data.direction));
-                        details.insert("Data Length".to_string(), format!("{} bytes", data.data.len()));
-                        if !data.data.is_empty() {
+                        let data_len = data.get_data().len();
+                        details.insert("Data Length".to_string(), format!("{} bytes", data_len));
+                        if !data.get_data().is_empty() {
                             // Add hex dump of first few bytes
-                            let max_bytes = std::cmp::min(16, data.data.len());
-                            let hex_dump = data.data[0..max_bytes]
+                            let max_bytes = std::cmp::min(16, data_len);
+                            let hex_dump = data.get_data()[0..max_bytes]
                                 .iter()
                                 .map(|b| format!("{:02X}", b))
                                 .collect::<Vec<String>>()
