@@ -347,15 +347,21 @@ impl UsbDataPacket {
         &self.data
     }
     
+    // Helper method to get the data length
+    pub fn get_data_len(&self) -> usize {
+        self.data.len()
+    }
+    
     // Takes ownership of data Vec<u8>
     pub fn new(data: Vec<u8>, direction: UsbDirection, endpoint: u8) -> Self {
         // Create a summary of the data based on length and contents
-        let data_summary = if data.is_empty() {
+        let data_len = data.len();
+        let data_summary = if data_len == 0 {
             "No data".to_string()
         } else {
             let is_binary = data.iter().any(|&b| b < 32 || b > 126);
             if is_binary {
-                format!("{} bytes of binary data", data.len())
+                format!("{} bytes of binary data", data_len)
             } else {
                 // It's probably ASCII/text, show a preview
                 let preview: String = data.iter()
@@ -363,10 +369,10 @@ impl UsbDataPacket {
                     .map(|&b| b as char)
                     .collect();
                     
-                if data.len() > 32 {
-                    format!("\"{}...\" ({} bytes)", preview, data.len())
+                if data_len > 32 {
+                    format!("\"{}...\" ({} bytes)", preview, data_len)
                 } else {
-                    format!("\"{}\" ({} bytes)", preview, data.len())
+                    format!("\"{}\" ({} bytes)", preview, data_len)
                 }
             }
         };
@@ -448,10 +454,10 @@ impl UsbTransaction {
                     };
                     
                     let data_info = if let Some(data) = &self.data_packet {
-                        if data.data.is_empty() {
+                        if data.get_data().is_empty() {
                             "No data".to_string()
                         } else {
-                            format!("{} bytes", data.data.len())
+                            format!("{} bytes", data.get_data_len())
                         }
                     } else {
                         "No data".to_string()
@@ -639,7 +645,7 @@ impl MitmTrafficData {
                     }
                     
                     if let Some(data) = &transaction.data_packet {
-                        let data_len = data.get_data().len();
+                        let data_len = data.get_data_len();
                         details.insert("Data Length".to_string(), format!("{} bytes", data_len));
                         if !data.get_data().is_empty() {
                             // Add hex dump of first few bytes
@@ -651,7 +657,7 @@ impl MitmTrafficData {
                                 .join(" ");
                             details.insert("Data".to_string(), format!("{}{}", 
                                 hex_dump, 
-                                if data.data.len() > max_bytes { " ..." } else { "" }
+                                if data_len > max_bytes { " ..." } else { "" }
                             ));
                         }
                     }
@@ -664,7 +670,7 @@ impl MitmTrafficData {
                 UsbTransferType::Bulk | UsbTransferType::Interrupt | UsbTransferType::Isochronous => {
                     if let Some(data) = &transaction.data_packet {
                         details.insert("Direction".to_string(), format!("{}", data.direction));
-                        let data_len = data.get_data().len();
+                        let data_len = data.get_data_len();
                         details.insert("Data Length".to_string(), format!("{} bytes", data_len));
                         if !data.get_data().is_empty() {
                             // Add hex dump of first few bytes
@@ -676,7 +682,7 @@ impl MitmTrafficData {
                                 .join(" ");
                             details.insert("Data".to_string(), format!("{}{}", 
                                 hex_dump, 
-                                if data.data.len() > max_bytes { " ..." } else { "" }
+                                if data_len > max_bytes { " ..." } else { "" }
                             ));
                         }
                     }

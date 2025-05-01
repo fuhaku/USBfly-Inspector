@@ -266,8 +266,8 @@ impl DeviceView {
     }
     
     pub fn view(&self) -> Element<Message> {
-        // Check if we're in simulation mode
-        let simulation_mode = std::env::var("USBFLY_SIMULATION_MODE").unwrap_or_else(|_| "0".to_string()) == "1";
+        // We're always in hardware-only mode now
+        let simulation_mode = false; // Simulation mode has been removed
         
         // Use our title style with theme-compatible formatting
         let title = container(

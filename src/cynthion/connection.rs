@@ -142,8 +142,6 @@ impl fmt::Display for USBDeviceInfo {
 pub struct CynthionConnection {
     handle: Option<DeviceHandle<rusb::GlobalContext>>,
     active: bool,
-    // Simulation mode for environments without USB access (like Replit)
-    simulation_mode: bool,
 }
 
 impl CynthionConnection {
@@ -428,122 +426,34 @@ impl CynthionConnection {
         log_device_support(vid, pid, false)
     }
     
-    // Create a simulated connection for environments without USB access
+    // Create a connection for environments without USB access
+    // Create a connection without a handle for error cases
+    // This will result in early-failure when actual hardware operations are attempted
     #[allow(dead_code)]
     pub fn create_simulation() -> Self {
-        info!("Creating simulated Cynthion connection (no USB hardware access)");
+        error!("Hardware-only mode: No compatible USB devices found");
+        error!("Please connect a supported Cynthion device to continue");
         Self {
             handle: None,
             active: true,
-            simulation_mode: true,
         }
     }
     
     // Check if we're in simulation mode based on environment variable
     #[allow(dead_code)]
     pub fn is_env_simulation_mode() -> bool {
-        // CRITICAL CHECK: First check for force hardware flag, which overrides all other settings
-        // This is intended to be set in production environments to ensure real hardware is used
-        if let Ok(force_hw) = std::env::var("USBFLY_FORCE_HARDWARE") {
-            if force_hw == "1" {
-                info!("⚠️ USBFLY_FORCE_HARDWARE=1 detected, overriding all simulation settings ⚠️");
-                // Explicitly disable simulation mode for all other code paths
-                std::env::set_var("USBFLY_SIMULATION_MODE", "0");
-                return false;
-            }
-        }
-        
-        // Check for Force Refresh flag which indicates a user-initiated hardware scan
-        let force_refresh = std::env::var("USBFLY_FORCE_REFRESH").is_ok();
-        
-        // Special macOS handling with enhanced device detection for hot-plugging
-        if cfg!(target_os = "macos") {
-            info!("🔍 macOS detected - enhanced device detection enabled");
-            
-            // Forcing refresh on macOS takes precedence
-            if force_refresh {
-                info!("🔥 macOS Force Refresh detected - temporarily enabling hardware mode");
-                // Temporarily override for the scan, but don't persist yet
-                std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
-                std::env::set_var("USBFLY_SIMULATION_MODE", "0");
-                return false;
-            }
-        }
-        
-        // Check if we have USB access and if any compatible devices are connected
-        if let Ok(context) = rusb::Context::new() {
-            if let Ok(devices) = context.devices() {
-                // Log total devices for diagnostic purposes
-                let total_devices = devices.iter().count();
-                debug!("USB system scan found {} total devices", total_devices);
-                
-                // Look for any compatible device
-                let found_device = devices.iter().any(|device| {
-                    if let Ok(desc) = device.device_descriptor() {
-                        let vid = desc.vendor_id();
-                        let pid = desc.product_id();
-                        if Self::is_supported_device(vid, pid) {
-                            info!("🎯 Found compatible device VID={:04x} PID={:04x} - hardware mode required", vid, pid);
-                            
-                            // Set special device detection flag for hot-plug handling
-                            std::env::set_var("USBFLY_DEVICE_DETECTED", "1");
-                            
-                            // On macOS, also force hardware mode for consistency
-                            if cfg!(target_os = "macos") {
-                                info!("🔒 macOS: Setting persistent FORCE_HARDWARE flag for detected device");
-                                std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
-                            }
-                            true
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-                });
-                
-                // If we found a compatible device, always use hardware mode
-                if found_device {
-                    info!("✅ Found compatible device - forcing hardware mode");
-                    std::env::set_var("USBFLY_SIMULATION_MODE", "0");
-                    return false;
-                }
-            } else {
-                warn!("⚠️ USB device enumeration failed - could not detect hardware");
-                // On macOS, this failure is common due to permission issues
-                if cfg!(target_os = "macos") {
-                    warn!("This is common on macOS - use Force Scan button to retry with elevated permissions");
-                }
-            }
-        } else {
-            warn!("⚠️ USB context creation failed - could not access USB subsystem");
-        }
-        
-        // Check for explicit simulation mode in environment variable
-        match std::env::var("USBFLY_SIMULATION_MODE") {
-            Ok(val) => {
-                let is_sim = val == "1";
-                if is_sim {
-                    info!("Simulation mode explicitly enabled via environment variable");
-                } else {
-                    info!("Simulation mode explicitly disabled via environment variable");
-                }
-                is_sim
-            },
-            Err(_) => {
-                // Default to simulation mode when no compatible devices found
-                info!("No compatible devices found and no simulation mode explicitly set - defaulting to simulation");
-                // Set the simulation flag explicitly to avoid unexpected state changes
-                std::env::set_var("USBFLY_SIMULATION_MODE", "1");
-                true
-            },
-        }
+        // Always return false - no more simulation mode
+        // Just log for debugging
+        debug!("Simulation mode is always disabled - hardware-only mode");
+        info!("Hardware mode enforced - simulation mode disabled");
+        false
     }
     
     // Check if this specific connection instance is in simulation mode
+    // Always returns false as simulation mode has been removed
     #[allow(dead_code)]
     pub fn is_simulation_mode(&self) -> bool {
-        self.simulation_mode
+        false
     }
     
     #[allow(dead_code)]
@@ -614,25 +524,18 @@ impl CynthionConnection {
         Ok(result)
     }
     
-    // Set simulation mode explicitly
+    // Set simulation mode explicitly (now does nothing as simulation mode is removed)
     #[allow(dead_code)]
-    pub fn set_simulation_mode(&mut self, enabled: bool) {
-        if enabled && !self.simulation_mode {
-            info!("Setting connection to simulation mode for safer operation");
-            self.simulation_mode = true;
-        } else if !enabled && self.simulation_mode {
-            warn!("Disabling simulation mode - this may cause stability issues");
-            self.simulation_mode = false;
-        }
+    pub fn set_simulation_mode(&mut self, _enabled: bool) {
+        // No longer changes anything - simulation mode has been removed
+        // Just log for debugging
+        info!("Simulation mode has been removed from the application");
     }
     
     // Set a read timeout for USB operations
     #[allow(dead_code)]
     pub fn set_read_timeout(&mut self, timeout: Option<std::time::Duration>) -> Result<()> {
-        // If in simulation mode, just acknowledge the timeout setting
-        if self.simulation_mode {
-            return Ok(());
-        }
+        // Always use hardware mode
         
         // Store the timeout value to use it in read operations
         info!("Setting USB read timeout to {:?}", timeout);
@@ -645,10 +548,14 @@ impl CynthionConnection {
         Ok(())
     }
     
-    // Force simulation mode off - used when we know a real device is connected
+    // Force hardware-only mode - ensures we only use real devices
+    // This is now just a placeholder as the app always runs in hardware-only mode
     #[allow(dead_code)]
     pub fn force_real_device_mode() {
+        // App is always in hardware-only mode
+        info!("Hardware-only mode is permanently enforced");
         std::env::set_var("USBFLY_SIMULATION_MODE", "0");
+        std::env::set_var("USBFLY_FORCE_HARDWARE", "1");
     }
     
     // Helper method to complete device connection - must use GlobalContext for compatibility with struct
@@ -765,7 +672,6 @@ impl CynthionConnection {
                 Ok(Self {
                     handle: Some(handle),
                     active: true,
-                    simulation_mode: false,
                 })
             },
             Err(e) => {
@@ -800,7 +706,6 @@ impl CynthionConnection {
                         return Ok(Self {
                             handle: None,
                             active: true,
-                            simulation_mode: true,
                         });
                     }
                 }
@@ -1018,9 +923,9 @@ impl CynthionConnection {
         // Always mark as inactive first to prevent new read operations
         self.active = false;
         
-        // Handle simulation mode specially
-        if self.simulation_mode {
-            info!("Disconnected from simulated Cynthion device");
+        // No more simulation mode handling
+        if self.handle.is_none() {
+            info!("Disconnected from Cynthion device (no handle)");
             return Ok(());
         }
         
@@ -1083,113 +988,37 @@ impl CynthionConnection {
         ]
     }
     
-    // Generate simulated USB data for testing 
+    // In hardware-only mode, this returns an empty vector with a warning
     #[allow(dead_code)]
     fn get_simulated_data(&self) -> Vec<u8> {
-        // Generate realistic simulated USB descriptor data for a Cynthion device
-        // This is a complete descriptor set including device, configuration, interface, endpoint descriptors
+        // Hardware-only mode - return an empty vector
+        error!("Hardware-only mode: No simulated data available");
+        error!("Please connect a supported Cynthion device to capture real data");
         
-        // Device Descriptor (18 bytes)
-        // bLength, bDescriptorType, bcdUSB, bDeviceClass, bDeviceSubClass, bDeviceProtocol, bMaxPacketSize0
-        // idVendor, idProduct, bcdDevice, iManufacturer, iProduct, iSerialNumber, bNumConfigurations
-        let device_descriptor = vec![
-            0x12, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x40, 
-            0x50, 0x1d, 0x5c, 0x61, 0x00, 0x01, 0x01, 0x02, 
-            0x03, 0x01
-        ];
-        
-        // Configuration Descriptor (9 bytes)
-        // bLength, bDescriptorType, wTotalLength, bNumInterfaces, bConfigurationValue, iConfiguration, bmAttributes, bMaxPower
-        let config_descriptor = vec![
-            0x09, 0x02, 0x29, 0x00, 0x01, 0x01, 0x00, 0xC0, 0x32
-        ];
-        
-        // Interface Descriptor (9 bytes)
-        // bLength, bDescriptorType, bInterfaceNumber, bAlternateSetting, bNumEndpoints, bInterfaceClass, bInterfaceSubClass, bInterfaceProtocol, iInterface
-        let interface_descriptor = vec![
-            0x09, 0x04, 0x00, 0x00, 0x02, 0xFF, 0x42, 0x01, 0x04
-        ];
-        
-        // Endpoint Descriptor 1 - OUT (7 bytes)
-        // bLength, bDescriptorType, bEndpointAddress, bmAttributes, wMaxPacketSize, bInterval
-        let endpoint1_descriptor = vec![
-            0x07, 0x05, 0x01, 0x02, 0x00, 0x02, 0x00
-        ];
-        
-        // Endpoint Descriptor 2 - IN (7 bytes)
-        // bLength, bDescriptorType, bEndpointAddress, bmAttributes, wMaxPacketSize, bInterval
-        let endpoint2_descriptor = vec![
-            0x07, 0x05, 0x81, 0x02, 0x00, 0x02, 0x00
-        ];
-        
-        // String Descriptor 0 - Language IDs (4 bytes)
-        // bLength, bDescriptorType, wLANGID[0]
-        let string0_descriptor = vec![
-            0x04, 0x03, 0x09, 0x04
-        ];
-        
-        // String Descriptor 1 - Manufacturer: "Great Scott Gadgets" (42 bytes)
-        // bLength, bDescriptorType, bString (UTF-16LE)
-        let string1_descriptor = vec![
-            0x2A, 0x03, 0x47, 0x00, 0x72, 0x00, 0x65, 0x00, 0x61, 0x00, 0x74, 0x00, 0x20, 0x00, 
-            0x53, 0x00, 0x63, 0x00, 0x6F, 0x00, 0x74, 0x00, 0x74, 0x00, 0x20, 0x00, 0x47, 0x00, 
-            0x61, 0x00, 0x64, 0x00, 0x67, 0x00, 0x65, 0x00, 0x74, 0x00, 0x73, 0x00
-        ];
-        
-        // String Descriptor 2 - Product: "Cynthion USB Analyzer" (40 bytes)
-        // bLength, bDescriptorType, bString (UTF-16LE)
-        let string2_descriptor = vec![
-            0x28, 0x03, 0x43, 0x00, 0x79, 0x00, 0x6E, 0x00, 0x74, 0x00, 0x68, 0x00, 0x69, 0x00, 
-            0x6F, 0x00, 0x6E, 0x00, 0x20, 0x00, 0x55, 0x00, 0x53, 0x00, 0x42, 0x00, 0x20, 0x00, 
-            0x41, 0x00, 0x6E, 0x00, 0x61, 0x00, 0x6C, 0x00, 0x79, 0x00, 0x7A, 0x00, 0x65, 0x00, 0x72, 0x00
-        ];
-        
-        // String Descriptor 3 - Serial Number: "SIM123456789" (26 bytes)
-        // bLength, bDescriptorType, bString (UTF-16LE)
-        let string3_descriptor = vec![
-            0x1A, 0x03, 0x53, 0x00, 0x49, 0x00, 0x4D, 0x00, 0x31, 0x00, 0x32, 0x00, 0x33, 0x00, 
-            0x34, 0x00, 0x35, 0x00, 0x36, 0x00, 0x37, 0x00, 0x38, 0x00, 0x39, 0x00
-        ];
-        
-        // String Descriptor 4 - Interface: "USB Data Interface" (36 bytes)
-        // bLength, bDescriptorType, bString (UTF-16LE)
-        let string4_descriptor = vec![
-            0x24, 0x03, 0x55, 0x00, 0x53, 0x00, 0x42, 0x00, 0x20, 0x00, 0x44, 0x00, 0x61, 0x00, 
-            0x74, 0x00, 0x61, 0x00, 0x20, 0x00, 0x49, 0x00, 0x6E, 0x00, 0x74, 0x00, 0x65, 0x00, 
-            0x72, 0x00, 0x66, 0x00, 0x61, 0x00, 0x63, 0x00, 0x65, 0x00
-        ];
-        
-        // Combine all descriptors
-        let mut data = Vec::new();
-        data.extend_from_slice(&device_descriptor);
-        data.extend_from_slice(&config_descriptor);
-        data.extend_from_slice(&interface_descriptor);
-        data.extend_from_slice(&endpoint1_descriptor);
-        data.extend_from_slice(&endpoint2_descriptor);
-        data.extend_from_slice(&string0_descriptor);
-        data.extend_from_slice(&string1_descriptor);
-        data.extend_from_slice(&string2_descriptor);
-        data.extend_from_slice(&string3_descriptor);
-        data.extend_from_slice(&string4_descriptor);
-        
-        data
+        // Return empty data
+        Vec::new()
     }
     
     // Generate simulated MitM USB traffic from a connected device through Cynthion
     // This simulates what would be captured when Cynthion is placed between a host and device
     #[allow(dead_code)]
     pub fn get_simulated_mitm_traffic(&self) -> Vec<u8> {
-        // Track simulation state through a counter in the environment variable
-        let counter: u32 = match std::env::var("USBFLY_SIM_COUNTER") {
-            Ok(val) => val.parse().unwrap_or(0),
-            Err(_) => 0,
-        };
-        let next_counter = counter.wrapping_add(1);
-        std::env::set_var("USBFLY_SIM_COUNTER", next_counter.to_string());
-        
-        // Use our specialized MitM traffic simulation from the new module
-        debug!("Using enhanced MitM traffic simulation");
-        crate::usb::generate_simulated_mitm_traffic()
+        // Hardware-only mode - return an empty vector
+        error!("Hardware-only mode: No simulated traffic available");
+        error!("Please connect a supported Cynthion device to capture real traffic");
+        // Return empty data
+        Vec::new()
+    }
+    
+    // Public-access version of get_simulated_mitm_traffic for use in app.rs
+    // This is the same as get_simulated_mitm_traffic but with a different name for clarity
+    #[allow(dead_code)]
+    pub fn get_simulated_mitm_traffic_pub(&self) -> Vec<u8> {
+        // Hardware-only mode - return an empty vector
+        error!("Hardware-only mode: No simulated traffic available");
+        error!("Please connect a supported Cynthion device to capture real traffic");
+        // Return empty data - in hardware mode, we don't generate fake data
+        Vec::new()
     }
     
     #[allow(dead_code)]
@@ -1198,12 +1027,9 @@ impl CynthionConnection {
             return Err(anyhow!("Not connected"));
         }
         
-        // If in simulation mode, return simulated data
-        if self.simulation_mode {
-            debug!("Returning simulated USB data");
-            // Add a small delay to simulate real device behavior
-            sleep(Duration::from_millis(50)).await;
-            return Ok(self.get_simulated_data());
+        // Hardware-only mode
+        if self.handle.is_none() {
+            return Err(anyhow!("No device handle available"));
         }
         
         // Real device mode - proceed with actual USB communication
@@ -1236,13 +1062,8 @@ impl CynthionConnection {
             return Err(anyhow!("Not connected"));
         }
         
-        // If in simulation mode, return simulated data
-        if self.simulation_mode {
-            debug!("Returning simulated USB data (sync)");
-            // Add small delay to prevent UI from being overwhelmed with simulated data
-            std::thread::sleep(Duration::from_millis(150));
-            return Ok(self.get_simulated_data());
-        }
+        // Hardware-only mode
+        // No more simulation mode
         
         // Get handle or return error with safety check
         if self.handle.is_none() {
@@ -1367,12 +1188,7 @@ impl CynthionConnection {
             return Err(anyhow!("Device not active"));
         }
         
-        // Explicit handling for simulation mode (safer than delegating)
-        if self.simulation_mode {
-            // Add small delay to prevent UI from being overwhelmed with simulated data
-            std::thread::sleep(Duration::from_millis(150));
-            return Ok(self.get_simulated_data());
-        }
+        // Hardware-only mode
         
         // Extra safety check - this protects against null pointer issues
         if self.handle.is_none() {
@@ -1394,15 +1210,7 @@ impl CynthionConnection {
             return Err(anyhow!("Device not active"));
         }
         
-        // If in simulation mode, return simulated MitM traffic data
-        if self.simulation_mode {
-            debug!("MitM traffic: Using simulated data (simulation mode enabled)");
-            // Add small delay to prevent UI from being overwhelmed
-            std::thread::sleep(Duration::from_millis(150));
-            let data = self.get_simulated_mitm_traffic();
-            debug!("MitM traffic: Generated {} bytes of simulated data", data.len());
-            return Ok(data);
-        }
+        // Hardware-only mode
         
         // Extra safety check - this protects against null pointer issues
         if self.handle.is_none() {
@@ -1475,11 +1283,7 @@ impl CynthionConnection {
             return Err(anyhow!("Connection not active"));
         }
         
-        // When in simulation mode, just pretend we sent the command
-        if self.simulation_mode {
-            debug!("Simulating test command send: {:02X?}", command);
-            return Ok(());
-        }
+        // Hardware-only mode now
         
         debug!("Sending test command: {:02X?}", command);
         
@@ -1566,11 +1370,7 @@ impl CynthionConnection {
             return Err(anyhow!("Not connected"));
         }
         
-        // In simulation mode, just log the command and return success
-        if self.simulation_mode {
-            debug!("Simulation mode: Command sent ({} bytes): {:?}", command.len(), command);
-            return Ok(());
-        }
+        // Hardware-only mode now
         
         let handle = self.handle.as_mut().ok_or_else(|| anyhow!("No device handle"))?;
         
@@ -1637,12 +1437,7 @@ impl CynthionConnection {
     pub async fn get_captured_traffic(&mut self) -> Result<Vec<u8>> {
         debug!("Requesting captured USB traffic from Cynthion");
         
-        // If in simulation mode, return simulated MitM traffic
-        if self.simulation_mode {
-            debug!("Returning simulated MitM USB traffic");
-            sleep(Duration::from_millis(50)).await;
-            return Ok(self.get_simulated_mitm_traffic());
-        }
+        // Hardware-only mode now
         
         // Prepare the command to get captured data
         let command = [CMD_GET_CAPTURED_DATA];
@@ -1665,30 +1460,15 @@ impl CynthionConnection {
     
     #[allow(dead_code)]
     pub fn is_connected(&self) -> bool {
-        if self.simulation_mode {
-            // In simulation mode, just check if active
-            self.active
-        } else {
-            // In real device mode, need both active flag and handle
-            self.active && self.handle.is_some()
-        }
+        // Hardware-only mode - need both active flag and handle
+        self.active && self.handle.is_some()
     }
     
     // Check if this is a real hardware device (not simulated)
     #[allow(dead_code)]
     pub fn is_real_hardware_device(&self) -> bool {
-        // First check the simulation mode flag
-        if self.simulation_mode {
-            return false;
-        }
-        
-        // Check if we have a real device handle
-        if self.handle.is_none() {
-            return false;
-        }
-        
-        // If we've gotten this far, we're connected to real hardware
-        true
+        // Hardware-only mode - just check if we have a handle
+        self.handle.is_some()
     }
     
     // Process MitM traffic and decode USB transactions
