@@ -169,7 +169,7 @@ impl Application for USBflyApp {
 
         // Also initiate a scan for Cynthion devices right away using our new connection method
         let scan_command = Command::perform(
-            async {
+            async move {
                 // Find all Cynthion devices using our new implementation
                 match CynthionDevice::find_all() {
                     Ok(devices) => {
@@ -211,7 +211,7 @@ impl Application for USBflyApp {
                     // No devices available, trigger a scan first
                     info!("No devices available, scanning for Cynthion devices...");
                     Command::perform(
-                        async {
+                        async move {
                             match CynthionDevice::find_all() {
                                 Ok(devices) => {
                                     info!("Found {} Cynthion-compatible devices", devices.len());
@@ -231,10 +231,15 @@ impl Application for USBflyApp {
                     info!("Connecting to Cynthion device: {}", device.get_description());
                     
                     // Attempt to connect using the new implementation with retry capability
+                    // Get the selected speed from DeviceView before the async block
+                    let selected_speed = self.device_view.get_selected_speed();
+                    info!("Using connection speed: {:?}", selected_speed);
+                    
                     Command::perform(
                         {
                             // Clone the device since we need to move it into the async block
                             let device = device.clone();
+                            let speed = selected_speed; // Use the speed value we got before the async block
                             
                             async move {
                                 // Short delay to allow USB subsystem to fully initialize the device
@@ -245,9 +250,6 @@ impl Application for USBflyApp {
                                 match device.open() {
                                     Ok(mut handle) => {
                                         info!("Successfully opened Cynthion device");
-                                        
-                                        // Get the selected speed from DeviceView
-                                        let speed = self.device_view.get_selected_speed();
                                         info!("Setting connection speed to: {:?}", speed);
                                         
                                         // Configure the device with the selected speed
@@ -273,9 +275,6 @@ impl Application for USBflyApp {
                                         match device.open() {
                                             Ok(mut handle) => {
                                                 info!("Second attempt successful - opened Cynthion device");
-                                                
-                                                // Get the selected speed from DeviceView
-                                                let speed = self.device_view.get_selected_speed();
                                                 info!("Setting connection speed to: {:?}", speed);
                                                 
                                                 // Configure the device with the selected speed
@@ -435,7 +434,7 @@ impl Application for USBflyApp {
                         info!("Received speed change request: {:?}", speed);
                         
                         // Update traffic view state
-                        self.traffic_view.update(msg);
+                        let _ = self.traffic_view.update(msg); // Ignore the command since we're handling it differently
                         
                         // Return appropriate command to change speed
                         if self.connected {
@@ -578,7 +577,7 @@ impl Application for USBflyApp {
             Message::LoadCapture => {
                 // Load capture from file
                 Command::perform(
-                    async {
+                    async move {
                         let task = rfd::AsyncFileDialog::new()
                             .add_filter("USB Capture", &["usb"])
                             .set_directory("/")
@@ -993,14 +992,14 @@ impl Application for USBflyApp {
                 
                 // Create a command that will disconnect first
                 let disconnect_command = Command::perform(
-                    async { Message::Disconnect },
+                    async move { Message::Disconnect },
                     |msg| msg
                 );
                 
                 // Then schedule a reconnect after the disconnect completes with a longer delay
                 // for better reliability with USB device detection
                 let reconnect_command = Command::perform(
-                    async {
+                    async move {
                         // Add a delay to ensure the disconnect completes first
                         // Increased from 500ms to 1000ms for better reliability
                         info!("Waiting for device to disconnect completely before reconnecting");
@@ -1012,7 +1011,7 @@ impl Application for USBflyApp {
                 
                 // Create a status update command to show when reconnection is in progress
                 let status_update_command = Command::perform(
-                    async {
+                    async move {
                         // This will run after the disconnect but before the reconnect
                         tokio::time::sleep(std::time::Duration::from_millis(800)).await;
                         Message::UpdateStatusMessage(format!("Reconnecting with {:?} device speed...", speed))
@@ -1023,7 +1022,7 @@ impl Application for USBflyApp {
                 // And finally, if capture was active, restart it after reconnection with longer delay
                 let restart_capture_command = if was_capture_active {
                     Command::perform(
-                        async {
+                        async move {
                             // Add a longer delay to ensure device is connected before starting capture
                             // Increased from 800ms to 1500ms for better reliability
                             tokio::time::sleep(std::time::Duration::from_millis(1500)).await;

@@ -346,6 +346,14 @@ impl TransferQueue {
         self.receiver.as_ref()
     }
     
+    /// Cancel the current transfer queue operations
+    pub fn cancel(&mut self) -> Result<(), Error> {
+        debug!("Cancelling all pending transfers");
+        self.queue.cancel_all();
+        debug!("All transfers cancelled");
+        Ok(())
+    }
+    
     /// Extract the transferable info from this queue
     /// This provides a clonable subset of information needed to recreate a queue
     pub fn get_info(&self) -> ClonableTransferInfo {
@@ -398,4 +406,6 @@ impl TransferQueue {
         // sophisticated error handling
         self.process(stop_rx).await
     }
+    
+
 }

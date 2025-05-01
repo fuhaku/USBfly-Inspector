@@ -142,6 +142,7 @@ impl fmt::Display for USBDeviceInfo {
 pub struct CynthionConnection {
     handle: Option<DeviceHandle<rusb::GlobalContext>>,
     active: bool,
+    transfer_queue: Option<crate::cynthion::transfer_queue::TransferQueue>,
 }
 
 impl CynthionConnection {
@@ -436,6 +437,7 @@ impl CynthionConnection {
         Self {
             handle: None,
             active: true,
+            transfer_queue: None,
         }
     }
     
@@ -672,6 +674,7 @@ impl CynthionConnection {
                 Ok(Self {
                     handle: Some(handle),
                     active: true,
+                    transfer_queue: None,
                 })
             },
             Err(e) => {
@@ -706,6 +709,7 @@ impl CynthionConnection {
                         return Ok(Self {
                             handle: None,
                             active: true,
+                            transfer_queue: None,
                         });
                     }
                 }

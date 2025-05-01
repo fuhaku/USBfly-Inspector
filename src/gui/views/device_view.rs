@@ -506,7 +506,7 @@ impl DeviceView {
                                         )
                                         .width(Length::FillPortion(1))
                                         .text_size(16)
-                                        .style(iced::theme::PickList::Primary);
+                                        .style(iced::theme::PickList::Default);
                                         
                                         Element::from(pick_list)
                                     } else {

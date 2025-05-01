@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use log::{debug, info};
+use log::{debug, info, warn};
 use crate::usb::descriptors::UsbDevice;
 use crate::usb::UsbDescriptorType;
 use crate::usb::packet_types::recognize_packet_type;
@@ -13,6 +13,8 @@ pub enum Speed {
     High = 1,
     Full = 2,
     Low = 3,
+    Super = 4,
+    SuperPlus = 5,
 }
 
 impl Speed {
@@ -29,6 +31,8 @@ impl std::fmt::Display for Speed {
             Speed::High => write!(f, "High Speed"),
             Speed::Full => write!(f, "Full Speed"),
             Speed::Low => write!(f, "Low Speed"),
+            Speed::Super => write!(f, "Super Speed"),
+            Speed::SuperPlus => write!(f, "Super Speed Plus"),
         }
     }
 }
