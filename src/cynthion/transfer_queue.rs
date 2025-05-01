@@ -255,4 +255,48 @@ impl TransferQueue {
             transfer_length: self.transfer_length,
         }
     }
+    
+    /// Configure USB polling options for optimal performance
+    /// * `interval_ms` - Polling interval in milliseconds
+    /// * `high_priority` - If true, use high priority polling
+    pub fn set_usb_polling_options(&mut self, interval_ms: u32, high_priority: bool) {
+        debug!("Setting USB polling options: interval={}ms, high_priority={}", 
+               interval_ms, high_priority);
+        
+        // This is just a stub in our implementation
+        // In a real implementation, we would configure polling intervals on the USB host
+        if high_priority {
+            info!("Using high-priority USB polling for better responsiveness");
+        }
+    }
+    
+    /// Set maximum consecutive errors before reset
+    pub fn set_max_consecutive_errors(&mut self, max_errors: u32) {
+        debug!("Setting maximum consecutive errors to {}", max_errors);
+        // Just a stub - would be implemented in a real system
+    }
+    
+    /// Enable advanced packet reassembly for split transactions
+    pub fn enable_packet_reassembly(&mut self, enable: bool) {
+        if enable {
+            debug!("Enabling advanced USB packet reassembly");
+        } else {
+            debug!("Disabling advanced USB packet reassembly");
+        }
+        // Just a stub - would be implemented in a real system
+    }
+    
+    /// Process transfers with enhanced error recovery capabilities
+    pub async fn process_with_recovery(&mut self, stop_rx: oneshot::Receiver<()>)
+        -> Result<(), Error>
+    {
+        // This is a wrapper around the regular process method that adds
+        // additional error recovery capabilities
+        debug!("Starting USB transfer processing with enhanced error recovery");
+        
+        // For now, just delegate to the regular process method
+        // In a real implementation, we would add retry logic and more
+        // sophisticated error handling
+        self.process(stop_rx).await
+    }
 }

@@ -1,14 +1,31 @@
 //! Enhanced USB device connection detector module for Cynthion connections
 //! This helps identify when devices connect to a Cynthion device and improves capture reliability
 
-use log::{debug, info};
+use log::{debug, info, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 
-// Global state to track if we've detected a connected device
+// Import the Speed enum from the usb module instead of the deprecated module
+use crate::usb::Speed;
+
+// Global state variables for enhanced device and capture detection
 lazy_static! {
+    // Track if we've detected a connected device
     static ref DEVICE_CONNECTED: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    
+    // Track if a capture session is currently active
+    static ref CAPTURE_ACTIVE: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    
+    // Track if a device reconnect is pending (used for error recovery)
+    static ref DEVICE_RECONNECT_PENDING: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    
+    // Track if a device timeout has occurred
+    static ref DEVICE_TIMEOUT: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    
+    // Keep track of the last successful USB speed setting for improved reconnection
+    static ref LAST_SUCCESSFUL_SPEED: Arc<Mutex<Option<Speed>>> = Arc::new(Mutex::new(None));
 }
 
 /// An enhanced detection helper that identifies USB device connections through Cynthion traffic
@@ -28,6 +45,65 @@ impl UsbDeviceConnectionDetector {
             info!("USB device connected to Cynthion - capture optimized for device traffic");
         } else {
             info!("No USB devices detected on Cynthion");
+        }
+    }
+    
+    /// Check if a capture session is currently active
+    pub fn is_capture_active() -> bool {
+        CAPTURE_ACTIVE.load(Ordering::Relaxed)
+    }
+    
+    /// Set the capture active status
+    pub fn set_capture_active(active: bool) {
+        CAPTURE_ACTIVE.store(active, Ordering::Relaxed);
+        if active {
+            info!("📥 USB capture session started - traffic monitoring active");
+        } else {
+            info!("⏹️ USB capture session ended");
+        }
+    }
+    
+    /// Check if device reconnection is pending
+    pub fn is_device_reconnect_pending() -> bool {
+        DEVICE_RECONNECT_PENDING.load(Ordering::Relaxed)
+    }
+    
+    /// Set the device reconnect pending status
+    pub fn set_device_reconnect_pending(pending: bool) {
+        DEVICE_RECONNECT_PENDING.store(pending, Ordering::Relaxed);
+        if pending {
+            info!("🔄 USB device reconnection pending - attempting to reestablish connection");
+        }
+    }
+    
+    /// Check if a device timeout has occurred
+    pub fn is_device_timeout() -> bool {
+        DEVICE_TIMEOUT.load(Ordering::Relaxed)
+    }
+    
+    /// Set the device timeout status
+    pub fn set_device_timeout(timeout: bool) {
+        DEVICE_TIMEOUT.store(timeout, Ordering::Relaxed);
+        if timeout {
+            warn!("⏱️ USB device timeout detected - connection may be unreliable");
+        }
+    }
+    
+    /// Get the last successful USB speed setting
+    pub fn get_last_successful_speed() -> Option<Speed> {
+        if let Ok(speed) = LAST_SUCCESSFUL_SPEED.lock() {
+            return *speed;
+        }
+        None
+    }
+    
+    /// Set the last successful USB speed setting
+    pub fn set_last_successful_speed(speed: Speed) {
+        if let Ok(mut last_speed) = LAST_SUCCESSFUL_SPEED.lock() {
+            *last_speed = Some(speed);
+            info!("📊 Remembered successful USB speed: {:?} for future connections", speed);
+        } else {
+            warn!("Failed to record last successful speed - mutex lock failed");
         }
     }
     

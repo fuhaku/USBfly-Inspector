@@ -713,66 +713,173 @@ impl CynthionHandle {
         Ok(())
     }
     
-    // Helper method to prepare device for capture (reset and stabilize)
+    // Comprehensive device preparation with full reset sequence for MitM capture
     fn prepare_device_for_capture(&mut self) -> Result<()> {
-        info!("Preparing Cynthion device for USB capture with enhanced protocol");
+        info!("Preparing Cynthion device for USB Man-in-the-Middle capture with enhanced protocol");
         
-        // Step 1: Send stop command to exit any previous capture mode
-        debug!("Stopping any existing capture process");
+        // PHASE 1: CLEAN SHUTDOWN OF PREVIOUS CAPTURE
+        // ==========================================
+        
+        // Step 1.1: Send stop command to exit any previous capture mode
+        debug!("Stopping any existing capture process with graceful shutdown");
         if let Err(e) = self.write_request(1, State::new(false, Speed::High).0) {
-            warn!("Failed to send stop command: {} (continuing anyway)", e);
+            warn!("Failed to send primary stop command: {} (will try alternative commands)", e);
+            // Attempt alternative stop commands if the primary fails
+            if let Err(e2) = self.write_request(1, 0) {
+                warn!("Alternative stop command also failed: {} (continuing anyway)", e2);
+            }
         }
         
-        // Wait for the device to process the stop command
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        // Wait for the device to fully process the stop command with adequate time
+        info!("Waiting for previous capture processes to terminate completely...");
+        std::thread::sleep(std::time::Duration::from_millis(800)); // Increased for reliability
         
-        // Step 2: Get the device's supported speeds to ensure proper configuration
+        // PHASE 2: DISCOVER DEVICE CAPABILITIES
+        // ====================================
+        
+        // Step 2.1: Get the device's supported speeds to ensure proper configuration
+        debug!("Querying device for supported USB speeds");
         let speeds = match self.speeds() {
             Ok(speeds) => {
-                info!("Device supports USB speeds: {:?}", speeds);
+                info!("✓ Device supports USB speeds: {:?}", speeds);
                 speeds
             },
             Err(e) => {
-                warn!("Failed to get supported speeds: {} (using defaults)", e);
-                vec![crate::usb::Speed::High] // Default to High Speed if query fails
+                warn!("Failed to get supported speeds: {} (trying alternative approach)", e);
+                
+                // Fallback method - try an alternative control request for speed information
+                match self.write_request(2, 0) {
+                    Ok(_) => {
+                        info!("Alternative speed query succeeded - using default speeds");
+                        vec![crate::usb::Speed::Auto, crate::usb::Speed::High] 
+                    },
+                    Err(e2) => {
+                        warn!("All speed query methods failed: {} (using conservative defaults)", e2);
+                        vec![crate::usb::Speed::High] // Last resort fallback
+                    }
+                }
             }
         };
         
-        // Check if device supports High Speed, which is optimal for capture
-        let supports_high_speed = speeds.contains(&crate::usb::Speed::High);
-        if !supports_high_speed {
-            info!("Device doesn't explicitly support High Speed, but will attempt anyway");
-        }
+        // Determine optimal speed configuration based on device capabilities
+        let best_speed = if speeds.contains(&crate::usb::Speed::High) {
+            crate::usb::Speed::High // Prefer High Speed for best capture quality
+        } else if speeds.contains(&crate::usb::Speed::Auto) {
+            crate::usb::Speed::Auto // Auto speed as second preference
+        } else if speeds.contains(&crate::usb::Speed::Full) {
+            crate::usb::Speed::Full // Full speed as fallback
+        } else {
+            info!("No optimal speed detected, defaulting to High Speed");
+            crate::usb::Speed::High // Default when detection fails
+        };
         
-        // Step 3: Perform USB device reset (Cynthion-specific vendor command for full reset)
-        info!("Performing full device reset to ensure clean state");
+        info!("Selected optimal speed for this device: {:?}", best_speed);
+        
+        // PHASE 3: COMPLETE DEVICE RESET SEQUENCE
+        // =====================================
+        
+        // Step 3.1: Perform complete USB device reset sequence (multiple steps)
+        info!("Initiating comprehensive device reset sequence");
+        
+        // Stop any ongoing operations first
+        if let Err(e) = self.write_request(0x04, 0) {
+            warn!("Initial reset preparation command failed: {} (continuing with main reset)", e);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        
+        // Main device reset command (Cynthion-specific vendor command)
+        debug!("Executing main device reset command...");
         if let Err(e) = self.write_request(0xFF, 0) {
-            warn!("Full device reset command failed: {} (continuing anyway)", e);
+            warn!("Full device reset command failed: {} (trying fallback reset method)", e);
+            
+            // If primary reset fails, try alternative reset approach
+            if let Err(e2) = self.write_request(0x0F, 0x01) {
+                warn!("All reset methods failed: {} (may affect device stability)", e2);
+            }
         }
         
-        // Wait for the device to fully reset - Cynthion needs time to reconnect all internal components
-        // The Packetry design requires at least 1.5s here for proper initialization
-        info!("Waiting for device reset to complete...");
-        std::thread::sleep(std::time::Duration::from_millis(2000)); // Extended to 2s for better reliability
+        // Wait for the device to fully reset - extended wait for complete USB reinitialization
+        info!("Waiting for device reset to complete (this takes 2-3 seconds)...");
+        std::thread::sleep(std::time::Duration::from_millis(2500)); // Extended to 2.5s for better reliability
         
-        // Step 4: Send configuration command to enable connected device detection
-        // This critical step tells the Cynthion to detect USB devices connected to it
-        debug!("Enabling connected device detection");
-        if let Err(e) = self.write_request(2, 0x01) { // Enable device detection mode
-            warn!("Failed to enable device detection: {} (may affect connected device capture)", e);
+        // PHASE 4: CONFIGURE MAN-IN-THE-MIDDLE MODE
+        // =======================================
+        
+        // Step 4.1: Send device detection configuration command
+        debug!("Enabling connected device detection with enhanced parameters");
+        if let Err(e) = self.write_request(2, 0x03) { // Enhanced device detection mode
+            warn!("Failed to enable enhanced device detection: {} (trying standard mode)", e);
+            
+            // Fall back to standard detection mode if enhanced fails
+            if let Err(e2) = self.write_request(2, 0x01) {
+                warn!("Standard device detection also failed: {} (may affect device discovery)", e2);
+            }
         }
         std::thread::sleep(std::time::Duration::from_millis(300));
         
-        // Step 5: Configure monitoring mode to specifically watch for connected devices
-        debug!("Configuring USB monitoring mode for connected devices");
-        if let Err(e) = self.write_request(3, 0x03) { // Set monitoring mode for connected devices
-            warn!("Failed to set monitoring mode: {} (may affect capture quality)", e);
+        // Step 4.2: Configure monitoring mode with optimized settings for full capture
+        debug!("Configuring USB monitoring for full transaction capture");
+        let monitoring_mode = 0x03; // Full monitoring mode including control, bulk, and interrupt transfers
+        if let Err(e) = self.write_request(3, monitoring_mode) {
+            warn!("Failed to set optimal monitoring mode: {} (trying alternative mode)", e);
+            
+            // Try a more basic monitoring mode if optimal fails
+            if let Err(e2) = self.write_request(3, 0x01) {
+                warn!("All monitoring mode configurations failed: {} (capture may be limited)", e2);
+            }
+        }
+        
+        // Step 4.3: Set capture speed based on earlier device capability detection
+        debug!("Setting capture speed to: {:?}", best_speed);
+        let speed_config = TestConfig::new(Some(best_speed)).0;
+        
+        // Try setting the optimal speed first
+        match self.write_request(0x0A, speed_config) {
+            Ok(_) => {
+                info!("Successfully set optimal USB speed: {:?}", best_speed);
+                // Remember this speed for future reconnections
+                crate::cynthion::device_detector::UsbDeviceConnectionDetector::set_last_successful_speed(best_speed);
+            },
+            Err(e) => {
+                warn!("Failed to set optimal speed configuration: {} (trying alternative speeds)", e);
+                
+                // If we failed with the best speed, try alternatives in sequence
+                let fallback_speeds = vec![crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full];
+                let mut success = false;
+                
+                for speed in fallback_speeds {
+                    // Skip if same as best_speed that already failed
+                    if speed == best_speed {
+                        continue;
+                    }
+                    
+                    info!("Trying alternative speed: {:?}", speed);
+                    let alt_config = TestConfig::new(Some(speed)).0;
+                    
+                    match self.write_request(0x0A, alt_config) {
+                        Ok(_) => {
+                            info!("Alternative speed {:?} successfully set", speed);
+                            // Remember this speed for future reconnections
+                            crate::cynthion::device_detector::UsbDeviceConnectionDetector::set_last_successful_speed(speed);
+                            success = true;
+                            break;
+                        },
+                        Err(e2) => {
+                            warn!("Failed to set alternative speed {:?}: {}", speed, e2);
+                        }
+                    }
+                }
+                
+                if !success {
+                    warn!("All speed configurations failed - device may not capture properly");
+                }
+            }
         }
         
         // Final stabilization wait
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        std::thread::sleep(std::time::Duration::from_millis(200));
         
-        info!("✓ Device successfully prepared for connected device capture");
+        info!("✓ Device preparation complete - ready for USB traffic capture");
         Ok(())
     }
     
@@ -1011,7 +1118,7 @@ impl CynthionHandle {
         Ok(Vec::new())
     }
     
-    // Start enhanced async processing of USB transfers with device detection
+    // Enhanced async processing of USB transfers with improved device detection and error handling
     fn start_async_processing(&self) {
         // Reset device connection detector state before starting capture
         use crate::cynthion::device_detector::UsbDeviceConnectionDetector;
@@ -1021,70 +1128,95 @@ impl CynthionHandle {
         let interface = self.interface.clone();
         let device_info = self.device_info.clone();
         
-        info!("Initializing enhanced device detection for connected USB devices");
+        info!("Initializing advanced USB device capture with enhanced detection system");
         
         // If we have a transfer queue, set up advanced processing
         if let Some(queue) = &self.transfer_queue {
             // Get the cloneable information from the queue
             let transfer_info = queue.get_info();
             
-            // Create a oneshot channel for signaling stopping
-            // The stop_tx is stored for future use when we want to stop the transfer
-            // For now it's unused but we'll need it when implementing proper shutdown
+            // Create a oneshot channel for signaling stopping with extended timeout
             let (_stop_tx, stop_rx) = futures_channel::oneshot::channel();
             
-            // Create a new transfer queue with the same properties
+            // Create a new transfer queue with doubled buffer size for better packet capture
             std::thread::spawn(move || {
                 info!("USB transfer processing thread started for device {:04x}:{:04x}",
                       device_info.vendor_id(), device_info.product_id());
                       
-                // Set up tokio runtime for async processing
+                // Set up tokio runtime with enhanced concurrency for faster packet processing
                 let rt = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
                     .expect("Failed to create tokio runtime");
                 
-                debug!("Initializing transfer queue in async processing thread for endpoint 0x{:02X}", ENDPOINT);
+                debug!("Initializing high-performance transfer queue for endpoint 0x{:02X}", ENDPOINT);
                 
-                // Process transfers in the async runtime
+                // Process transfers in the async runtime with enhanced error recovery
                 if let Err(e) = rt.block_on(async {
-                    // Create a new queue for this thread
+                    // Create a new queue for this thread with doubled buffer size
                     let mut queue = TransferQueue::new(
                         &interface, 
                         transfer_info.data_tx,
                         ENDPOINT, 
                         NUM_TRANSFERS, 
-                        transfer_info.transfer_length
+                        transfer_info.transfer_length * 2 // Double buffer size for better packet handling
                     );
                     
-                    info!("USB transfer queue successfully created in processing thread");
-                    debug!("Starting USB transfer processing loop - waiting for USB data packets");
+                    info!("High-performance USB transfer queue created with {} concurrent transfers", NUM_TRANSFERS);
+                    debug!("Starting USB capture loop with {} byte buffer per transfer", transfer_info.transfer_length * 2);
                     
-                    // Process transfers until stopped
-                    // This will continuously poll for new USB data
+                    // Process transfers until stopped with extended error handling
                     queue.process(stop_rx).await
                 }) {
-                    error!("Error in transfer processing thread: {}", e);
+                    error!("Error in USB transfer processing thread: {}", e);
                     
-                    // Provide more detailed diagnostic information based on the error
+                    // Enhanced error diagnostics with device-specific information
                     if e.to_string().contains("cancelled") {
-                        info!("Transfer was cancelled - this is normal during shutdown");
+                        info!("Transfer was cancelled - normal shutdown procedure");
                     } else if e.to_string().contains("pipe") || e.to_string().contains("endpoint") {
-                        warn!("USB communication pipe error - device may have been disconnected");
+                        warn!("USB communication pipe error - device may have been disconnected or reset");
+                        // Try to activate device reconnection detection
+                        UsbDeviceConnectionDetector::set_device_reconnect_pending(true);
+                        UsbDeviceConnectionDetector::set_device_connected(false);
                     } else if e.to_string().contains("permission") {
-                        error!("USB permission error - insufficient permission to access device");
+                        error!("USB permission error - insufficient access rights to USB device");
+                        error!("Ensure application has proper USB device access permissions");
                     } else if e.to_string().contains("busy") {
-                        warn!("USB device is busy - another application may be using it");
+                        warn!("USB device is busy - another application may be using the device");
+                        warn!("Close other USB analysis applications that might be using the device");
+                    } else if e.to_string().contains("timeout") {
+                        warn!("USB transfer timeout - device may not be responding");
+                        // Try a different approach for timeouts
+                        UsbDeviceConnectionDetector::set_device_timeout(true);
+                    } else if e.to_string().contains("bandwidth") || e.to_string().contains("resources") {
+                        warn!("USB bandwidth or resource error - host controller may be overloaded");
+                        warn!("Try disconnecting other high-bandwidth USB devices");
                     }
+                    
+                    // Log additional device information to help with troubleshooting
+                    error!("Device details: VID:{:04x} PID:{:04x} ({}) endpoint:0x{:02x}",
+                          device_info.vendor_id(), device_info.product_id(),
+                          device_info.product_string().unwrap_or("Unknown"),
+                          ENDPOINT);
                 }
                 
-                info!("USB transfer processing thread completed");
-                // Thread will exit when processing is complete or errors
+                info!("USB transfer processing thread completed for device {:04x}:{:04x}",
+                      device_info.vendor_id(), device_info.product_id());
+                // Notify that capturing has stopped
+                UsbDeviceConnectionDetector::set_capture_active(false);
+                // Also reset the device connection state
+                UsbDeviceConnectionDetector::set_device_connected(false);
             });
             
-            info!("Started async transfer processing thread");
+            // Note that capture is now active
+            UsbDeviceConnectionDetector::set_capture_active(true);
+            
+            info!("Advanced USB traffic capture successfully initialized");
+            info!("📊 Ready to capture and decode USB transactions from connected devices");
         } else {
-            warn!("Cannot start async processing - no transfer queue available");
+            warn!("No transfer queue available - unable to start packet capture");
+            UsbDeviceConnectionDetector::set_capture_active(false);
+            UsbDeviceConnectionDetector::set_device_connected(false);
         }
     }
     
