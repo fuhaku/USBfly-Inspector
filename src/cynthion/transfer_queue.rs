@@ -4,7 +4,7 @@
 use std::sync::mpsc;
 use std::time::Duration;
 
-use anyhow::{Context, Error, anyhow};
+use anyhow::{Error, anyhow};
 use futures_channel::oneshot;
 use futures_util::{future::FusedFuture, FutureExt, select_biased};
 use log::{debug, error, info, warn, trace};

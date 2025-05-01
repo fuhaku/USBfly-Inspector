@@ -6,6 +6,7 @@ pub mod connection;
 // New modules for our nusb implementation
 pub mod transfer_queue;
 pub mod new_connection;
+pub mod device_detector;
 
 // These are the primary types that should be used by the application
 pub use new_connection::{CynthionDevice, CynthionHandle};

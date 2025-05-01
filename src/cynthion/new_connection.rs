@@ -111,8 +111,11 @@ impl CynthionDevice {
         
         let devices = match nusb::list_devices() {
             Ok(devices) => {
+                // Create a Vec to store the list for iteration
+                let device_list: Vec<_> = devices.collect();
+                
                 // Log details about each detected USB device for diagnostic purposes
-                for dev in &devices {
+                for dev in &device_list {
                     debug!("USB device detected: VID:{:04x} PID:{:04x} {}", 
                            dev.vendor_id(), dev.product_id(), 
                            dev.product_string().unwrap_or("Unknown"));
@@ -122,7 +125,7 @@ impl CynthionDevice {
                               dev.product_string().unwrap_or("Unknown"));
                     }
                 }
-                devices
+                device_list.into_iter()
             },
             Err(e) => {
                 error!("Failed to list USB devices: {}", e);
@@ -1029,6 +1032,11 @@ impl CynthionHandle {
             warn!("Received empty data for transaction processing - check device connection");
             return Vec::new();
         }
+        
+        debug!("Processing {} bytes of USB traffic data", data.len());
+        
+        // Check for USB device connection patterns
+        crate::cynthion::device_detector::UsbDeviceConnectionDetector::check_for_usb_device_connection(data);
         
         // For our nusb implementation, properly process the data
         let mut transactions = Vec::new();
