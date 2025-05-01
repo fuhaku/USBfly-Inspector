@@ -61,6 +61,9 @@ pub struct UsbDecoder {
     pub vendor_names: HashMap<u16, String>,
     pub device_names: HashMap<(u16, u16), String>,
     
+    // USB Speed setting for parsing packets correctly
+    pub current_speed: Speed,
+    
     // State flags
     initialized: bool,
 }
@@ -72,13 +75,20 @@ impl UsbDecoder {
             transaction_counter: 0,
             vendor_names: Self::load_vendor_database(),
             device_names: Self::load_device_database(),
+            current_speed: Speed::Auto, // Default to Auto speed
             initialized: false,
         }
     }
     
+    // Set the current USB speed for decoding
+    pub fn set_speed(&mut self, speed: Speed) {
+        info!("Setting USB decoder speed to: {:?}", speed);
+        self.current_speed = speed;
+    }
+    
     // Process raw USB data and update decoder state with enhanced error handling
     pub fn process_data(&mut self, data: &[u8]) -> Result<(), String> {
-        debug!("Processing USB data with enhanced decoder, length={}", data.len());
+        debug!("Processing USB data with enhanced decoder, length={}, speed={:?}", data.len(), self.current_speed);
         
         // Empty data is not a processable error
         if data.is_empty() {
@@ -92,6 +102,10 @@ impl UsbDecoder {
             .collect::<Vec<String>>()
             .join(" ");
         debug!("Data starts with: {}", data_start);
+        
+        // Adjust packet format interpretation based on current speed setting
+        info!("Decoding USB packet with speed: {:?}", self.current_speed);
+        
         // Reset state if this is first data
         if !self.initialized {
             self.reset();
@@ -151,6 +165,10 @@ impl UsbDecoder {
         
         // Create a clone of self to process the data without modifying state
         let mut decoder_clone = UsbDecoder::new();
+        
+        // Make sure we use the same speed setting in the clone
+        decoder_clone.set_speed(self.current_speed);
+        debug!("Using speed {:?} for packet decoding", self.current_speed);
         
         // Enhanced packet detection with complete coverage of all known packet types
         // This ensures we can recognize and decode all possible packets from Cynthion

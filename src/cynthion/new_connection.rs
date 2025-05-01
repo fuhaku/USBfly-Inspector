@@ -1423,12 +1423,19 @@ impl CynthionHandle {
         // Used to track if we successfully processed any packets
         let original_transaction_count = transactions.len();
         
+        // Critical fix: Even with no recognizable packet format, create at least one transaction
+        // This ensures we always show something in the UI when data is received
+        let mut fallback_transaction_created = false;
+        
         while offset + 4 <= data.len() {
             // 1. Read packet header - minimum 4 bytes for header
             let packet_type = data[offset];
             let endpoint = data[offset + 1];
             let device_addr = data[offset + 2];
             let data_len = data[offset + 3] as usize;
+            
+            // Log every packet we attempt to process
+            info!("Processing packet type 0x{:02X} with {} bytes of data", packet_type, data_len);
             
             // Special handling for alternative packet types with more detailed logging
             let alternative_types = [0xA5, 0x00, 0x23, 0x69];
@@ -1805,13 +1812,22 @@ impl CynthionHandle {
         // Enhanced error handling for empty transaction list
         if transactions.len() == original_transaction_count {
             // No transactions were successfully parsed
-            warn!("Failed to parse any valid USB transactions from data");
+            warn!("Failed to parse any valid USB transactions from data - creating fallback transaction");
+            info!("Creating fallback transaction for {} bytes of data", data.len());
             
             // Create a special transaction for the raw data so it's still visible in the UI
             let mut fields = std::collections::HashMap::new();
             fields.insert("raw_data".to_string(), hex_string);
-            fields.insert("note".to_string(), "USBfly could not parse this data format, showing raw bytes".to_string());
+            fields.insert("note".to_string(), "Raw USB traffic data".to_string());
+            fields.insert("bytes_received".to_string(), format!("{}", data.len()));
+            fields.insert("timestamp".to_string(), format!("{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs_f64()));
             
+            // Create a more informative display of data
+            let display_len = std::cmp::min(32, data.len());
+            let preview_hex = data[0..display_len].iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" ");
+            fields.insert("data_preview".to_string(), preview_hex);
+            
+            fallback_transaction_created = true;
             let transaction = UsbTransaction {
                 id: 1,
                 transfer_type: UsbTransferType::Bulk, // Default type

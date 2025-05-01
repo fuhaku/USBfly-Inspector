@@ -918,12 +918,34 @@ impl CynthionConnection {
         }
     }
     
-    #[allow(dead_code)]
     pub fn disconnect(&mut self) -> Result<()> {
+        info!("Disconnecting from Cynthion device");
+        
+        // First, stop any active capture and transfer queue
+        if self.active {
+            // Stop capture first
+            debug!("Stopping any active capture before disconnecting");
+            match self.stop_capture() {
+                Ok(_) => debug!("Successfully stopped capture before disconnecting"),
+                Err(e) => warn!("Error stopping capture during disconnect: {}", e)
+            }
+            
+            // Stop the transfer queue
+            if let Some(queue) = &mut self.transfer_queue {
+                debug!("Shutting down transfer queue");
+                queue.shutdown();
+                // Give the queue a moment to shut down cleanly
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+        }
+        
         // Always mark as inactive first to prevent new read operations
         self.active = false;
         
-        // No more simulation mode handling
+        // Clear transfer queue reference
+        self.transfer_queue = None;
+        
+        // If handle is None, device might already be disconnected
         if self.handle.is_none() {
             info!("Disconnected from Cynthion device (no handle)");
             return Ok(());
@@ -936,9 +958,21 @@ impl CynthionConnection {
                 // Only try to release interface if not on macOS to avoid potential crashes
                 #[cfg(not(target_os = "macos"))]
                 {
-                    match handle.release_interface(CYNTHION_INTERFACE) {
-                        Ok(_) => debug!("Successfully released USB interface"),
-                        Err(e) => error!("Failed to release interface: {} (continuing cleanup)", e)
+                    // Retry interface release a few times
+                    for attempt in 1..=3 {
+                        match handle.release_interface(CYNTHION_INTERFACE) {
+                            Ok(_) => {
+                                debug!("Successfully released USB interface on attempt {}", attempt);
+                                break;
+                            },
+                            Err(e) if attempt < 3 => {
+                                warn!("Failed to release interface (attempt {}): {} - retrying", attempt, e);
+                                std::thread::sleep(std::time::Duration::from_millis(50));
+                            },
+                            Err(e) => {
+                                error!("Failed to release interface after multiple attempts: {} (continuing cleanup)", e);
+                            }
+                        }
                     }
                 }
                 
@@ -1396,14 +1430,50 @@ impl CynthionConnection {
         self.send_command(&command)
     }
     
-    // Stop capturing USB traffic
-    #[allow(dead_code)]
+    // Stop capturing USB traffic with improved error handling
     pub fn stop_capture(&mut self) -> Result<()> {
         info!("Stopping USB traffic capture");
         
+        // First stop the transfer queue if it exists
+        if let Some(queue) = &mut self.transfer_queue {
+            debug!("Stopping transfer queue first before sending stop command");
+            queue.shutdown();
+        }
+        
+        // Check if connection is active
+        if !self.active {
+            warn!("Cannot stop capture: not connected to device");
+            return Ok(());
+        }
+        
         // Prepare the command to stop capture
         let command = [CMD_STOP_CAPTURE];
-        self.send_command(&command)
+        
+        // Send the command with retry mechanism
+        let max_retries = 3;
+        for attempt in 1..=max_retries {
+            match self.send_command(&command) {
+                Ok(_) => {
+                    info!("Successfully sent stop command to device on attempt {}", attempt);
+                    // Send a second command to ensure it's received
+                    if attempt == 1 {
+                        std::thread::sleep(std::time::Duration::from_millis(50));
+                        continue; // Send a second attempt for redundancy
+                    }
+                    return Ok(());
+                },
+                Err(e) if attempt < max_retries => {
+                    warn!("Failed to send stop command (attempt {}): {}", attempt, e);
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                },
+                Err(e) => {
+                    error!("Failed to send stop command after {} attempts: {}", max_retries, e);
+                    return Err(anyhow!("Failed to stop capture: {}", e));
+                }
+            }
+        }
+        
+        Ok(())
     }
     
     // Clear the capture buffer

@@ -100,6 +100,7 @@ pub struct USBflyApp {
 pub enum Message {
     Connect,
     Disconnect,
+    DisconnectCompleted,  // Added message for when device is successfully released
     DevicesFound(Vec<CynthionDevice>), // New message for device scan results
     ConnectionEstablished(Arc<Mutex<CynthionHandle>>),
     ConnectionFailed(String),
@@ -262,9 +263,63 @@ impl Application for USBflyApp {
             }
             Message::Disconnect => {
                 info!("Disconnecting from Cynthion device");
-                debug!("Clearing both connection handles");
+                debug!("Stopping any active capture and releasing device...");
                 
-                // Clear both handles to ensure consistent state
+                // First check if we have a valid connection
+                if let Some(connection) = &self.connection {
+                    let conn_clone = Arc::clone(connection);
+                    
+                    // First try to properly stop capture if it's running
+                    if self.traffic_view.is_capture_active() {
+                        info!("Stopping active capture before disconnecting");
+                        
+                        // Make a best effort to stop capture first
+                        if let Ok(mut conn) = conn_clone.lock() {
+                            // Try to stop but don't worry if it fails
+                            let _ = conn.stop_capture();
+                            debug!("Attempted to stop capture before disconnect");
+                        }
+                        
+                        // Update UI state to reflect stopped capture
+                        self.traffic_view.set_capture_active(false);
+                    }
+                    
+                    // Return a command to perform the actual device release
+                    return Command::perform(
+                        async move {
+                            info!("Releasing Cynthion device properly...");
+                            
+                            // Attempt to properly release the device
+                            let release_result = if let Ok(mut conn) = conn_clone.lock() {
+                                conn.release_device()
+                            } else {
+                                Err(anyhow::anyhow!("Failed to acquire lock for device release"))
+                            };
+                            
+                            // Log the result
+                            match &release_result {
+                                Ok(_) => info!("Successfully released Cynthion device"),
+                                Err(e) => warn!("Failed to properly release device: {}", e),
+                            }
+                            
+                            // Return disconnect completed message
+                            Message::DisconnectCompleted
+                        },
+                        |msg| msg
+                    );
+                } else {
+                    // No active connection, just clear state
+                    info!("No active connection to disconnect");
+                    self.cynthion_handle = None;
+                    self.connection = None;
+                    self.connected = false;
+                    Command::none()
+                }
+            }
+            
+            Message::DisconnectCompleted => {
+                // Now that device is properly released, clear the handles
+                info!("Disconnect complete, clearing connection handles");
                 self.cynthion_handle = None;
                 self.connection = None;
                 self.connected = false;
@@ -333,18 +388,36 @@ impl Application for USBflyApp {
                     .map(Message::DescriptorViewMessage)
             }
             Message::USBDataReceived(data) => {
-                use log::{debug, info, trace};
+                use log::{debug, info, trace, warn, error};
                 
-                // Log incoming data size
-                debug!("Received USB data packet: {} bytes", data.len());
-                if data.len() > 4 {
-                    trace!("Data starts with: {:02X?}", &data[0..4]);
+                // Enhanced logging for USB data reception
+                info!("Received USB data packet: {} bytes", data.len());
+                if data.len() > 0 {
+                    if data.len() >= 4 {
+                        debug!("Data starts with: {:02X?}", &data[0..4]);
+                        
+                        // Log first 16 bytes for better diagnostic information
+                        let display_len = std::cmp::min(16, data.len());
+                        let hex_string = data[0..display_len].iter()
+                            .map(|b| format!("{:02X}", b))
+                            .collect::<Vec<String>>()
+                            .join(" ");
+                        info!("First {} bytes: {}", display_len, hex_string);
+                    } else {
+                        debug!("Short data packet: {:02X?}", &data);
+                    }
+                } else {
+                    warn!("Received empty data packet (0 bytes)");
                 }
                 
                 // Process received USB data
-                if let Some(decoded) = self.usb_decoder.decode(&data) {
-                    // First add the raw packet for traditional view
-                    self.traffic_view.add_packet(data.clone(), decoded.clone());
+                match self.usb_decoder.decode(&data) {
+                    Some(decoded) => {
+                        // First add the raw packet for traditional view
+                        debug!("🔍 Successfully decoded packet - adding to traffic view");
+                        info!("Decoded USB packet of type: {}", decoded.data_type);
+                        self.traffic_view.add_packet(data.clone(), decoded.clone());
+                        
                     
                     // Ensure handle synchronization for data processing too
                     if self.connection.is_some() && self.cynthion_handle.is_none() {
@@ -499,6 +572,10 @@ impl Application for USBflyApp {
                     // Get the user-selected speed from device view
                     let selected_speed = self.device_view.get_selected_speed();
                     info!("Starting USB traffic capture with speed: {:?}", selected_speed);
+                    
+                    // Set the decoder's speed to match the selected speed
+                    self.usb_decoder.set_speed(selected_speed);
+                    info!("Set USB decoder to use speed: {:?}", selected_speed);
                     
                     // Additional debugging for capture start
                     debug!("Preparing to start capture with Cynthion handle...");

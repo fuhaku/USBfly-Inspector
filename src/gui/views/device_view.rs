@@ -482,32 +482,53 @@ impl DeviceView {
                                 .width(Length::FillPortion(2))
                         ].padding(5).spacing(10),
                         
-                        // Add USB speed selection picker for compatible devices
-                        row![
-                            text("USB Speed:")
-                                .width(Length::FillPortion(1))
-                                .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY)),
-                            
-                            // Use different elements based on our show_speed_selection flag
-                            {let speed_control = if show_speed_selection {
-                                let pick_list = iced::widget::pick_list(
-                                    &[crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low] as &[_],
-                                    Some(self.selected_speed),
-                                    Message::SpeedSelected
-                                )
-                                .width(Length::FillPortion(2))
-                                .text_size(14)
-                                .style(iced::theme::PickList::Default);
-                                
-                                Element::from(pick_list)
-                            } else {
-                                let unavailable_text = text("Not available for this device")
-                                    .width(Length::FillPortion(2))
-                                    .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY));
+                        // Add USB speed selection picker with improved visibility and explanation
+                        column![
+                            container(
+                                row![
+                                    text("USB SPEED SETTING:")
+                                        .size(16)
+                                        .width(Length::FillPortion(1))
+                                        .style(iced::theme::Text::Color(crate::gui::styles::color::PRIMARY_DARK)),
                                     
-                                Element::from(unavailable_text)
-                            };
-                            speed_control}
+                                    // Use different elements based on our show_speed_selection flag
+                                    {let speed_control = if show_speed_selection {
+                                        let pick_list = iced::widget::pick_list(
+                                            &[crate::usb::Speed::Auto, crate::usb::Speed::High, crate::usb::Speed::Full, crate::usb::Speed::Low] as &[_],
+                                            Some(self.selected_speed),
+                                            Message::SpeedSelected
+                                        )
+                                        .width(Length::FillPortion(1))
+                                        .text_size(16)
+                                        .style(iced::theme::PickList::Primary);
+                                        
+                                        Element::from(pick_list)
+                                    } else {
+                                        let unavailable_text = text("Not available for this device")
+                                            .width(Length::FillPortion(1))
+                                            .style(iced::theme::Text::Color(crate::gui::styles::color::dark::TEXT_SECONDARY));
+                                            
+                                        Element::from(unavailable_text)
+                                    };
+                                    speed_control}
+                                ]
+                                .spacing(10)
+                                .padding(5)
+                                .align_items(iced::Alignment::Center)
+                            )
+                            .style(iced::theme::Container::Box)
+                            .padding(10),
+                            
+                            // Add explanatory text about speed selection importance
+                            container(
+                                text("IMPORTANT: Select the correct USB speed for accurate packet decoding.\nUse the same speed as the connected USB device (Auto for automatic detection).")
+                                    .size(14)
+                                    .width(Length::Fill)
+                                    .style(iced::theme::Text::Color(crate::gui::styles::color::INFO))
+                            )
+                            .width(Length::Fill)
+                            .padding(5)
+                        ]
                         ].padding(5).spacing(10),
                     ]
                     .spacing(5)
