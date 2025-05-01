@@ -702,6 +702,8 @@ impl MitmTrafficData {
 }
 
 // Generate simulated MitM traffic for testing and fallback
+#[allow(dead_code)]
+/// This function is kept for compatibility but is not used in hardware-only mode
 pub fn generate_simulated_mitm_traffic() -> Vec<u8> {
     // Create a realistic set of USB packets for a typical USB enumeration sequence
     // This simulates what might be captured during a real MitM session
