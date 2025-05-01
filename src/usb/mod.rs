@@ -3,6 +3,7 @@ pub mod descriptor_types;
 pub mod decoder;
 pub mod hints;
 pub mod mitm_traffic;
+pub mod packet_types;
 
 // Re-export commonly used types for easier access
 pub use self::descriptor_types::{
@@ -23,6 +24,8 @@ pub use self::descriptors::{
 };
 
 pub use self::decoder::{DecodedUSBData, UsbDecoder, Speed};
+
+// No need to re-export packet_types as it's already a public module
 
 // Keep this import area for future MitM traffic types as needed
 // Currently they're directly imported where used

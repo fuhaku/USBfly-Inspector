@@ -1,0 +1,391 @@
+# USBfly-Inspector Technical Implementation Plan
+
+## Architecture Analysis
+
+Based on the logs and research into Packetry, here's a systematic approach to fixing the USB packet decoding issues in USBfly-Inspector.
+
+## 1. USB Packet Structure and Protocol
+
+### Current Issues
+From the logs, we can see that the Cynthion device is sending data packets of 65536 bytes, but USBfly-Inspector is failing to recognize multiple packet types (0x5A, 0x69, 0x24, 0x1C, 0x04).
+
+### Required Changes
+
+#### 1.1 Update Packet Type Definitions
+Add support for all Cynthion packet types in your decoder:
+
+```rust
+// Define all known packet types
+pub enum PacketType {
+    Standard = 0x00,
+    Control = 0x01,
+    Status = 0x04,
+    Transaction = 0x24,
+    Transfer = 0x1C,
+    Data = 0x5A,
+    Endpoint = 0x69,
+    // Add any other packet types used by Cynthion
+}
+
+// Update packet type recognition
+pub fn recognize_packet_type(packet_type: u8) -> Option<PacketType> {
+    match packet_type {
+        0x00 => Some(PacketType::Standard),
+        0x01 => Some(PacketType::Control),
+        0x04 => Some(PacketType::Status),
+        0x24 => Some(PacketType::Transaction),
+        0x1C => Some(PacketType::Transfer),
+        0x5A => Some(PacketType::Data),
+        0x69 => Some(PacketType::Endpoint),
+        // Add other packet types
+        _ => None,
+    }
+}
+```
+
+#### 1.2 Packet Parsing Logic
+Implement proper parsing for each packet type:
+
+```rust
+pub fn parse_packet(packet_data: &[u8]) -> Result<UsbPacket, Error> {
+    if packet_data.len() < 4 {
+        return Err(Error::InsufficientData);
+    }
+    
+    let packet_type = packet_data[0];
+    match recognize_packet_type(packet_type) {
+        Some(PacketType::Standard) => parse_standard_packet(packet_data),
+        Some(PacketType::Control) => parse_control_packet(packet_data),
+        Some(PacketType::Status) => parse_status_packet(packet_data),
+        Some(PacketType::Transaction) => parse_transaction_packet(packet_data),
+        Some(PacketType::Transfer) => parse_transfer_packet(packet_data),
+        Some(PacketType::Data) => parse_data_packet(packet_data),
+        Some(PacketType::Endpoint) => parse_endpoint_packet(packet_data),
+        // Handle other packet types
+        None => {
+            // Fallback to alternative parsing strategy
+            parse_unknown_packet_type(packet_data)
+        }
+    }
+}
+```
+
+## 2. Man-in-the-Middle (MitM) Capture Mode
+
+### Current Issues
+The logs show that USBfly-Inspector is attempting to use "MitM capture mode" but is receiving empty data packets.
+
+### Required Changes
+
+#### 2.1 Fix MitM Mode Initialization
+
+```rust
+pub fn start_mitm_capture(&mut self, device: &CynthionDevice, speed: UsbSpeed) -> Result<(), Error> {
+    // First stop any existing capture
+    self.stop_capture(device)?;
+    
+    // Reset the device with proper error handling
+    match self.device_reset(device) {
+        Ok(_) => log::info!("Device reset completed successfully"),
+        Err(Error::EndpointStall) => {
+            // Some Cynthion firmware versions return STALL on reset - this is normal
+            log::warn!("Device reset command returned STALL condition (continuing anyway)");
+            // Add delay to ensure device has time to reset
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        },
+        Err(e) => return Err(e),
+    }
+    
+    // Configure device detection with proper error handling
+    match self.enable_device_detection(device) {
+        Ok(_) => log::info!("Device detection enabled successfully"),
+        Err(e) => {
+            // Log warning but continue - some devices can work without this
+            log::warn!("Failed to enable device detection: {} (may affect connected device capture)", e);
+        }
+    }
+    
+    // Set monitoring mode with reliable defaults
+    self.set_monitoring_mode(device, MonitoringMode::Full)?;
+    
+    // Start capture with the specified speed
+    self.start_capture_with_speed(device, speed)?;
+    
+    // Initialize transfer processing with larger buffers
+    self.initialize_transfer_processing(device, 65536 * 4)?;
+    
+    Ok(())
+}
+```
+
+## 3. Transfer Queue and Thread Communication
+
+### Current Issues
+The logs show a "sending on a closed channel" error, indicating issues with thread communication.
+
+### Required Changes
+
+#### 3.1 Improved Thread Communication
+
+```rust
+pub struct TransferQueue {
+    sender: mpsc::Sender<UsbData>,
+    receiver: mpsc::Receiver<UsbData>,
+    processing_thread: Option<JoinHandle<()>>,
+    shutdown_signal: Arc<AtomicBool>,
+}
+
+impl TransferQueue {
+    pub fn new() -> Self {
+        let (sender, receiver) = mpsc::channel();
+        let shutdown_signal = Arc::new(AtomicBool::new(false));
+        
+        Self {
+            sender,
+            receiver,
+            processing_thread: None,
+            shutdown_signal,
+        }
+    }
+    
+    pub fn start_processing(&mut self, device: CynthionDevice) -> Result<(), Error> {
+        let receiver = self.receiver.clone();
+        let shutdown_signal = Arc::clone(&self.shutdown_signal);
+        
+        let handle = thread::spawn(move || {
+            while !shutdown_signal.load(Ordering::Relaxed) {
+                // Process transfers...
+                
+                // Check for shutdown signal periodically
+                if shutdown_signal.load(Ordering::Relaxed) {
+                    log::info!("Shutdown signal received, exiting transfer processing thread");
+                    break;
+                }
+            }
+            
+            log::info!("Transfer processing thread completed");
+        });
+        
+        self.processing_thread = Some(handle);
+        Ok(())
+    }
+    
+    pub fn shutdown(&mut self) {
+        // Signal thread to shutdown
+        self.shutdown_signal.store(true, Ordering::Relaxed);
+        
+        // Wait for thread to complete
+        if let Some(handle) = self.processing_thread.take() {
+            handle.join().ok();
+        }
+        
+        // Clear shutdown signal for potential reuse
+        self.shutdown_signal.store(false, Ordering::Relaxed);
+    }
+}
+```
+
+## 4. Packet Decoder Implementation
+
+### Current Issues
+The decoder is failing to process packets correctly, resulting in no transactions being decoded.
+
+### Required Changes
+
+#### 4.1 Robust Decoder Implementation
+
+```rust
+pub struct UsbDecoder {
+    state: DecoderState,
+    packet_cache: Vec<u8>,
+    current_device: Option<u8>,
+    current_endpoint: Option<u8>,
+}
+
+impl UsbDecoder {
+    pub fn new() -> Self {
+        Self {
+            state: DecoderState::Idle,
+            packet_cache: Vec::with_capacity(65536),
+            current_device: None,
+            current_endpoint: None,
+        }
+    }
+    
+    pub fn decode_packet(&mut self, data: &[u8]) -> Result<Vec<UsbTransaction>, Error> {
+        if data.is_empty() {
+            log::warn!("Received empty data packet");
+            return Ok(Vec::new());
+        }
+        
+        // Try standard format first
+        if let Ok(transactions) = self.decode_standard_format(data) {
+            return Ok(transactions);
+        }
+        
+        // Try MitM format next
+        if let Ok(transactions) = self.decode_mitm_format(data) {
+            return Ok(transactions);
+        }
+        
+        // Fall back to raw format as last resort
+        self.decode_raw_format(data)
+    }
+    
+    fn decode_standard_format(&mut self, data: &[u8]) -> Result<Vec<UsbTransaction>, Error> {
+        // Implementation for standard format
+        // ...
+    }
+    
+    fn decode_mitm_format(&mut self, data: &[u8]) -> Result<Vec<UsbTransaction>, Error> {
+        let mut transactions = Vec::new();
+        let mut offset = 0;
+        
+        while offset + 16 <= data.len() {
+            let packet_type = data[offset];
+            let endpoint = data[offset + 1];
+            let device = data[offset + 2];
+            let len = ((data[offset + 3] as usize) << 8) | (data[offset + 4] as usize);
+            
+            if offset + 16 + len > data.len() {
+                break;
+            }
+            
+            let packet_data = &data[offset + 16..offset + 16 + len];
+            
+            // Process packet based on type
+            match packet_type {
+                0x00 => {
+                    // Standard packet
+                    // ...
+                },
+                0x5A => {
+                    // Data packet
+                    // ...
+                },
+                0x69 => {
+                    // Endpoint packet
+                    // ...
+                },
+                // Handle other types
+                _ => {
+                    log::debug!("Unknown packet type: 0x{:02X}", packet_type);
+                }
+            }
+            
+            offset += 16 + len;
+        }
+        
+        Ok(transactions)
+    }
+    
+    fn decode_raw_format(&mut self, data: &[u8]) -> Result<Vec<UsbTransaction>, Error> {
+        // Implementation for raw format as fallback
+        // ...
+    }
+}
+```
+
+## 5. Cynthion Device Control Commands
+
+### Current Issues
+Control commands like FULL_DEVICE_RESET and ENABLE_DEVICE_DETECTION are failing.
+
+### Required Changes
+
+#### 5.1 Robust Control Command Handling
+
+```rust
+pub enum ControlRequest {
+    StopCapture = 1,
+    EnableDeviceDetection = 2,
+    SetMonitoringMode = 3,
+    StartCapture = 4,
+    FullDeviceReset = 255,
+}
+
+pub enum ControlValue {
+    HighSpeed = 0x03,
+    FullSpeed = 0x02,
+    LowSpeed = 0x01,
+    AutoSpeed = 0x00,
+    
+    DeviceDetectionEnable = 0x01,
+    DeviceDetectionDisable = 0x00,
+    
+    MonitoringModePassive = 0x00,
+    MonitoringModeActive = 0x01,
+    MonitoringModeFull = 0x03,
+}
+
+impl CynthionDevice {
+    pub fn send_control_request(&self, request: ControlRequest, value: u16) -> Result<usize, Error> {
+        let timeout = std::time::Duration::from_millis(1000);
+        
+        match self.handle.control_out(
+            libusb::request_type(
+                libusb::Direction::Out,
+                libusb::RequestType::Vendor,
+                libusb::Recipient::Device
+            ),
+            request as u8,
+            value,
+            0,
+            &[],
+            timeout
+        ) {
+            Ok(bytes) => Ok(bytes),
+            Err(e) => {
+                // Special handling for known error conditions
+                match (request, e) {
+                    (ControlRequest::FullDeviceReset, libusb::Error::Pipe) => {
+                        // STALL is expected for some firmware versions on reset
+                        Err(Error::EndpointStall)
+                    },
+                    _ => Err(Error::UsbError(e)),
+                }
+            }
+        }
+    }
+    
+    pub fn reset_device(&self) -> Result<(), Error> {
+        // Try standard reset first
+        match self.send_control_request(ControlRequest::FullDeviceReset, 0) {
+            Ok(_) => {
+                log::info!("Device reset successful");
+                // Give device time to reset
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                Ok(())
+            },
+            Err(Error::EndpointStall) => {
+                // Some devices STALL on reset - this is normal
+                log::warn!("Full device reset command failed: endpoint STALL condition (continuing anyway)");
+                // Give device time to reset
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                Ok(())
+            },
+            Err(e) => {
+                // Fall back to alternative reset method if standard fails
+                log::warn!("Full device reset failed: {}. Trying alternative reset...", e);
+                self.alternative_reset()
+            }
+        }
+    }
+    
+    fn alternative_reset(&self) -> Result<(), Error> {
+        // Try alternative reset strategy
+        // ...
+    }
+}
+```
+
+## 6. Testing Plan
+
+1. **Basic Connectivity**: Verify basic device connection without starting capture
+2. **Control Commands**: Test each control command individually to identify specific issues
+3. **Data Reception**: Verify raw data reception without decoding
+4. **Packet Decoding**: Test packet decoder with sample data files before using live device
+5. **Full Capture**: Test full capture process with simple USB devices
+6. **Complex Devices**: Test with more complex devices like the iPhone
+
+By implementing these changes systematically, USBfly-Inspector should be able to correctly connect to the Cynthion device and decode the USB traffic data it provides.

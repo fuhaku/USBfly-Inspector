@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use log::{debug, info};
 use crate::usb::descriptors::UsbDevice;
 use crate::usb::UsbDescriptorType;
+use crate::usb::packet_types::recognize_packet_type;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
@@ -127,19 +128,32 @@ impl UsbDecoder {
         let mut decoder_clone = UsbDecoder::new();
         
         // Check if the data has a valid packet header structure
-        // Add support for more packet types we've observed
+        // Use the packet_types module to recognize packet types
         let is_standard_packet = data.len() > 2 && (
             // Standard packet types from Packetry
             data[0] == 0xD0 || data[0] == 0x90 || data[0] == 0xC0 || 
             data[0] == 0x10 || data[0] == 0x40 || data[0] == 0xA0 || 
             data[0] == 0x20 || data[0] == 0xE0 ||
-            // Alternative packet types we've observed
-            data[0] == 0xA5 || data[0] == 0x00 || data[0] == 0x23 || data[0] == 0x69
+            // Cynthion-specific packet types
+            data[0] == 0x5A || data[0] == 0x69 || data[0] == 0x24 || 
+            data[0] == 0x1C || data[0] == 0x04 || data[0] == 0x00
         );
             
         // Check if the data has a valid MitM header structure (from other capture tools)
         let is_mitm_packet = data.len() > 2 && 
             (data[0] == 0x80 || data[0] == 0x81 || data[0] == 0x82 || data[0] == 0x83);
+        
+        // Try packet type recognition using our enum
+        let packet_type_name = if data.len() > 0 {
+            match recognize_packet_type(data[0]) {
+                Some(packet_type) => format!("{:?}", packet_type),
+                None => format!("Unknown (0x{:02X})", data[0])
+            }
+        } else {
+            "Empty".to_string()
+        };
+        
+        debug!("Packet type recognized as: {}", packet_type_name);
             
         // Log what kind of packet we detected
         debug!("Decoding USB data, length={}, standard_format={}, mitm_format={}", 
@@ -369,8 +383,19 @@ impl UsbDecoder {
         let packet_type = data[0];
         let device_address = if data.len() > 1 { data[1] } else { 0 };
         
-        // Add basic packet info
-        decoded.fields.insert("Packet Type".to_string(), format!("0x{:02X}", packet_type));
+        // Add basic packet info with recognized type if available
+        match recognize_packet_type(packet_type) {
+            Some(recognized_type) => {
+                decoded.fields.insert("Packet Type".to_string(), 
+                                    format!("0x{:02X} ({:?})", packet_type, recognized_type));
+                // Set data_type based on recognized packet type
+                decoded.data_type = format!("{:?} Packet", recognized_type);
+            },
+            None => {
+                decoded.fields.insert("Packet Type".to_string(), format!("0x{:02X} (Unknown)", packet_type));
+            }
+        }
+        
         decoded.fields.insert("Device Address".to_string(), format!("{}", device_address));
         
         // Identify packet type
