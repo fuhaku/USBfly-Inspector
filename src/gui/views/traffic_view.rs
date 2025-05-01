@@ -63,10 +63,14 @@ pub enum TreeNodeType {
     BulkTransfer, // Bulk transfer
     InterruptTransfer, // Interrupt transfer
     IsochronousTransfer, // Isochronous transfer
+    #[allow(dead_code)]
     ClassRequest, // Class-specific request
+    #[allow(dead_code)]
     VendorRequest, // Vendor-specific request
+    #[allow(dead_code)]
     StandardRequest, // Standard request
     Unknown,
+    #[allow(dead_code)]
     Other,       // Other/Unknown transaction types
 }
 
@@ -83,6 +87,7 @@ pub struct TrafficView {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    #[allow(dead_code)]
     ItemSelected(usize),
     FilterChanged(String),
     ToggleAutoScroll(bool),

@@ -509,6 +509,7 @@ pub struct MitmTrafficData {
 }
 
 impl MitmTrafficData {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         MitmTrafficData {
             transactions: Vec::new(),
@@ -518,11 +519,13 @@ impl MitmTrafficData {
     }
     
     // Add a transaction to the traffic data
+    #[allow(dead_code)]
     pub fn add_transaction(&mut self, transaction: UsbTransaction) {
         self.transactions.push(transaction);
     }
     
     // Get transactions organized by device and endpoint for hierarchical display
+    #[allow(dead_code)]
     pub fn get_hierarchical_transactions(&self) -> HashMap<u8, HashMap<u8, Vec<&UsbTransaction>>> {
         let mut hierarchy: HashMap<u8, HashMap<u8, Vec<&UsbTransaction>>> = HashMap::new();
         
@@ -544,6 +547,7 @@ impl MitmTrafficData {
     }
     
     // Analyze transactions to identify USB descriptors
+    #[allow(dead_code)]
     pub fn extract_descriptors(&mut self) {
         for transaction in &self.transactions {
             if transaction.transfer_type == UsbTransferType::Control {
@@ -600,6 +604,7 @@ impl MitmTrafficData {
     }
     
     // Get transaction details suitable for display
+    #[allow(dead_code)]
     pub fn get_transaction_details(&self, transaction_id: u64) -> HashMap<String, String> {
         let mut details = HashMap::new();
         
@@ -812,6 +817,8 @@ pub fn generate_simulated_mitm_traffic() -> Vec<u8> {
 }
 
 // Function to decode a MitM USB packet
+#[allow(dead_code)]
+#[allow(dead_code)]
 pub fn decode_mitm_packet(raw_data: &[u8], timestamp: f64, counter: u64) -> Option<UsbTransaction> {
     // Need at least 2 bytes for packet header
     if raw_data.len() < 2 {

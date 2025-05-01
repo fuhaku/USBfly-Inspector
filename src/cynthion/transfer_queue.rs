@@ -8,11 +8,12 @@ use anyhow::{Context, Error};
 use futures_channel::oneshot;
 use futures_util::{future::FusedFuture, FutureExt, select_biased};
 use log::{debug, error, info, warn};
-use nusb::{Interface, transfer::{Completion, Queue, RequestBuffer, TransferError}};
+use nusb::{Interface, transfer::{Queue, RequestBuffer, TransferError}}; // Removed unused Completion
 
 // Import only what we need from Packetry's approach
 
 // Constants
+#[allow(dead_code)]
 const TIMEOUT: Duration = Duration::from_millis(1000);
 
 /// A queue of inbound USB transfers, feeding received data to a channel.
@@ -136,6 +137,7 @@ impl TransferQueue {
     }
     
     /// Clean up resources on shutdown - cancel all pending transfers
+    #[allow(dead_code)]
     pub fn shutdown(&mut self) {
         info!("Shutting down transfer queue");
         self.queue.cancel_all();

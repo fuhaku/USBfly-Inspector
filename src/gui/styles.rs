@@ -32,7 +32,9 @@ pub mod color {
     pub const USB_GREEN: Color = Color::from_rgb(0.0, 0.8, 0.4);     // USB logo green
     pub const USB_YELLOW: Color = Color::from_rgb(0.9, 0.8, 0.0);    // Yellow for status packets
     pub const USB_CYAN: Color = Color::from_rgb(0.0, 0.8, 0.8);      // Cyan for isochronous
+    #[allow(dead_code)]
     pub const USB_MAGENTA: Color = Color::from_rgb(0.9, 0.2, 0.8);   // Magenta for setup packets
+    #[allow(dead_code)]
     pub const CODE_GREEN: Color = Color::from_rgb(0.0, 0.7, 0.2);    // Green for code
     #[allow(dead_code)]
     pub const PCB_GREEN: Color = Color::from_rgb(0.0, 0.5, 0.3);     // PCB color
@@ -78,6 +80,7 @@ pub mod color {
         pub const USB_GREEN: Color = Color::from_rgb(0.2, 1.0, 0.6);     // Brighter USB logo green
         pub const USB_YELLOW: Color = Color::from_rgb(1.0, 0.9, 0.2);    // Yellow for status packets
         pub const USB_CYAN: Color = Color::from_rgb(0.2, 0.9, 1.0);      // Cyan for isochronous
+        #[allow(dead_code)]
         pub const USB_MAGENTA: Color = Color::from_rgb(1.0, 0.4, 0.9);   // Magenta for setup packets
         #[allow(dead_code)]
         pub const PCB_GREEN: Color = Color::from_rgb(0.1, 0.6, 0.4);     // PCB color
@@ -91,6 +94,7 @@ pub mod color {
         pub const GRID_LINES: Color = Color::from_rgba(0.3, 0.9, 0.8, 0.15); // Cyan grid lines
         #[allow(dead_code)]
         pub const GLOW: Color = Color::from_rgba(0.0, 0.8, 0.8, 0.3);    // Cyan glow effect
+        #[allow(dead_code)]
         pub const CODE_GREEN: Color = Color::from_rgb(0.0, 0.8, 0.3);    // Matrix-like green text
     }
 }

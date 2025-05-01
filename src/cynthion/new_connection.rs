@@ -60,12 +60,16 @@ use crate::cynthion::transfer_queue::TransferQueue;
 // Constants for Cynthion device connection
 pub const CYNTHION_VID: u16 = 0x1d50;
 pub const CYNTHION_PID: u16 = 0x615b;    // Original Cynthion firmware VID/PID
+#[allow(dead_code)]
 const CLASS: u8 = 0xff;                  // Vendor-specific class
+#[allow(dead_code)]
 const SUBCLASS: u8 = 0x10;               // USB analysis subclass
+#[allow(dead_code)]
 const PROTOCOL: u8 = 0x01;               // Cynthion protocol version
 const ENDPOINT: u8 = 0x81;               // Bulk in endpoint for receiving data
 const READ_LEN: usize = 0x4000;          // 16K buffer size for transfers
 const NUM_TRANSFERS: usize = 4;          // Number of concurrent transfers
+#[allow(dead_code)]
 const TIMEOUT: Duration = Duration::from_millis(1000);
 
 // Additional compatible devices
@@ -80,7 +84,9 @@ const GREATFET_ONE_PID: u16 = 0x60e6;
 pub struct CynthionDevice {
     device_info: DeviceInfo,
     interface_number: u8,
+    #[allow(dead_code)]
     alt_setting_number: u8,
+    #[allow(dead_code)]
     supported_speeds: Vec<ConnectionSpeed>,
 }
 
@@ -422,6 +428,7 @@ impl CynthionHandle {
     }
     
     // Configure the built-in test device (if available)
+    #[allow(dead_code)]
     pub fn configure_test_device(&mut self, speed: Option<ConnectionSpeed>) -> Result<()> {
         let test_config = TestConfig::new(speed);
         self.write_request(3, test_config.0)
@@ -471,6 +478,7 @@ impl CynthionHandle {
     }
     
     // Begin capture and return a queue for processing transfers
+    #[allow(dead_code)]
     pub fn begin_capture(
         &mut self,
         data_tx: mpsc::Sender<Vec<u8>>
@@ -483,29 +491,34 @@ impl CynthionHandle {
     }
     
     // End capture
+    #[allow(dead_code)]
     pub fn end_capture(&mut self) -> Result<()> {
         self.stop_capture()
     }
     
     // Get device information
+    #[allow(dead_code)]
     pub fn vendor_id(&self) -> u16 {
         self.device_info.vendor_id()
     }
-    
+    #[allow(dead_code)]
     pub fn product_id(&self) -> u16 {
         self.device_info.product_id()
     }
     
+    #[allow(dead_code)]
     pub fn manufacturer(&self) -> &str {
         self.device_info.manufacturer_string()
             .unwrap_or("Unknown Manufacturer")
     }
     
+    #[allow(dead_code)]
     pub fn product(&self) -> &str {
         self.device_info.product_string()
             .unwrap_or("Unknown Device")
     }
     
+    #[allow(dead_code)]
     pub fn serial_number(&self) -> &str {
         self.device_info.serial_number()
             .unwrap_or("N/A")
@@ -541,12 +554,14 @@ impl CynthionHandle {
     }
     
     // Check if device is connected
+    #[allow(dead_code)]
     pub fn is_connected(&self) -> bool {
         // For now, if we have an interface, we're considered connected
         true
     }
     
     // Clear capture buffer (simulation only)
+    #[allow(dead_code)]
     pub fn clear_capture_buffer(&mut self) -> Result<()> {
         // Real hardware doesn't need to clear buffer as it streams constantly
         Ok(())
@@ -875,21 +890,21 @@ impl CynthionHandle {
                 let setup_data = &data[offset+4..offset+4+8]; // Standard setup packet is 8 bytes
                 
                 // Extract setup packet fields
-                let bmRequestType = setup_data[0];
-                let bRequest = setup_data[1];
-                let wValue = u16::from_le_bytes([setup_data[2], setup_data[3]]);
-                let wIndex = u16::from_le_bytes([setup_data[4], setup_data[5]]);
-                let wLength = u16::from_le_bytes([setup_data[6], setup_data[7]]);
+                let bm_request_type = setup_data[0];
+                let b_request = setup_data[1];
+                let w_value = u16::from_le_bytes([setup_data[2], setup_data[3]]);
+                let w_index = u16::from_le_bytes([setup_data[4], setup_data[5]]);
+                let w_length = u16::from_le_bytes([setup_data[6], setup_data[7]]);
                 
                 // Determine request type and recipient
-                let request_type = match (bmRequestType >> 5) & 0x03 {
+                let request_type = match (bm_request_type >> 5) & 0x03 {
                     0 => crate::usb::mitm_traffic::UsbControlRequestType::Standard,
                     1 => crate::usb::mitm_traffic::UsbControlRequestType::Class,
                     2 => crate::usb::mitm_traffic::UsbControlRequestType::Vendor,
                     _ => crate::usb::mitm_traffic::UsbControlRequestType::Reserved,
                 };
                 
-                let recipient = match bmRequestType & 0x1F {
+                let recipient = match bm_request_type & 0x1F {
                     0 => crate::usb::mitm_traffic::UsbControlRecipient::Device,
                     1 => crate::usb::mitm_traffic::UsbControlRecipient::Interface,
                     2 => crate::usb::mitm_traffic::UsbControlRecipient::Endpoint,
@@ -899,7 +914,7 @@ impl CynthionHandle {
                 
                 // Determine standard request type for standard requests
                 let standard_request = if request_type == crate::usb::mitm_traffic::UsbControlRequestType::Standard {
-                    match bRequest {
+                    match b_request {
                         0x00 => Some(crate::usb::mitm_traffic::UsbStandardRequest::GetStatus),
                         0x01 => Some(crate::usb::mitm_traffic::UsbStandardRequest::ClearFeature),
                         0x03 => Some(crate::usb::mitm_traffic::UsbStandardRequest::SetFeature),
@@ -919,20 +934,20 @@ impl CynthionHandle {
                 
                 // Create description for the request
                 let request_description = match standard_request {
-                    Some(req) => format!("{}(wValue=0x{:04X}, wIndex=0x{:04X}, wLength={})", 
+                    Some(req) => format!("{}(w_value=0x{:04X}, w_index=0x{:04X}, w_length={})", 
                                          format!("{:?}", req).replace("UsbStandardRequest::", ""),
-                                         wValue, wIndex, wLength),
+                                         w_value, w_index, w_length),
                     None => format!("Request: 0x{:02X} (Type: {:?}, Recipient: {:?})",
-                                  bRequest, request_type, recipient),
+                                  b_request, request_type, recipient),
                 };
                 
                 // Add the setup packet to the transaction
                 transaction.setup_packet = Some(crate::usb::mitm_traffic::UsbSetupPacket {
-                    bmRequestType,
-                    bRequest,
-                    wValue,
-                    wIndex,
-                    wLength,
+                    bmRequestType: bm_request_type,
+                    bRequest: b_request,
+                    wValue: w_value,
+                    wIndex: w_index,
+                    wLength: w_length,
                     direction,
                     request_type,
                     recipient,
@@ -1140,6 +1155,7 @@ impl CynthionHandle {
 }
 
 // Processing stream for converting USB capture data into packets
+#[allow(dead_code)]
 pub struct CynthionStream {
     receiver: mpsc::Receiver<Vec<u8>>,
     buffer: VecDeque<u8>,
@@ -1148,6 +1164,7 @@ pub struct CynthionStream {
 
 impl CynthionStream {
     // Create a new processing stream
+    #[allow(dead_code)]
     pub fn new(receiver: mpsc::Receiver<Vec<u8>>) -> CynthionStream {
         CynthionStream {
             receiver,
@@ -1157,6 +1174,7 @@ impl CynthionStream {
     }
     
     // Process captured data into a formatted packet
+    #[allow(dead_code)]
     pub fn next_packet(&mut self) -> Option<Vec<u8>> {
         loop {
             // First check if we have a complete packet in the buffer
@@ -1184,6 +1202,7 @@ impl CynthionStream {
     }
     
     // Helper to peek at the packet length
+    #[allow(dead_code)]
     fn peek_packet_len(&self) -> usize {
         let mut len_bytes = [0u8; 4];
         for (i, &byte) in self.buffer.iter().take(4).enumerate() {
@@ -1195,6 +1214,7 @@ impl CynthionStream {
     }
     
     // Extract a complete packet from the buffer
+    #[allow(dead_code)]
     fn extract_packet(&mut self, packet_len: usize) -> Vec<u8> {
         // Remove the length bytes
         for _ in 0..4 {

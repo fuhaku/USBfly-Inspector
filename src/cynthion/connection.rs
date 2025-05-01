@@ -31,10 +31,15 @@ impl Speed {
 pub const CYNTHION_VID: u16 = 0x1d50;
 pub const CYNTHION_PID: u16 = 0x615b;    // Cynthion firmware VID/PID
 const CLASS: u8 = 0xff;                  // Vendor-specific class
+#[allow(dead_code)]
 const SUBCLASS: u8 = 0x10;               // USB analysis subclass 
+#[allow(dead_code)]
 const PROTOCOL: u8 = 0x01;               // Cynthion protocol version
+#[allow(dead_code)]
 const ENDPOINT: u8 = 0x81;               // Bulk in endpoint for receiving data
+#[allow(dead_code)]
 const READ_LEN: usize = 0x4000;          // 16k buffer size
+#[allow(dead_code)]
 const NUM_TRANSFERS: usize = 4;          // Number of concurrent transfers
 const TIMEOUT: Duration = Duration::from_millis(1000);
 
@@ -50,14 +55,18 @@ const GADGETCAP_VID: u16 = 0x1d50;
 const GADGETCAP_PID: u16 = 0x6018;
 
 // Commands from Packetry
+#[allow(dead_code)]
 const VENDOR_REQUEST_IN: u8 = 0xC0;
+#[allow(dead_code)]
 const VENDOR_REQUEST_OUT: u8 = 0x40;
 
 // Commands specific to our MitM implementation (until migration is complete)
 const CMD_SET_CAPTURE_MODE: u8 = 0x01;
 const CMD_GET_CAPTURED_DATA: u8 = 0x02;
 const CMD_START_CAPTURE: u8 = 0x03;
+#[allow(dead_code)]
 const CMD_STOP_CAPTURE: u8 = 0x04;
+#[allow(dead_code)]
 const CMD_CLEAR_BUFFER: u8 = 0x05;
 
 // Endpoints for communication
@@ -71,29 +80,35 @@ const CYNTHION_INTERFACE: u8 = 0x00;  // Default interface for Cynthion devices
 // Capture mode constants
 const CAPTURE_MODE_ALL: u8 = 0;
 const CAPTURE_MODE_HOST_TO_DEVICE: u8 = 1;
+#[allow(dead_code)]
 const CAPTURE_MODE_DEVICE_TO_HOST: u8 = 2;
+#[allow(dead_code)]
 const CAPTURE_MODE_SETUP_ONLY: u8 = 3;
 
 // Old config structures removed for compatibility
 // We'll use the structures in new_connection.rs instead
 
 // Placeholder struct - we don't use these anymore
+#[allow(dead_code)]
 struct State {
     value: u8
 }
 
 impl State {
+    #[allow(dead_code)]
     fn new(_enable: bool, _speed: Speed) -> u8 {
         0 // This is a placeholder - implementation moved to new_connection
     }
 }
 
 // Placeholder struct - we don't use these anymore
+#[allow(dead_code)]
 struct TestConfig {
     value: u8
 }
 
 impl TestConfig {
+    #[allow(dead_code)]
     fn new(_speed: Option<Speed>) -> u8 {
         0 // This is a placeholder - implementation moved to new_connection
     }
@@ -130,6 +145,7 @@ pub struct CynthionConnection {
 
 impl CynthionConnection {
     // Get a list of all connected USB devices
+    #[allow(dead_code)]
     pub fn list_devices() -> Result<Vec<USBDeviceInfo>> {
         // Check if a refresh was forced by a button press
         let force_refresh = std::env::var("USBFLY_FORCE_REFRESH").is_ok();
@@ -368,6 +384,7 @@ impl CynthionConnection {
     }
     
     // Check if a device is a supported analyzer
+    #[allow(dead_code)]
     pub fn is_supported_device(vid: u16, pid: u16) -> bool {
         // Helper function to log support status
         fn log_device_support(vid: u16, pid: u16, supported: bool) -> bool {
@@ -409,6 +426,7 @@ impl CynthionConnection {
     }
     
     // Create a simulated connection for environments without USB access
+    #[allow(dead_code)]
     pub fn create_simulation() -> Self {
         info!("Creating simulated Cynthion connection (no USB hardware access)");
         Self {
@@ -419,6 +437,7 @@ impl CynthionConnection {
     }
     
     // Check if we're in simulation mode based on environment variable
+    #[allow(dead_code)]
     pub fn is_env_simulation_mode() -> bool {
         // CRITICAL CHECK: First check for force hardware flag, which overrides all other settings
         // This is intended to be set in production environments to ensure real hardware is used
@@ -519,10 +538,12 @@ impl CynthionConnection {
     }
     
     // Check if this specific connection instance is in simulation mode
+    #[allow(dead_code)]
     pub fn is_simulation_mode(&self) -> bool {
         self.simulation_mode
     }
     
+    #[allow(dead_code)]
     pub fn test_capture_capability(&mut self) -> anyhow::Result<bool> {
         use log::debug;
         debug!("Testing device capture capability");
@@ -591,6 +612,7 @@ impl CynthionConnection {
     }
     
     // Set simulation mode explicitly
+    #[allow(dead_code)]
     pub fn set_simulation_mode(&mut self, enabled: bool) {
         if enabled && !self.simulation_mode {
             info!("Setting connection to simulation mode for safer operation");
@@ -602,6 +624,7 @@ impl CynthionConnection {
     }
     
     // Set a read timeout for USB operations
+    #[allow(dead_code)]
     pub fn set_read_timeout(&mut self, timeout: Option<std::time::Duration>) -> Result<()> {
         // If in simulation mode, just acknowledge the timeout setting
         if self.simulation_mode {
@@ -620,11 +643,13 @@ impl CynthionConnection {
     }
     
     // Force simulation mode off - used when we know a real device is connected
+    #[allow(dead_code)]
     pub fn force_real_device_mode() {
         std::env::set_var("USBFLY_SIMULATION_MODE", "0");
     }
     
     // Helper method to complete device connection - must use GlobalContext for compatibility with struct
+    #[allow(dead_code)]
     fn connect_to_device(device: rusb::Device<rusb::GlobalContext>) -> Result<Self> {
         // Before opening the device, get the descriptor first
         let descriptor = match device.device_descriptor() {
@@ -783,6 +808,7 @@ impl CynthionConnection {
         }
     }
     
+    #[allow(dead_code)]
     pub async fn connect() -> Result<Self> {
         // On macOS, we need to be more aggressive about forcing hardware mode
         #[cfg(target_os = "macos")]
@@ -984,6 +1010,7 @@ impl CynthionConnection {
         }
     }
     
+    #[allow(dead_code)]
     pub fn disconnect(&mut self) -> Result<()> {
         // Always mark as inactive first to prevent new read operations
         self.active = false;
@@ -1033,6 +1060,7 @@ impl CynthionConnection {
     }
     
     // Get a list of simulated USB devices
+    #[allow(dead_code)]
     pub fn get_simulated_devices() -> Vec<USBDeviceInfo> {
         vec![
             USBDeviceInfo {
@@ -1053,6 +1081,7 @@ impl CynthionConnection {
     }
     
     // Generate simulated USB data for testing 
+    #[allow(dead_code)]
     fn get_simulated_data(&self) -> Vec<u8> {
         // Generate realistic simulated USB descriptor data for a Cynthion device
         // This is a complete descriptor set including device, configuration, interface, endpoint descriptors
@@ -1145,6 +1174,7 @@ impl CynthionConnection {
     
     // Generate simulated MitM USB traffic from a connected device through Cynthion
     // This simulates what would be captured when Cynthion is placed between a host and device
+    #[allow(dead_code)]
     pub fn get_simulated_mitm_traffic(&self) -> Vec<u8> {
         // Track simulation state through a counter in the environment variable
         let counter: u32 = match std::env::var("USBFLY_SIM_COUNTER") {
@@ -1196,6 +1226,7 @@ impl CynthionConnection {
     
     // This function performs the actual data reading synchronously 
     // Returns a byte buffer with the data read from the device
+    #[allow(dead_code)]
     fn read_data_sync(&mut self) -> Result<Vec<u8>> {
         // Check active state up front
         if !self.active {
@@ -1326,6 +1357,7 @@ impl CynthionConnection {
     
     // This version allows avoiding holding a MutexGuard across an await point
     // It's simpler, returning Result directly rather than a future
+    #[allow(dead_code)]
     pub fn read_data_clone(&mut self) -> Result<Vec<u8>> {
         // First check connection state to avoid potential issues
         if !self.active {
@@ -1351,6 +1383,7 @@ impl CynthionConnection {
     
     // Thread-safe method to read MitM traffic flowing through the Cynthion
     // This captures traffic between the host and the device connected to Cynthion
+    #[allow(dead_code)]
     pub fn read_mitm_traffic_clone(&mut self) -> Result<Vec<u8>> {
         // First check connection state
         if !self.active {
@@ -1432,6 +1465,7 @@ impl CynthionConnection {
     
     // Helper function to analyze USB packet headers for debugging
     // Non-mutable version of send_command for testing device capabilities
+    #[allow(dead_code)]
     pub fn send_test_command(&self, handle: &rusb::DeviceHandle<rusb::GlobalContext>, command: &[u8]) -> Result<()> {
         // Safety check for connection state
         if !self.active {
@@ -1462,6 +1496,7 @@ impl CynthionConnection {
         Ok(())
     }
     
+    #[allow(dead_code)]
     fn analyze_packet_headers(data: &[u8]) {
         if data.len() < 2 {
             debug!("MitM analysis: Data too short for packet analysis");
@@ -1522,6 +1557,7 @@ impl CynthionConnection {
     }
     
     // Send a command to the Cynthion device 
+    #[allow(dead_code)]
     pub fn send_command(&mut self, command: &[u8]) -> Result<()> {
         if !self.active {
             return Err(anyhow!("Not connected"));
@@ -1548,6 +1584,7 @@ impl CynthionConnection {
     }
     
     // Start capturing USB traffic (MitM mode)
+    #[allow(dead_code)]
     pub fn start_capture(&mut self) -> Result<()> {
         info!("Starting USB traffic capture (MitM mode)");
         
@@ -1557,6 +1594,7 @@ impl CynthionConnection {
     }
     
     // Stop capturing USB traffic
+    #[allow(dead_code)]
     pub fn stop_capture(&mut self) -> Result<()> {
         info!("Stopping USB traffic capture");
         
@@ -1566,6 +1604,7 @@ impl CynthionConnection {
     }
     
     // Clear the capture buffer
+    #[allow(dead_code)]
     pub fn clear_capture_buffer(&mut self) -> Result<()> {
         info!("Clearing capture buffer");
         
@@ -1575,6 +1614,7 @@ impl CynthionConnection {
     }
     
     // Set capture mode (all traffic, host-to-device only, etc)
+    #[allow(dead_code)]
     pub fn set_capture_mode(&mut self, mode: u8) -> Result<()> {
         info!("Setting capture mode to {}", match mode {
             CAPTURE_MODE_ALL => "All Traffic",
@@ -1590,6 +1630,7 @@ impl CynthionConnection {
     }
     
     // Request captured USB traffic from the Cynthion device
+    #[allow(dead_code)]
     pub async fn get_captured_traffic(&mut self) -> Result<Vec<u8>> {
         debug!("Requesting captured USB traffic from Cynthion");
         
@@ -1631,6 +1672,7 @@ impl CynthionConnection {
     }
     
     // Check if this is a real hardware device (not simulated)
+    #[allow(dead_code)]
     pub fn is_real_hardware_device(&self) -> bool {
         // First check the simulation mode flag
         if self.simulation_mode {
@@ -1647,6 +1689,7 @@ impl CynthionConnection {
     }
     
     // Process MitM traffic and decode USB transactions
+    #[allow(dead_code)]
     pub fn process_mitm_traffic(&self, raw_data: &[u8]) -> Vec<crate::usb::mitm_traffic::UsbTransaction> {
         use log::{debug, trace};
         

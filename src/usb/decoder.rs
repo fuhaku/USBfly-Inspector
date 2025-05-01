@@ -14,6 +14,7 @@ pub enum Speed {
 }
 
 impl Speed {
+    #[allow(dead_code)]
     pub fn mask(&self) -> u8 {
         1 << (*self as u8)
     }
